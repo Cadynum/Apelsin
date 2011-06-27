@@ -41,7 +41,7 @@ defaultConfig = Config {
 	, filterClans	= ""
 	, delays	= Delay (400*1000) 2 (5*1000)
 	, colors	= makeColorsFromList $
-		TFNone : (map TFColor ["red", "green", "yellow", "blue", "cyan", "magenta"]) ++ [TFNone]
+		TFNone : (map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"]) ++ [TFNone]
 
 }
 

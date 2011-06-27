@@ -210,9 +210,9 @@ numberedColors = do
 			bool <- get c toggleButtonActive
 			set b [ widgetSensitive := if bool then True else False ]
 		miscSetAlignment a 0.5 0
-		tableAttach tbl a pos (pos+1) 0 1 [Fill] [] g_SPACING spacingHalf
-		tableAttach tbl b pos (pos+1) 1 2 [Fill] [] g_SPACING spacingHalf
-		tableAttach tbl c pos (pos+1) 2 3 [] [] g_SPACING spacingHalf
+		tableAttach tbl a pos (pos+1) 0 1 [Fill] [] spacingHalf spacingHalf
+		tableAttach tbl b pos (pos+1) 1 2 [Fill] [] spacingHalf spacingHalf
+		tableAttach tbl c pos (pos+1) 2 3 [] [] spacingHalf spacingHalf
 		return (b, c)
 	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
 
