@@ -1,4 +1,5 @@
 import Graphics.UI.Gtk
+import System.Glib.GError
 
 import Control.Applicative
 import Control.DeepSeq
@@ -144,6 +145,10 @@ main = withSocketsDo $ do
 			writeFile file $ show (winw, winh, ppos)
 		mainQuit
 
+	handleGError (const $ putStrLn "Window icon not found") $ do
+		winicon <- pixbufNewFromFileAtSize "icon16.png" 32 32
+		set win [ windowIcon := Just winicon ]
+		
 	-- Without allowshrink the window may change size back and forth when selecting new servers
 	set win [ containerChild	:= pane
 		, windowTitle		:= fullProgramName
