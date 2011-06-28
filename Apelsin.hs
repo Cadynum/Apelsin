@@ -146,7 +146,7 @@ main = withSocketsDo $ do
 		mainQuit
 
 	handleGError (const $ putStrLn "Window icon not found") $ do
-		winicon <- pixbufNewFromFileAtSize "icon16.png" 32 32
+		winicon <- pixbufNewFromFile "icon16.png"
 		set win [ windowIcon := Just winicon ]
 		
 	-- Without allowshrink the window may change size back and forth when selecting new servers
