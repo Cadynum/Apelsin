@@ -1,6 +1,7 @@
 import Graphics.UI.Gtk
 import System.Glib.GError
-
+import System.Directory
+import System.FilePath.Posix ((</>))
 import Control.Applicative
 import Control.DeepSeq
 import Control.Monad.IO.Class
@@ -42,7 +43,7 @@ main = withSocketsDo $ do
 	preferences				<- newPreferences mconfig
 	
 	-- /// Toolbar /////////////////////////////////////////////////////////////////////////////
-
+	
 	pbrbox <- hBoxNew False g_SPACING
 		
 	pb		<- progressBarNew
@@ -58,7 +59,7 @@ main = withSocketsDo $ do
 
 	on about buttonActivated $ newAbout
 			
-	(clanSync, doSync)	<- newClanSync mconfig mclans (clanlistUpdate >> onlineclansUpdate)	
+	(clanSync, doSync) <- newClanSync mconfig mclans (clanlistUpdate >> onlineclansUpdate)	
 	
 	align		<- alignmentNew 0 0 0 0
 	alignbox	<- hBoxNew False g_SPACING
@@ -146,7 +147,7 @@ main = withSocketsDo $ do
 		mainQuit
 
 	handleGError (const $ putStrLn "Window icon not found") $ do
-		winicon <- pixbufNewFromFile "icon16.png"
+		winicon <- pixbufNewFromFile =<< fromDataDir "icon16.png"
 		set win [ windowIcon := Just winicon ]
 		
 	-- Without allowshrink the window may change size back and forth when selecting new servers
