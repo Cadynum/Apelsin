@@ -59,8 +59,9 @@ newPreferences mconfig = do
 	(internals, ibox) <- framedVBox "Polling Internals"
 	ilbl <- labelNew $ Just "The throughput limit should be set as low as possible while pings remain correct.\n\
 	\The time taken by \"Refresh all servers\" is timeout * (duplication + 1)"
+	set ilbl	[ labelWrap	:= True ]
 	miscSetAlignment ilbl 0 0
-	labelSetLineWrap ilbl True
+	--labelSetLineWrap ilbl True
 	boxPackStart ibox itbl PackNatural 0
 	boxPackStart ibox ilbl PackNatural 0
 
