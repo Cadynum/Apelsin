@@ -20,8 +20,8 @@ newPreferences :: TMVar Config -> IO ScrolledWindow
 newPreferences mconfig = do
 	-- Default filters
 	
-	(tbl, [filterBrowser', filterPlayers', filterClans']) <-
-		configTable ["_Browser:", "Find _players:", "Clan _list:"]
+	(tbl, [filterBrowser', filterPlayers']) <-
+		configTable ["_Browser:", "Find _players:"]
 	filters <- newLabeledFrame "Default filters"
 	set filters [ containerChild := tbl]
 
@@ -77,7 +77,6 @@ newPreferences mconfig = do
 	on apply buttonActivated $ do
 		filterBrowser	<- get filterBrowser' entryText
 		filterPlayers	<- get filterPlayers' entryText
-		filterClans	<- get filterClans' entryText
 		tremPath	<- get tremPath' entryText
 		tremGppPath	<- get tremGppPath' entryText
 		autoMaster	<- get startupMaster toggleButtonActive
@@ -94,7 +93,7 @@ newPreferences mconfig = do
 					else
 						return TFNone
 		old		<- atomically $ takeTMVar mconfig
-		let new		= old {filterBrowser, filterPlayers, filterClans, autoMaster
+		let new		= old {filterBrowser, filterPlayers, autoMaster
 				, autoClan, autoGeometry, tremPath, tremGppPath
 				, colors = makeColorsFromList rawcolors
 				, delays = Delay{..}}
@@ -119,7 +118,6 @@ newPreferences mconfig = do
 		Config {..} 		<- atomically $ readTMVar mconfig
 		set filterBrowser'	[ entryText := filterBrowser ]
 		set filterPlayers'	[ entryText := filterPlayers ]
-		set filterClans'	[ entryText := filterClans ]
 		set tremPath'		[ entryText := tremPath ]
 		set tremGppPath'	[ entryText := tremGppPath ]
 		set startupMaster	[ toggleButtonActive := autoMaster ]

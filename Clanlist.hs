@@ -2,7 +2,7 @@ module Clanlist where
 
 import Graphics.UI.Gtk
 import qualified Data.ByteString.Char8 as B
-import qualified Data.Function as F
+import Data.Ord
 import Control.Concurrent
 import Control.Concurrent.STM
 import Tremulous.NameInsensitive
@@ -21,8 +21,8 @@ import FilterBar
 import InfoBox
 import Config
 
-newClanList :: TMVar [Clan] -> TMVar Config -> IO (VBox, IO ())
-newClanList mclans mconfig = do
+newClanList :: TMVar [Clan] -> IO (VBox, IO ())
+newClanList mclans = do
 	raw			<- listStoreNew []
 	filtered		<- treeModelFilterNew raw []
 	sorted			<- treeModelSortNewWithModel filtered	
@@ -30,8 +30,8 @@ newClanList mclans mconfig = do
 	scrollview		<- scrollIt view PolicyAutomatic PolicyAlways
 	
 	(infobox, statNow, statTot) <- newInfobox "clans"
-	Config {filterClans}	<- atomically $ readTMVar mconfig
-	(filterbar, current)	<- newFilterBar filtered statNow filterClans
+
+	(filterbar, current)	<- newFilterBar filtered statNow ""
 	
 	let updateF = do
 		new <- atomically $ readTMVar mclans
@@ -43,9 +43,9 @@ newClanList mclans mconfig = do
 		n <- treeModelIterNChildren filtered Nothing
 		set statNow [ labelText := show n ]
 		
-	addColumnsFilterSort raw filtered sorted view (Just (compare `F.on` name)) [
-		  ("_Name"	, False	, True	, False	, unpackorig . name	, Just (compare `F.on` name))
-		, ("_Tag"	, False	, True	, False	, unpackorig . tag	, Just (compare `F.on` tag))
+	addColumnsFilterSort raw filtered sorted view (Just (comparing name)) [
+		  ("_Name"	, False	, True	, False	, unpackorig . name	, Just (comparing name))
+		, ("_Tag"	, False	, True	, False	, unpackorig . tag	, Just (comparing tag))
 		, ("Website"	, False	, True	, False	, B.unpack . website	, Nothing)
 		, ("IRC"	, False	, True	, False	, B.unpack . irc	, Nothing)
 		]
@@ -135,7 +135,7 @@ buildTree = filter notEmpty . foldr f [] where
 	notEmpty _		= True
 --f tag x = 
 
-sortByPlayers = sortBy (compare `F.on` (length . snd))
+sortByPlayers = sortBy (comparing (length . snd))
 
 newClanSync mconfig mclans updateF = do
 	button	<- buttonNewWithMnemonic "_Sync clan list"

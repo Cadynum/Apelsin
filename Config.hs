@@ -20,8 +20,7 @@ data Config = Config {
 	, autoClan
 	, autoGeometry	:: !Bool
 	, filterBrowser
-	, filterPlayers
-	, filterClans	:: !String
+	, filterPlayers	:: !String
 	, delays	:: !Delay
 	, colors	:: !ColorTheme
 	} deriving (Show, Read)
@@ -38,13 +37,11 @@ defaultConfig = Config {
 	, autoGeometry	= True
 	, filterBrowser	= ""
 	, filterPlayers	= ""
-	, filterClans	= ""
 	, delays	= Delay (400*1000) 2 (2*1000)
 	, colors	= makeColorsFromList $
 		TFNone : (map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"]) ++ [TFNone]
-
-}
-
+	} 
+makeColorsFromList :: [e] -> Array Int e
 makeColorsFromList = listArray (0,7)
 
 configToFile :: Config -> IO ()

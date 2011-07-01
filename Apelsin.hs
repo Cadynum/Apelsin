@@ -1,7 +1,5 @@
 import Graphics.UI.Gtk
 import System.Glib.GError
-import System.Directory
-import System.FilePath.Posix ((</>))
 import Control.Applicative
 import Control.DeepSeq
 import Control.Monad.IO.Class
@@ -38,7 +36,7 @@ main = withSocketsDo $ do
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo mvar mconfig
 	(browser, browserUpdate)		<- newServerBrowser mconfig currentSet
 	(findPlayers, findUpdate)		<- newFindPlayers mvar mconfig (currentSet False)
-	(clanlist, clanlistUpdate)		<- newClanList mclans mconfig
+	(clanlist, clanlistUpdate)		<- newClanList mclans
 	(onlineclans, onlineclansUpdate)	<- newOnlineClans mvar mconfig mclans (currentSet False)
 	preferences				<- newPreferences mconfig
 	
@@ -87,7 +85,7 @@ main = withSocketsDo $ do
 		start <- getMicroTime
 		let tremTime = (resendTimes + 1) * resendWait
 		pbth <- forkIO $ whileTrue $ do
-			threadDelay 100000 --10 ms
+			threadDelay 100000 --100 ms
 			now <- getMicroTime
 			let diff = now - start
 			if now-start > fromIntegral tremTime then do
@@ -124,8 +122,7 @@ main = withSocketsDo $ do
 	notebookAppendMnemonic book onlineclans	"_3: Online clans"
 	notebookAppendMnemonic book clanlist	"_4: Clan list"
 	notebookAppendMnemonic book preferences	"_5: Preferences"
-	
-	
+
 	leftView <- vBoxNew False 0
 	boxPackStart leftView pbrbox PackNatural 0
 	boxPackStart leftView book PackGrow 0
@@ -180,7 +177,3 @@ main = withSocketsDo $ do
 
 ignoreIOException :: IOException -> IO ()
 ignoreIOException _ = return ()
-
-
-
-

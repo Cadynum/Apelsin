@@ -1,6 +1,6 @@
 module GtkUtils where
 import Graphics.UI.Gtk
-import Control.Monad (forM_, when)
+import Control.Monad (when)
 
 whenJust :: Monad m => (Maybe a) -> (a -> m ()) -> m ()
 whenJust x f = case x of
@@ -31,18 +31,8 @@ simpleListView headers = do
 	view <- treeViewNewWithModel model
 	select <- treeViewGetSelection view
 	treeSelectionSetMode select SelectionNone
-	forM_ headers $ \(title, isName, f) -> do
-		col <- treeViewColumnNew
-		set col	[ treeViewColumnTitle := title
-			, treeViewColumnExpand := isName ]
-		renderer <- cellRendererTextNew
-		when isName $
-			set renderer [ cellTextEllipsizeSet := True, cellTextEllipsize := EllipsizeEnd]
-		cellLayoutPackStart col renderer isName
-		cellLayoutSetAttributes col renderer model $ \row -> if isName
-			then [ cellTextMarkup := Just (f row) ]
-			else [ cellText := f row ]
-		treeViewAppendColumn view col
+	addColumns model view $
+		map (\(title, isName, f) -> (title, isName, isName, isName, f)) headers
 	return (model, view)
 	
 	
@@ -61,6 +51,8 @@ notebookAppendMnemonic nb child txt = do
 	notebookSetTabLabel nb child lbl
 	return n
 
+addColumns :: (TreeViewClass view, TreeModelClass (model row), TypedTreeModelClass model) =>
+	model row -> view -> [(String, Bool, Bool, Bool, row -> String)] -> IO ()
 addColumns model view xs = mapM_ g xs where
 	g (title, format, expand, ellipsize, f) = do
 		col <- treeViewColumnNew
@@ -75,7 +67,7 @@ addColumns model view xs = mapM_ g xs where
 			else [ cellText := f row ]
 		treeViewAppendColumn view col
 		
-	
+{-
 addColumnsSort raw model view xs = sequence_ $ zipWith f (iterate (+1) 0) xs where
 	f n (title, format, expand, showf,  sortf) = do
 		col <- treeViewColumnNew
@@ -95,7 +87,7 @@ addColumnsSort raw model view xs = sequence_ $ zipWith f (iterate (+1) 0) xs whe
 			Just g	-> do
 				col `treeViewColumnSetSortColumnId` n
 				treeSortableSetSortFunc model n (xort raw g)
-				
+-}			
 addColumnsFilter raw model view xs = mapM_ f xs where
 	f (title, expand, showf) = do
 		col <- treeViewColumnNew
@@ -142,16 +134,19 @@ addColumnsFilterSort raw filtered sorted view defaultSort xs = sequence_ $ zipWi
 				rit1	<- treeModelFilterConvertIterToChildIter filtered it1
 				rit2	<- treeModelFilterConvertIterToChildIter filtered it2
 				xort raw a rit1 rit2
-
+				
+gtkPopup :: MessageType -> String -> IO ()
 gtkPopup what str = do
 	a <- messageDialogNew Nothing [DialogDestroyWithParent, DialogModal]
 		what ButtonsOk str
 	dialogRun a
 	widgetDestroy a
 
+gtkWarn, gtkError :: String -> IO ()
 gtkWarn = gtkPopup MessageWarning
 gtkError = gtkPopup MessageError
 
+xort :: TypedTreeModelClass model => model t -> (t -> t -> b) -> TreeIter -> TreeIter -> IO b
 xort model g it1 it2 = do
 a <- treeModelGetRow model it1 
 b <- treeModelGetRow model  it2
