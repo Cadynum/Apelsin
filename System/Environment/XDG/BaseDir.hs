@@ -17,7 +17,6 @@ module System.Environment.XDG.BaseDir
     , getAllConfigFiles
     ) where
 
-import Data.Maybe         ( fromMaybe )
 import System.FilePath    ( (</>), splitSearchPath )
 import System.Environment ( getEnvironment, getEnv )
 import System.IO.Error    ( try )

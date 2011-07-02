@@ -24,7 +24,7 @@ Executable apelsin
                         bytestring, attoparsec, directory, filepath, HTTP, tremulous-query, gtk, glib, process,
                         transformers
 
-  Main-is:              Apelsin.hs                
+  Main-is:              Apelsin.hs
   Other-Modules:        About
                         ClanFetcher
                         Clanlist
@@ -33,7 +33,7 @@ Executable apelsin
                         FilterBar
                         FindPlayers
                         GtkUtils
-                        Helpers
+                        List2
                         InfoBox
                         Preferences
                         ServerBrowser
