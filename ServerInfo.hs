@@ -1,17 +1,19 @@
 module ServerInfo where
 import Graphics.UI.Gtk
-import STM2
-import Control.Monad
-import System.Process
-import Data.List (sortBy)
 
-import Tremulous.Protocol
-import Tremulous.Util
-import Tremulous.Polling
+import Control.Monad
+import Data.List (sortBy)
+import System.Process
+
+import Network.Tremulous.Protocol
+import Network.Tremulous.Polling
+import Network.Tremulous.Util
+
+import STM2
+import List2
 import TremFormatting
 import GtkUtils
 import Constants
-import Helpers
 import Config
 
 

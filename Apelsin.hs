@@ -1,15 +1,17 @@
 import Graphics.UI.Gtk
 import System.Glib.GError
+
 import Control.Applicative
 import Control.DeepSeq
 import Control.Monad.IO.Class
 import Control.Exception
 import Control.Monad
 import Data.Maybe
-import Network.Socket (withSocketsDo)
 
-import Tremulous.Protocol
-import Tremulous.Polling
+import Network.Socket 
+import Network.Tremulous.Protocol
+import Network.Tremulous.Polling
+import Network.Tremulous.Scheduler (getMicroTime)
 
 import STM2
 import Constants
@@ -21,7 +23,6 @@ import Clanlist
 import ClanFetcher
 import Preferences
 import Config
-import Helpers
 import About
 
 main :: IO ()
@@ -98,7 +99,7 @@ main = withSocketsDo $ do
 			
 		forkIO $ do
 			Config {delays} <- atomically $ readTMVar mconfig
-			polled <- pollMasters delays hosts
+			(polled,_,_,_) <- pollMasters delays hosts
 			-- Force evaluation in this thread to prevent blocking in the mainthread
 			polled `deepseq` return ()
 			atomically $ clearTMVar mvar >> putTMVar mvar polled
@@ -177,3 +178,15 @@ main = withSocketsDo $ do
 
 ignoreIOException :: IOException -> IO ()
 ignoreIOException _ = return ()
+
+getDNS :: String -> String -> IO (Maybe SockAddr)
+getDNS host port = handle (\(_::IOException) -> return Nothing) $ do
+	AddrInfo _ _ _ _ addr _ <- Prelude.head `liftM` getAddrInfo Nothing (Just host) (Just port)
+	return $ Just addr
+
+	
+whileTrue :: Monad m => m Bool -> m ()
+whileTrue f = do
+	t <- f
+	when t (whileTrue f)
+	

@@ -1,25 +1,26 @@
 module Clanlist where
 
 import Graphics.UI.Gtk
-import qualified Data.ByteString.Char8 as B
-import Data.Ord
+
 import Control.Concurrent
 import Control.Concurrent.STM
-import Tremulous.NameInsensitive
-import Tremulous.Util
-import qualified Tremulous.Protocol as P
+import qualified Data.ByteString.Char8 as B
+import Data.Ord
 import Data.Tree
 import Data.List (sortBy)
 import Data.IORef 
+import Network.Tremulous.NameInsensitive
+import qualified Network.Tremulous.Protocol as P
+import Network.Tremulous.Util
 
-
-import Constants
-import GtkUtils
-import TremFormatting
 import ClanFetcher
+import Constants
+import Config
 import FilterBar
 import InfoBox
-import Config
+import GtkUtils
+import TremFormatting
+
 
 newClanList :: TMVar [Clan] -> IO (VBox, IO ())
 newClanList mclans = do

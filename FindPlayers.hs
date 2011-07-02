@@ -3,8 +3,8 @@ import Graphics.UI.Gtk
 
 import Data.IORef
 import qualified Data.ByteString.Char8 as B
-import Tremulous.Protocol
-import Tremulous.Util
+import Network.Tremulous.Protocol
+import Network.Tremulous.Util
 
 import STM2
 import GtkUtils

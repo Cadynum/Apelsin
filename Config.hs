@@ -1,12 +1,13 @@
 module Config where
 
-import Tremulous.Protocol
-import Control.Exception
-import Constants
-import TremFormatting
-import Helpers
 import Data.Array
+import Control.Exception
+import Network.Tremulous.Protocol
+
+import Constants
 import GtkUtils
+import TremFormatting
+
 
 type ColorTheme = Array Int TremFmt
 
@@ -63,4 +64,9 @@ configFromFile = handle err $ do
 		Just a -> return a
 	where
 	err (_::IOError) = return defaultConfig
+
+mread :: (Read a) => String -> Maybe a
+mread x = case reads x of
+	[(a, _)]	-> Just a
+	_		-> Nothing
 

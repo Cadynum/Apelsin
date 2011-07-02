@@ -2,18 +2,18 @@ module ClanFetcher(
 	Clan(..), getClanList, clanListFromCache
 ) where
 
-import Tremulous.NameInsensitive
-
+import Prelude as P hiding (catch)
 import Control.Exception
 import Control.Applicative
 import Control.Monad
 import Data.ByteString.Char8 as B
 import Data.ByteString.Lazy.Char8 as L
 import Data.Char (intToDigit)
-import Prelude as P hiding (catch)
+import Data.Maybe
 import Network.HTTP
 import Network.URI
-import Data.Maybe
+import Network.Tremulous.NameInsensitive
+
 import Constants
 import GtkUtils
 

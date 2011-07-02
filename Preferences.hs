@@ -1,18 +1,16 @@
 module Preferences where
 import Graphics.UI.Gtk
-
 import Control.Monad
 import Control.Applicative
 import Control.Concurrent.STM
-import Text.Printf
 import Data.Char
 import Data.Array
+import Text.Printf
+import Network.Tremulous.Protocol
 
-import Tremulous.Protocol
-
+import Config
 import Constants
 import GtkUtils
-import Config
 import TremFormatting
 
 
@@ -153,7 +151,23 @@ configTable ys = do
 	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
 	rt	<- mkTable ys
 	return (tbl, rt)
+	
+pathTable ys = do
+	tbl <- tableNew 0 0 False
+	let easyAttach pos lbl  = do
+		a <- labelNewWithMnemonic lbl
+		(box, ent) <- pathSelectionEntryNew
+		set a [ labelMnemonicWidget := ent ]
+		miscSetAlignment a 0 0.5
+		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] g_SPACING spacingHalf
+		tableAttach tbl box 1 2 pos (pos+1) [Expand, Fill] [] g_SPACING spacingHalf
+		return ent
+		
+	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
+	rt	<- mkTable ys
+	return (tbl, rt)
 
+mkInternals :: IO (Table, [SpinButton])
 mkInternals = do
 	tbl <- tableNew 0 0 False
 	let easyAttach pos (lbl, lblafter)  = do
@@ -172,21 +186,6 @@ mkInternals = do
 	rt <- mkTable	[ ("Respo_nse Timeout:", "ms")
 			, ("Maximum packet _duplication:", "times")
 			, ("Throughput _limit:", "ms") ]
-	return (tbl, rt)
-
-pathTable ys = do
-	tbl <- tableNew 0 0 False
-	let easyAttach pos lbl  = do
-		a <- labelNewWithMnemonic lbl
-		(box, ent) <- pathSelectionEntryNew
-		set a [ labelMnemonicWidget := ent ]
-		miscSetAlignment a 0 0.5
-		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] g_SPACING spacingHalf
-		tableAttach tbl box 1 2 pos (pos+1) [Expand, Fill] [] g_SPACING spacingHalf
-		return ent
-		
-	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
-	rt	<- mkTable ys
 	return (tbl, rt)
 
 

@@ -4,7 +4,7 @@ import Control.Concurrent.STM
 import Data.IORef
 import qualified Data.ByteString.Char8 as B
 import qualified Data.Function as F
-import Tremulous.Protocol
+import Network.Tremulous.Protocol
 
 import GtkUtils
 import FilterBar

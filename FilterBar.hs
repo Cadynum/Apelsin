@@ -4,8 +4,10 @@ import Graphics.UI.Gtk
 import Data.IORef
 import qualified Data.ByteString.Char8 as B
 import Data.Char
+import Network.Tremulous.ByteStringUtils as B
+
 import Constants
-import Tremulous.ByteStringUtils as B
+
 
 newFilterBar :: (TreeModelClass self, TreeModelFilterClass self) => self -> Label -> String
 	-> IO (HBox, IORef B.ByteString)

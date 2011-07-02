@@ -1,9 +1,15 @@
 module TremFormatting where
-import Helpers
 import Data.Array
-import Tremulous.NameInsensitive
+import Data.Char
+import Network.Tremulous.NameInsensitive
+import List2
 
---unfuckName :: Array Int TremFmt -> String -> String
+data TremFmt = TFColor !String | TFNone
+	deriving (Show, Read)
+
+type ColorArray = Array Int TremFmt
+
+unfuckName :: ColorArray -> TI -> String
 unfuckName arr = pangoColors arr . htmlEscape . stripw . filter isPrint . unpackorig
 
 boxify :: String -> String
@@ -17,10 +23,10 @@ htmlEscape = foldr f [] where
 		'&' -> "&amp;" ++ xs
 		_   -> x : xs 
 
-data TremFmt = TFColor !String | TFNone
-	deriving (Show, Read)
---pangoCo :: Array Int Fmt2 -> String -> String
-pangoCo arr = f False where
+
+	
+pangoColors :: ColorArray -> String -> String
+pangoColors arr = f False where
 	f n ('^':x:xs) | isAlphaNum x = case arr ! (a `mod` 8) of
 		TFColor color	-> close n ++ "<span color=\"" ++ color ++ "\">" ++ f True xs
 		TFNone		-> close n ++ f False xs
@@ -32,7 +38,5 @@ pangoCo arr = f False where
 	
 	close n = if n then "</span>" else ""
 
-pangoColors = pangoCo
-
---pangoPretty :: Array Int TremFmt -> String -> String
+pangoPretty :: ColorArray-> TI -> String
 pangoPretty arr = pangoColors arr . htmlEscape . unpackorig
