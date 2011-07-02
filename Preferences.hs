@@ -8,14 +8,15 @@ import Data.Array
 import Text.Printf
 import Network.Tremulous.Protocol
 
+import Types
 import Config
 import Constants
 import GtkUtils
 import TremFormatting
 
 
-newPreferences :: TMVar Config -> IO ScrolledWindow
-newPreferences mconfig = do
+newPreferences :: Bundle -> IO ScrolledWindow
+newPreferences Bundle{..} = do
 	-- Default filters
 	
 	(tbl, [filterBrowser', filterPlayers']) <-
@@ -55,8 +56,7 @@ newPreferences mconfig = do
 	-- Internals
 	(itbl, [itimeout, iresend, ibuf]) <- mkInternals 
 	(internals, ibox) <- framedVBox "Polling Internals"
-	ilbl <- labelNew $ Just "The throughput limit should be set as low as possible while pings remain correct.\n\
-	\The time taken by \"Refresh all servers\" is timeout * (duplication + 1)"
+	ilbl <- labelNew $ Just "The throughput limit should be set as low as possible while pings remain correct."
 	set ilbl	[ labelWrap	:= True ]
 	miscSetAlignment ilbl 0 0
 	--labelSetLineWrap ilbl True
@@ -101,7 +101,7 @@ newPreferences mconfig = do
 	
 	-- Main box
 
-	box <- vBoxNew False g_SPACING
+	box <- vBoxNew False spacing
 	set box [ containerBorderWidth := spacingBig ]
 	boxPackStart box filters PackNatural 0
 	boxPackStart box paths PackNatural 0
@@ -144,8 +144,8 @@ configTable ys = do
 		b <- entryNew
 		set a [ labelMnemonicWidget := b ]
 		miscSetAlignment a 0 0.5
-		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] g_SPACING spacingHalf
-		tableAttach tbl b 1 2 pos (pos+1) [Expand, Fill] [] g_SPACING spacingHalf
+		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] spacing spacingHalf
+		tableAttach tbl b 1 2 pos (pos+1) [Expand, Fill] [] spacing spacingHalf
 		return b
 		
 	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
@@ -159,8 +159,8 @@ pathTable ys = do
 		(box, ent) <- pathSelectionEntryNew
 		set a [ labelMnemonicWidget := ent ]
 		miscSetAlignment a 0 0.5
-		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] g_SPACING spacingHalf
-		tableAttach tbl box 1 2 pos (pos+1) [Expand, Fill] [] g_SPACING spacingHalf
+		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] spacing spacingHalf
+		tableAttach tbl box 1 2 pos (pos+1) [Expand, Fill] [] spacing spacingHalf
 		return ent
 		
 	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
@@ -177,9 +177,9 @@ mkInternals = do
 		set a [ labelMnemonicWidget := b ]
 		miscSetAlignment a 0 0.5
 		miscSetAlignment c 0 0
-		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] g_SPACING spacingHalf
-		tableAttach tbl b 1 2 pos (pos+1) [Fill] [] g_SPACING spacingHalf
-		tableAttach tbl c 2 3 pos (pos+1) [Fill] [] g_SPACING spacingHalf
+		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] spacing spacingHalf
+		tableAttach tbl b 1 2 pos (pos+1) [Fill] [] spacing spacingHalf
+		tableAttach tbl c 2 3 pos (pos+1) [Fill] [] spacing spacingHalf
 		return b
 		
 	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
@@ -193,7 +193,7 @@ framedVBox :: String -> IO (Frame, VBox)
 framedVBox title = do
 	box	<- vBoxNew False 0
 	frame	<- newLabeledFrame title
-	set box [ containerBorderWidth := g_SPACING ]
+	set box [ containerBorderWidth := spacing ]
 	set frame	[ containerChild := box ]
 	return (frame, box)
 	

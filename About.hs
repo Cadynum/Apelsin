@@ -8,7 +8,7 @@ newAbout = do
 	set about [
 		  windowWindowPosition := WinPosCenter
 		, aboutDialogProgramName:= programName
-		, aboutDialogVersion	:= "alpha-1"
+		, aboutDialogVersion	:= "1.0"
 		, aboutDialogCopyright	:= "Copyright © 2011\nChristoffer Öjeling <christoffer@ojeling.net>"
 		, aboutDialogComments	:= "A tremulous server and community browser\nLicense: GPLv3"
 		, aboutDialogWebsite	:= "http://ojeling.net"

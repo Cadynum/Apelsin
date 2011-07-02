@@ -32,7 +32,7 @@ simpleListView headers = do
 	select <- treeViewGetSelection view
 	treeSelectionSetMode select SelectionNone
 	addColumns model view $
-		map (\(title, isName, f) -> (title, isName, isName, isName, f)) headers
+		map (\(title, isName, f) -> (title, if isName then 0 else 1, isName, isName, isName, f)) headers
 	return (model, view)
 	
 	
@@ -52,13 +52,14 @@ notebookAppendMnemonic nb child txt = do
 	return n
 
 addColumns :: (TreeViewClass view, TreeModelClass (model row), TypedTreeModelClass model) =>
-	model row -> view -> [(String, Bool, Bool, Bool, row -> String)] -> IO ()
+	model row -> view -> [(String, Float, Bool, Bool, Bool, row -> String)] -> IO ()
 addColumns model view xs = mapM_ g xs where
-	g (title, format, expand, ellipsize, f) = do
+	g (title, align, format, expand, ellipsize, f) = do
 		col <- treeViewColumnNew
 		set col	[ treeViewColumnTitle := title
 			, treeViewColumnExpand := expand ]
 		rend <- cellRendererTextNew
+		set rend [ cellXAlign := align]
 		when ellipsize $
 			set rend [ cellTextEllipsizeSet := True, cellTextEllipsize := EllipsizeEnd]
 		cellLayoutPackStart col rend True
@@ -87,7 +88,9 @@ addColumnsSort raw model view xs = sequence_ $ zipWith f (iterate (+1) 0) xs whe
 			Just g	-> do
 				col `treeViewColumnSetSortColumnId` n
 				treeSortableSetSortFunc model n (xort raw g)
--}			
+-}
+addColumnsFilter :: (TreeViewClass self1, TreeModelFilterClass self, TreeModelClass self, TypedTreeModelClass model) =>
+	model t -> self -> self1 -> [(String, Bool, t -> String)] -> IO ()
 addColumnsFilter raw model view xs = mapM_ f xs where
 	f (title, expand, showf) = do
 		col <- treeViewColumnNew
@@ -102,16 +105,21 @@ addColumnsFilter raw model view xs = mapM_ f xs where
 			item	<- treeModelGetRow raw cIter
 			set rend [ cellTextMarkup := Just (showf item) ]
 		treeViewAppendColumn view col
-		
-		
-addColumnsFilterSort raw filtered sorted view defaultSort xs = sequence_ $ zipWith f (iterate (+1) 0) xs where
-	f n (title, format, expand, ellipsize, showf,  sortf) = do
+
+addColumnsFilterSort :: (TreeViewClass self, TreeSortableClass self1, TreeModelSortClass self1,
+	TreeModelFilterClass self2, TreeModelClass self1, TypedTreeModelClass model) =>
+	model t -> self2 -> self1 -> self -> Maybe (t -> t -> Ordering)
+	-> [(String, Float, Bool, Bool, Bool, t -> String, Maybe (t -> t -> Ordering))]
+	-> IO ()
+addColumnsFilterSort raw filtered sorted view defaultSort xs = sequence_ $ zipWith f [0..] xs where
+	f n (title, align, format, expand, ellipsize, showf,  sortf) = do
 		col <- treeViewColumnNew
 		set col	[ treeViewColumnTitle := title
 			, treeViewColumnExpand := expand ]
 		rend <- cellRendererTextNew
 		when ellipsize $
 			set rend [ cellTextEllipsizeSet := True, cellTextEllipsize := EllipsizeEnd]
+		set rend [ cellXAlign := align]
 		cellLayoutPackStart col rend True
 		cellLayoutSetAttributeFunc col rend sorted $ \iter -> do
 			cIter	<- treeModelSortConvertIterToChildIter sorted iter

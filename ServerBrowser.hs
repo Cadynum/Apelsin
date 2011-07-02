@@ -3,9 +3,11 @@ import Graphics.UI.Gtk
 import Control.Concurrent.STM
 import Data.IORef
 import qualified Data.ByteString.Char8 as B
-import qualified Data.Function as F
+import Data.Ord
 import Network.Tremulous.Protocol
+import Text.Printf
 
+import Types
 import GtkUtils
 import FilterBar
 import InfoBox
@@ -13,21 +15,20 @@ import TremFormatting
 import Constants
 import Config
 
-newServerBrowser :: TMVar Config -> (Bool -> GameServer -> IO ()) -> IO (VBox, [GameServer] -> IO ())
-newServerBrowser mconfig setServer = do
+newServerBrowser :: Bundle -> (Bool -> GameServer -> IO ()) -> IO (VBox, IO ())
+newServerBrowser Bundle{..} setServer = do
 	Config {colors} <- atomically $ readTMVar mconfig
-	-- Listview (this is a fucking nightmare)
 	rawmodel	<- listStoreNew []
 	filtered	<- treeModelFilterNew rawmodel []
 	model		<- treeModelSortNewWithModel filtered	
 	view		<- treeViewNewWithModel model
 	
-	addColumnsFilterSort rawmodel filtered model view (Just (compare `F.on` gameping)) [
-		  ("_Game"	, False	, False	, False	, showGame , Just (compare `F.on` (\x -> (gameproto x, gamemod x))))
-		, ("_Name"	, True	, True	, True	, unfuckName colors . hostname	, Just (compare `F.on` hostname))
-		, ("_Map"	, True	, False	, False	, take 16 . unpackorig . mapname	, Just (compare `F.on` mapname))
-		, ("P_ing"	, False	, False , False	, show . gameping	, Just (compare `F.on` gameping))
-		, ("_Players"	, False	, False , False	, showPlayers		, Just (compare `F.on` nplayers))
+	addColumnsFilterSort rawmodel filtered model view (Just (comparing gameping)) [
+		  ("_Game"	, 0	, False	, False	, False	, showGame , Just (comparing (\x -> (gameproto x, gamemod x))))
+		, ("_Name"	, 0	, True	, True	, True	, unfuckName colors . hostname	, Just (comparing hostname))
+		, ("_Map"	, 0	, True	, False	, False	, take 16 . unpackorig . mapname	, Just (comparing mapname))
+		, ("P_ing"	, 1	, False	, False , False	, show . gameping	, Just (comparing gameping))
+		, ("_Players"	, 1	, False	, False , False	, showPlayers		, Just (comparing nplayers))
 		]
 
 	(infobox, statNow, statTot) <- newInfobox "servers"	
@@ -72,7 +73,8 @@ newServerBrowser mconfig setServer = do
 	scrolledWindowSetPolicy scrollview PolicyNever PolicyAlways
 	containerAdd scrollview view
 	
-	let updateF polled = do
+	let updateF = do
+		polled <- atomically $ readTMVar mpolled
 		listStoreClear rawmodel
 		treeViewColumnsAutosize view
 		mapM_ (listStoreAppend rawmodel) polled
@@ -82,11 +84,11 @@ newServerBrowser mconfig setServer = do
 		set statNow [ labelText := show n ]
 		
 	box <- vBoxNew False 0
-	boxPackStart box filterbar PackNatural g_SPACING
+	boxPackStart box filterbar PackNatural spacing
 	boxPackStart box scrollview PackGrow 0
 	boxPackStart box infobox PackNatural 0
 	
 	return (box, updateF)
 	where
-	showGame x = (proto2string . gameproto) x ++ maybe "" (("-"++) . unpackorig) (gamemod x)
-	showPlayers x = (show $ length $ players x) ++ "/" ++  (show $ slots x)	
+	showGame GameServer{..} = proto2string gameproto ++ maybe "" (("-"++) . unpackorig) gamemod
+	showPlayers GameServer{..} = printf "%d / %2d" nplayers slots

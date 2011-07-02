@@ -18,11 +18,11 @@ module System.Environment.XDG.BaseDir
     ) where
 
 import System.FilePath    ( (</>), splitSearchPath )
-import System.Environment ( getEnvironment, getEnv )
-import System.IO.Error    ( try )
+import System.Environment
 import System.Directory   ( getHomeDirectory )
 import Control.Monad      ( liftM2 )
 
+getDefault :: String -> IO FilePath
 #if defined(mingw32_HOST_OS) || defined(__MINGW32__)
 
 getDefault "XDG_DATA_HOME"   = getEnv "AppData"

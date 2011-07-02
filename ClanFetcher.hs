@@ -15,7 +15,6 @@ import Network.URI
 import Network.Tremulous.NameInsensitive
 
 import Constants
-import GtkUtils
 
 data Clan = Clan {
 	  clanid	:: !B.ByteString
@@ -34,8 +33,7 @@ getClanList :: String -> IO (Maybe [Clan])
 getClanList url = do
 	cont <- get url
 	case cont of
-		Right err -> do	gtkError $ "Failed retrieving new clanlist:\n" ++ err
-				return Nothing
+		Right _ -> return Nothing
 		Left raw -> do
 			file	<- inCacheDir "clans"
 			let clans = rawToClan raw

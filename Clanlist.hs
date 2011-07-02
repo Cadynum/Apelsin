@@ -13,6 +13,7 @@ import Network.Tremulous.NameInsensitive
 import qualified Network.Tremulous.Protocol as P
 import Network.Tremulous.Util
 
+import Types
 import ClanFetcher
 import Constants
 import Config
@@ -22,8 +23,8 @@ import GtkUtils
 import TremFormatting
 
 
-newClanList :: TMVar [Clan] -> IO (VBox, IO ())
-newClanList mclans = do
+newClanList :: Bundle -> IO (VBox, IO ())
+newClanList Bundle{..} = do
 	raw			<- listStoreNew []
 	filtered		<- treeModelFilterNew raw []
 	sorted			<- treeModelSortNewWithModel filtered	
@@ -45,10 +46,10 @@ newClanList mclans = do
 		set statNow [ labelText := show n ]
 		
 	addColumnsFilterSort raw filtered sorted view (Just (comparing name)) [
-		  ("_Name"	, False	, True	, False	, unpackorig . name	, Just (comparing name))
-		, ("_Tag"	, False	, True	, False	, unpackorig . tag	, Just (comparing tag))
-		, ("Website"	, False	, True	, False	, B.unpack . website	, Nothing)
-		, ("IRC"	, False	, True	, False	, B.unpack . irc	, Nothing)
+		  ("_Name"	, 0 , False	, True	, False	, unpackorig . name	, Just (comparing name))
+		, ("_Tag"	, 0 , False	, True	, False	, unpackorig . tag	, Just (comparing tag))
+		, ("Website"	, 0 , False	, True	, False	, B.unpack . website	, Nothing)
+		, ("IRC"	, 0 , False	, True	, False	, B.unpack . irc	, Nothing)
 		]
 	
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
@@ -59,7 +60,7 @@ newClanList mclans = do
 	
 	box <- vBoxNew False 0
 	
-	boxPackStart box filterbar PackNatural g_SPACING
+	boxPackStart box filterbar PackNatural spacing
 	boxPackStart box scrollview PackGrow 0
 	boxPackStart box infobox PackNatural 0
 
@@ -67,8 +68,8 @@ newClanList mclans = do
 	
 	return (box, updateF)
 		
---newOnlineClans:: TMVar [P.GameServer] -> TMVar [Clan] -> (P.GameServer -> IO ()) -> IO (ScrolledWindow, IO ())
-newOnlineClans mvar mconfig mclans setCurrent = do
+newOnlineClans :: Bundle-> (P.GameServer -> IO ()) -> IO (ScrolledWindow, IO ())
+newOnlineClans Bundle{..} setCurrent = do
 	Config {colors} <- atomically $ readTMVar mconfig
 
 	let showName c =  case c of
@@ -85,12 +86,12 @@ newOnlineClans mvar mconfig mclans setCurrent = do
 	
 	treeViewExpandAll view
 	addColumns raw view [
-		  ("Name"	, True	, True	, True	, showName )
-		, ("Server"	, True	, True	, True	, showServer )
+		  ("Name"	, 0	, True	, True	, True	, showName )
+		, ("Server"	, 0	, True	, True	, True	, showServer )
 		]
 		
 	let updateF = do
-		polled	<- atomically $ readTMVar mvar
+		polled	<- atomically $ readTMVar mpolled
 		clans	<- atomically $ readTMVar mclans
 		let players = buildTree $sortByPlayers $
 			associatePlayerToClans (toPlayerList polled) clans
@@ -136,9 +137,11 @@ buildTree = filter notEmpty . foldr f [] where
 	notEmpty _		= True
 --f tag x = 
 
+sortByPlayers :: [(a, [b])] -> [(a, [b])]
 sortByPlayers = sortBy (comparing (length . snd))
 
-newClanSync mconfig mclans updateF = do
+newClanSync :: Bundle -> IO () -> IO (HBox, IO ())
+newClanSync Bundle{..} updateF = do
 	button	<- buttonNewWithMnemonic "_Sync clan list"
 	img	<- imageNewFromStock stockSave IconSizeButton
 	set button 	[ buttonImage := img 
@@ -155,7 +158,7 @@ newClanSync mconfig mclans updateF = do
 		forkIO $ do
 			new <- getClanList clanSyncURL
 			case new of
-				Nothing	-> putStrLn "Error fetching clanlist!"
+				Nothing	-> postGUISync $ gtkError "Unable to downlaod clanlist"
 				Just a	-> do 
 					atomically $ 
 						swapTMVar mclans a

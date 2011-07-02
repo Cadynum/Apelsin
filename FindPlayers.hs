@@ -6,7 +6,7 @@ import qualified Data.ByteString.Char8 as B
 import Network.Tremulous.Protocol
 import Network.Tremulous.Util
 
-import STM2
+import Types
 import GtkUtils
 import TremFormatting
 import FilterBar
@@ -14,8 +14,8 @@ import InfoBox
 import Constants
 import Config
 
-newFindPlayers :: TMVar [GameServer] -> TMVar Config -> (GameServer -> IO ()) -> IO (VBox, IO ())
-newFindPlayers mvar mconfig currentSet = do
+newFindPlayers :: Bundle -> (GameServer -> IO ()) -> IO (VBox, IO ())
+newFindPlayers Bundle{..} currentSet = do
 	Config {colors} <- atomically $ readTMVar mconfig
 	rawmodel	<- listStoreNew []
 	model		<- treeModelFilterNew rawmodel []
@@ -33,25 +33,17 @@ newFindPlayers mvar mconfig currentSet = do
 	treeModelFilterSetVisibleFunc model $ \iter -> do
 		(item,_) <- treeModelGetRow rawmodel iter
 		s <- readIORef current
-		return $ if B.null s
-			then True
-			else s `B.isInfixOf` (cleanedCase item)
+		return $ B.null s || s `B.isInfixOf` (cleanedCase item)
 		
-	
-	
-	
 	let updateFilter = do
-		tst <- atomically $ tryReadTMVar mvar
-		case tst of 
-			Nothing -> return ()
-			Just a	-> do
-				listStoreClear rawmodel
-				let plist = makePlayerList a
-				mapM_ (listStoreAppend rawmodel) plist
-				treeModelFilterRefilter model
-				set statTot [ labelText := show (length plist) ]
-				n <- treeModelIterNChildren model Nothing
-				set statNow [ labelText := show n ]
+		polled <- atomically $ readTMVar mpolled
+		listStoreClear rawmodel
+		let plist = makePlayerList polled
+		mapM_ (listStoreAppend rawmodel) plist
+		treeModelFilterRefilter model
+		set statTot [ labelText := show (length plist) ]
+		n <- treeModelIterNChildren model Nothing
+		set statNow [ labelText := show n ]
 						
 	onCursorChanged view $ do
 		(x, _) <- treeViewGetCursor view
@@ -64,7 +56,7 @@ newFindPlayers mvar mconfig currentSet = do
 	scroll <- scrollIt view PolicyAutomatic PolicyAlways
 	
 	box <- vBoxNew False 0
-	boxPackStart box filterbar PackNatural g_SPACING
+	boxPackStart box filterbar PackNatural spacing
 	boxPackStart box scroll PackGrow 0
 	boxPackStart box infobox PackNatural 0
 	

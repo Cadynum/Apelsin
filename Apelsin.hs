@@ -2,18 +2,12 @@ import Graphics.UI.Gtk
 import System.Glib.GError
 
 import Control.Applicative
-import Control.DeepSeq
 import Control.Monad.IO.Class
 import Control.Exception
 import Control.Monad
-import Data.Maybe
-
 import Network.Socket 
-import Network.Tremulous.Protocol
-import Network.Tremulous.Polling
-import Network.Tremulous.Scheduler (getMicroTime)
 
-import STM2
+import Types
 import Constants
 import GtkUtils
 import ServerInfo
@@ -23,98 +17,30 @@ import Clanlist
 import ClanFetcher
 import Preferences
 import Config
-import About
+import Toolbar
 
 main :: IO ()
 main = withSocketsDo $ do
 	unsafeInitGUIForThreadedRTS
 	win		<- windowNew
-	mvar		<- atomically $ newTMVar []
-	config		<- configFromFile	
-	mconfig		<- (atomically . newTMVar) config
-	mclans		<- (atomically . newTMVar) =<< clanListFromCache
+	config		<- configFromFile
+	cacheclans	<- clanListFromCache
+	bundle		<- atomically $ Bundle
+				<$> newTMVar []
+				<*> newTMVar config
+				<*> newTMVar cacheclans
 
-	(currentInfo, currentUpdate, currentSet)<- newServerInfo mvar mconfig
-	(browser, browserUpdate)		<- newServerBrowser mconfig currentSet
-	(findPlayers, findUpdate)		<- newFindPlayers mvar mconfig (currentSet False)
-	(clanlist, clanlistUpdate)		<- newClanList mclans
-	(onlineclans, onlineclansUpdate)	<- newOnlineClans mvar mconfig mclans (currentSet False)
-	preferences				<- newPreferences mconfig
-	
-	-- /// Toolbar /////////////////////////////////////////////////////////////////////////////
-	
-	pbrbox <- hBoxNew False g_SPACING
-		
-	pb		<- progressBarNew
-	set pb		[ widgetNoShowAll := True ]
-	a_refresh	<- buttonNewWithMnemonic "_Refresh all servers"
-	rimg		<- imageNewFromStock stockRefresh IconSizeButton
-	set a_refresh	[ buttonImage := rimg 
-			, buttonRelief := ReliefNone 
-			, buttonFocusOnClick := False ]
-	about		<- buttonNewFromStock stockAbout
-	set about	[ buttonRelief := ReliefNone 
-			, buttonFocusOnClick := False ]
+	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle
+	(browser, browserUpdate)		<- newServerBrowser bundle currentSet
+	(findPlayers, findUpdate)		<- newFindPlayers bundle (currentSet False)
+	(clanlist, clanlistUpdate)		<- newClanList bundle
+	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle (currentSet False)
 
-	on about buttonActivated $ newAbout
-			
-	(clanSync, doSync) <- newClanSync mconfig mclans (clanlistUpdate >> onlineclansUpdate)	
-	
-	align		<- alignmentNew 0 0 0 0
-	alignbox	<- hBoxNew False g_SPACING
-	set align [ containerChild := alignbox ]
-	
-	boxPackStartDefaults alignbox a_refresh
-	boxPackStartDefaults alignbox clanSync
-	boxPackStartDefaults alignbox about
-			
-	
-	set pbrbox [ containerBorderWidth := g_SPACING ]
-	boxPackStart pbrbox align PackNatural 0
-	boxPackStart pbrbox pb PackGrow 0
-	
-	
-	let serverRefresh = do
-		progressBarSetFraction pb 0
-		widgetShow pb
-		a_refresh `set` [ widgetSensitive := False ]
-		Config {masterServers, delays=Delay{..}}	<- atomically $ readTMVar mconfig
-		hosts <- catMaybes <$> mapM
-			(\(host, port, proto) -> fmap (MasterServer proto) <$> getDNS host (show port))
-			masterServers
-		
-		start <- getMicroTime
-		let tremTime = (resendTimes + 1) * resendWait
-		pbth <- forkIO $ whileTrue $ do
-			threadDelay 100000 --100 ms
-			now <- getMicroTime
-			let diff = now - start
-			if now-start > fromIntegral tremTime then do
-				progressBarSetFraction pb 1
-				return False
-			else do
-				progressBarSetFraction pb
-					(fromIntegral diff / fromIntegral tremTime)
-				return True
-			
-		forkIO $ do
-			Config {delays} <- atomically $ readTMVar mconfig
-			(polled,_,_,_) <- pollMasters delays hosts
-			-- Force evaluation in this thread to prevent blocking in the mainthread
-			polled `deepseq` return ()
-			atomically $ clearTMVar mvar >> putTMVar mvar polled
-			killThread pbth
-			postGUISync $ do
-				browserUpdate polled
-				findUpdate
-				currentUpdate
-				onlineclansUpdate
-				a_refresh `set` [ widgetSensitive := True ]
-				widgetHide pb
-		return ()
-	on a_refresh buttonActivated serverRefresh
-		
-	
+	preferences				<- newPreferences bundle
+
+	toolbar <- newToolbar bundle
+		(clanlistUpdate >> onlineclansUpdate)
+		(browserUpdate >> findUpdate >> currentUpdate >> onlineclansUpdate)
 	-- /// Layout ////////////////////////////////////////////////////////////////////////////
 
 	book <- notebookNew
@@ -125,7 +51,7 @@ main = withSocketsDo $ do
 	notebookAppendMnemonic book preferences	"_5: Preferences"
 
 	leftView <- vBoxNew False 0
-	boxPackStart leftView pbrbox PackNatural 0
+	boxPackStart leftView toolbar PackNatural 0
 	boxPackStart leftView book PackGrow 0
 	
 	
@@ -136,7 +62,7 @@ main = withSocketsDo $ do
 	
 	-- save the current window size and pane positon on exit
 	on win deleteEvent $ tryEvent $ liftIO $ do
-		Config {autoGeometry} <- atomically $ readTMVar mconfig
+		Config {autoGeometry} <- atomically $ readTMVar (mconfig bundle)
 		when autoGeometry $ do
 			file		<- inCacheDir "windowsize"
 			(winw, winh)	<- windowGetSize win
@@ -170,8 +96,7 @@ main = withSocketsDo $ do
 				, widgetWidthRequest	:= max (minw+panebuf) winw ]
 	widgetShowAll win		
 
-	when (autoMaster config) serverRefresh
-	when (autoClan config) doSync
+
 
 	mainGUI
 	
@@ -179,14 +104,4 @@ main = withSocketsDo $ do
 ignoreIOException :: IOException -> IO ()
 ignoreIOException _ = return ()
 
-getDNS :: String -> String -> IO (Maybe SockAddr)
-getDNS host port = handle (\(_::IOException) -> return Nothing) $ do
-	AddrInfo _ _ _ _ addr _ <- Prelude.head `liftM` getAddrInfo Nothing (Just host) (Just port)
-	return $ Just addr
-
-	
-whileTrue :: Monad m => m Bool -> m ()
-whileTrue f = do
-	t <- f
-	when t (whileTrue f)
 	

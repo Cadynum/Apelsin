@@ -1,12 +1,16 @@
 module Constants where
+import Data.String
 import System.Environment.XDG.BaseDir
 import System.FilePath.Posix ((</>))
 import System.Directory
 import Paths_apelsin
 
+configName, programName, fullProgramName :: IsString s => s
 configName = "apelsin"
 programName = "Apelsin"
 fullProgramName = "Apelsin Tremulous Browser"
+
+inCacheDir, inConfDir, fromDataDir :: FilePath -> IO FilePath
 
 inCacheDir x = do
 	dir <- getUserCacheDir configName
@@ -24,8 +28,8 @@ fromDataDir x = do
 	tst <- doesFileExist fp1
 	return $ if tst then fp1 else fp2
 
-g_SPACING, spacingHalf, spacingBig :: Integral i => i
-g_SPACING = 4
-spacingHalf = 2
-spacingBig = 8
+spacing, spacingHalf, spacingBig :: Integral i => i
+spacing		= 4
+spacingHalf	= 2
+spacingBig	= 8
 

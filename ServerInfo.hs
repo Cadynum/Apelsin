@@ -1,7 +1,7 @@
 module ServerInfo where
 import Graphics.UI.Gtk
 
-import Control.Monad
+import Control.Monad hiding (join)
 import Data.List (sortBy)
 import System.Process
 
@@ -9,6 +9,7 @@ import Network.Tremulous.Protocol
 import Network.Tremulous.Polling
 import Network.Tremulous.Util
 
+import Types
 import STM2
 import List2
 import TremFormatting
@@ -16,11 +17,11 @@ import GtkUtils
 import Constants
 import Config
 
-
-newServerInfo mvar mconfig = do
+newServerInfo :: Bundle -> IO (VBox, IO (), Bool -> GameServer -> IO ())
+newServerInfo Bundle{..} = do
 	Config {colors} <- atomically $ readTMVar mconfig
-	current		<- atomically $ newEmptyTMVar
-	running		<- atomically $ newEmptyTMVar
+	current		<- atomically newEmptyTMVar
+	running		<- atomically newEmptyTMVar
 	
 	-- Host name
 	hostnamex <- labelNew Nothing
@@ -59,8 +60,8 @@ newServerInfo mvar mconfig = do
 					, ("Score", False, show . kills)
 					, ("Ping", False, show . ping)
 					]
-	(amodel, aview) <- playerView $  "Alien"
-	(hmodel, hview) <- playerView $ "Human"
+	(amodel, aview) <- playerView "Alien"
+	(hmodel, hview) <- playerView "Human"
 	(smodel, sview) <- simpleListView [("Spectator", True, pangoPretty colors . name)
 					, ("Ping", False, show . ping)]
 	
@@ -90,8 +91,8 @@ newServerInfo mvar mconfig = do
 	boxPackStart serverbuttons refresh PackRepel 0
 	
 	-- Packing
-	rightpane <- vBoxNew False g_SPACING
-	set rightpane  [ containerBorderWidth := g_SPACING ]
+	rightpane <- vBoxNew False spacing
+	set rightpane  [ containerBorderWidth := spacing ]
 	boxPackStart rightpane hostnamex PackNatural 1
 	boxPackStart rightpane tbl PackNatural 0
 	boxPackStart rightpane allplayers PackGrow 0
@@ -136,7 +137,7 @@ newServerInfo mvar mconfig = do
 		listStoreClear hmodel
 		listStoreClear smodel
 		
-		let (s', a', h', u') = partitionTeams (scoreSort players)
+		let (s', a', h', _) = partitionTeams (scoreSort players)
 		mapM_ (listStoreAppend amodel) a'
 		mapM_ (listStoreAppend hmodel) h'
 		mapM_ (listStoreAppend smodel) s'
@@ -155,10 +156,10 @@ newServerInfo mvar mconfig = do
 		return ()
 
 		
-	let updateF = withTMVar mvar $ \polled -> do
-		withTMVar current $ \gs@GameServer{address} -> do
+	let updateF = withTMVar mpolled $ \polled -> do
+		withTMVar current $ \GameServer{address} -> do
 			case serverByAddress address polled of
-				Nothing -> putStrLn "Server is no longer available"
+				Nothing -> gtkWarn "Server is no longer available"
 				Just a	-> setF False a
 			
 	

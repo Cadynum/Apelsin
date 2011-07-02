@@ -17,12 +17,12 @@ newFilterBar filtered stat initial  = do
 	-- Filterbar
 	ent <- entryNew
 	set ent [ widgetHasFocus	:= True
-		, widgetReceivesDefault	:= True
+		, widgetIsFocus		:= True
 		, entryText		:= initial ]
 	lbl <- labelNewWithMnemonic "_Filter:"
 	set lbl [ labelMnemonicWidget := ent ]
 	
-	findbar <- hBoxNew False g_SPACING
+	findbar <- hBoxNew False spacing
 	boxPackStart findbar lbl PackNatural 0
 	boxPackStart findbar ent PackGrow 0
 	
