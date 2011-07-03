@@ -5,7 +5,9 @@ import Control.Applicative
 import Control.Monad.IO.Class
 import Control.Exception
 import Control.Monad
-import Network.Socket 
+import Data.Set as S
+import Network.Socket
+import Network.Tremulous.Protocol
 
 import Types
 import Constants
@@ -26,7 +28,7 @@ main = withSocketsDo $ do
 	config		<- configFromFile
 	cacheclans	<- clanListFromCache
 	bundle		<- atomically $ Bundle
-				<$> newTMVar []
+				<$> newTMVar (PollMasters [] 0 0 S.empty)
 				<*> newTMVar config
 				<*> newTMVar cacheclans
 
@@ -41,6 +43,7 @@ main = withSocketsDo $ do
 	toolbar <- newToolbar bundle
 		(clanlistUpdate >> onlineclansUpdate)
 		(browserUpdate >> findUpdate >> currentUpdate >> onlineclansUpdate)
+		
 	-- /// Layout ////////////////////////////////////////////////////////////////////////////
 
 	book <- notebookNew
@@ -53,13 +56,13 @@ main = withSocketsDo $ do
 	leftView <- vBoxNew False 0
 	boxPackStart leftView toolbar PackNatural 0
 	boxPackStart leftView book PackGrow 0
-	
-	
+
+
 	pane <- hPanedNew
 	panedPack1 pane leftView True False
 	panedPack2 pane currentInfo  False True
-	
-	
+
+
 	-- save the current window size and pane positon on exit
 	on win deleteEvent $ tryEvent $ liftIO $ do
 		Config {autoGeometry} <- atomically $ readTMVar (mconfig bundle)
@@ -73,16 +76,16 @@ main = withSocketsDo $ do
 	handleGError (const $ putStrLn "Window icon not found") $ do
 		winicon <- pixbufNewFromFile =<< fromDataDir "apelsin.png"
 		set win [ windowIcon := Just winicon ]
-		
+
 	-- Without allowshrink the window may change size back and forth when selecting new servers
 	set win [ containerChild	:= pane
 		, windowTitle		:= fullProgramName
 		, windowAllowShrink	:= True
 		]
-	
+
 	--Showing it to get size requests
 	widgetShowAll leftView
-	
+
 	-- Restore the window size and pane position
 	when (autoGeometry config) $ handle ignoreIOException $ do
 		file	<- inCacheDir "windowsize"
@@ -94,14 +97,14 @@ main = withSocketsDo $ do
 			panedSetPosition pane (if minw+panebuf > winw then ppos+panebuf else ppos)
 			set win [ widgetHeightRequest	:= max minh winh
 				, widgetWidthRequest	:= max (minw+panebuf) winw ]
-	widgetShowAll win		
+	widgetShowAll win
 
 
 
 	mainGUI
-	
+
 
 ignoreIOException :: IOException -> IO ()
 ignoreIOException _ = return ()
 
-	
+

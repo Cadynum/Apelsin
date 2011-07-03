@@ -10,7 +10,7 @@ Description:            Placeholder....
 
 Cabal-Version:          >= 1.10
 Build-Type:             Simple
-data-dir:               share
+data-files:             apelsin.png
 Tested-With:            GHC==7.0.3
 
 
@@ -19,10 +19,10 @@ Executable apelsin
   Default-Extensions:   BangPatterns NamedFieldPuns RecordWildCards
                         ScopedTypeVariables OverloadedStrings
   Other-Extensions:     CPP
-  Build-Depends:        base>=4.3, array, mtl, stm, deepseq, containers, transformers,
+  Build-Depends:        base>=4.3, array, mtl, stm, containers, transformers,
                         bytestring, directory, filepath, HTTP, network,
                         tremulous-query, gtk, glib, process
-                       
+
   Main-is:              Apelsin.hs
   Other-Modules:        System.Environment.XDG.BaseDir
                         About
@@ -43,7 +43,7 @@ Executable apelsin
                         Toolbar
                         TremFormatting
                         Types
-  if os(windows)               
+  if os(windows)
     Ghc-Options: -Wall -threaded -fno-warn-unused-do-bind -funbox-strict-fields
   else
     Ghc-Options: -optl-mwindows -Wall -threaded -fno-warn-unused-do-bind -funbox-strict-fields

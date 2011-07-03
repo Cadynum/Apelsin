@@ -1,7 +1,6 @@
 module STM2(
-	module Control.Concurrent
-	, module Control.Concurrent.STM
-	, tryReadTMVar, withTMVar, clearTMVar
+	module Control.Concurrent, module Control.Concurrent.STM
+	, tryReadTMVar, withTMVar, clearTMVar, replaceTMVar
 ) where
 
 import Control.Concurrent
@@ -26,4 +25,7 @@ clearTMVar mvar = do
 	t <- isEmptyTMVar mvar
 	if t 
 	then return ()
-	else takeTMVar mvar >> return () 
+	else takeTMVar mvar >> return ()
+
+replaceTMVar :: TMVar a -> a -> STM ()
+replaceTMVar t x = clearTMVar t >> putTMVar t x

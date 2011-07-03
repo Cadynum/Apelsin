@@ -3,7 +3,6 @@ module Toolbar where
 import Graphics.UI.Gtk
 
 import Control.Applicative
-import Control.DeepSeq
 import Control.Exception
 import Control.Monad
 import Data.Maybe
@@ -91,10 +90,9 @@ newToolbar bundle@Bundle{..} clanHook polledHook = do
 			hosts <- catMaybes <$> mapM
 				(\(host, port, proto) -> fmap (MasterServer proto) <$> getDNS host (show port))
 				masterServers
-			(polled,_,_,_) <- pollMasters delays hosts
-			-- Force evaluation in this thread to prevent blocking in the mainthread
-			polled `deepseq` return ()
-			atomically $ clearTMVar mpolled >> putTMVar mpolled polled
+			result <- pollMasters delays hosts
+
+			atomically $ replaceTMVar mpolled result
 			killThread pbth
 			postGUISync $ do
 				polledHook

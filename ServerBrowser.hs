@@ -31,7 +31,8 @@ newServerBrowser Bundle{..} setServer = do
 		, ("_Players"	, 1	, False	, False , False	, showPlayers		, Just (comparing nplayers))
 		]
 
-	(infobox, statNow, statTot) <- newInfobox "servers"	
+	(infobox, statNow, statTot, statRequested) <- newInfoboxBrowser
+	
 	Config {filterBrowser} <- atomically $ readTMVar mconfig
 	(filterbar, current) <- newFilterBar filtered statNow filterBrowser
 	empty <- checkButtonNewWithMnemonic "_empty"
@@ -74,12 +75,13 @@ newServerBrowser Bundle{..} setServer = do
 	containerAdd scrollview view
 	
 	let updateF = do
-		polled <- atomically $ readTMVar mpolled
+		PollMasters{..} <- atomically $ readTMVar mpolled
 		listStoreClear rawmodel
 		treeViewColumnsAutosize view
 		mapM_ (listStoreAppend rawmodel) polled
 		treeModelFilterRefilter filtered
-		set statTot [ labelText := show (length polled) ]
+		set statTot		[ labelText := show serversResponded ]
+		set statRequested	[ labelText := show (serversRequested-serversResponded) ]
 		n <- treeModelIterNChildren filtered Nothing
 		set statNow [ labelText := show n ]
 		

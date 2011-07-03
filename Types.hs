@@ -8,7 +8,7 @@ import Control.Concurrent.STM
 import Network.Tremulous.Protocol
 
 data Bundle = Bundle {
-	  mpolled	:: !(TMVar [GameServer])
+	  mpolled	:: !(TMVar PollMasters)
 	, mconfig	:: !(TMVar Config)
 	, mclans	:: !(TMVar [Clan])
 	}
