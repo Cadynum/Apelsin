@@ -31,6 +31,8 @@ newInfoboxBrowser = do
 
 	let (_:a:_:b:_:c:_) = lst
 	mapM (\x -> set x [ labelWidthChars := 4 ] >> miscSetAlignment x 1 0) [a,b,c]
+	set c [ labelWidthChars := 3 ]
+	
 	
 
 	mapM_ (\x -> boxPackStart box x PackNatural 0) lst

@@ -46,7 +46,7 @@ newToolbar bundle@Bundle{..} clanHook polledHook = do
 	set about	[ buttonRelief		:= ReliefNone 
 			, buttonFocusOnClick	:= False ]
 
-	on about buttonActivated $ newAbout
+	on about buttonActivated $ newAbout parent
 			
 	(clanSync, doSync) <- newClanSync bundle clanHook
 	

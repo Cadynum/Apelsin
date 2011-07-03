@@ -2,11 +2,12 @@ module About where
 import Graphics.UI.Gtk
 import Constants
 
-newAbout :: IO ()
-newAbout = do
+newAbout :: WindowClass w => w -> IO ()
+newAbout win = do
 	about <- aboutDialogNew
 	set about [
-		  windowWindowPosition := WinPosCenter
+		  windowWindowPosition := WinPosCenterOnParent
+		, windowTransientFor	:= win
 		, aboutDialogProgramName:= programName
 		, aboutDialogVersion	:= "1.0"
 		, aboutDialogCopyright	:= "Copyright © 2011\nChristoffer Öjeling <christoffer@ojeling.net>"

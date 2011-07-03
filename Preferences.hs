@@ -26,7 +26,7 @@ newPreferences Bundle{..} = do
 
 
 	-- Tremulous path
-	(pathstbl, [tremPath', tremGppPath']) <- pathTable ["_Tremulous 1.1:", "Tremulous _GPP:"]
+	(pathstbl, [tremPath', tremGppPath']) <- pathTable parent ["_Tremulous 1.1:", "Tremulous _GPP:"]
 	paths <- newLabeledFrame "Tremulous path or command"
 	set paths [ containerChild := pathstbl]
 
@@ -136,7 +136,7 @@ newPreferences Bundle{..} = do
 		
 	scrollItV box PolicyNever PolicyAutomatic
 
-configTable, pathTable :: [String] -> IO (Table, [Entry])
+configTable :: [String] -> IO (Table, [Entry])
 configTable ys = do
 	tbl <- tableNew 0 0 False
 	let easyAttach pos lbl  = do
@@ -151,12 +151,13 @@ configTable ys = do
 	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
 	rt	<- mkTable ys
 	return (tbl, rt)
-	
-pathTable ys = do
+
+pathTable :: Window -> [String] -> IO (Table, [Entry])
+pathTable parent ys = do
 	tbl <- tableNew 0 0 False
 	let easyAttach pos lbl  = do
 		a <- labelNewWithMnemonic lbl
-		(box, ent) <- pathSelectionEntryNew
+		(box, ent) <- pathSelectionEntryNew parent
 		set a [ labelMnemonicWidget := ent ]
 		miscSetAlignment a 0 0.5
 		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] spacing spacingHalf
@@ -219,8 +220,8 @@ numberedColors = do
 
 
 -- Gtk fails yet again and doesn't offer something like this by default
-pathSelectionEntryNew :: IO (HBox, Entry)
-pathSelectionEntryNew = do
+pathSelectionEntryNew :: Window -> IO (HBox, Entry)
+pathSelectionEntryNew parent = do
 	box	<- hBoxNew False 0
 	img	<- imageNewFromStock stockOpen (IconSizeUser 1)
 	button	<- buttonNew
@@ -232,7 +233,7 @@ pathSelectionEntryNew = do
 	
 		
 	on button buttonActivated $ do
-		fc	<- fileChooserDialogNew (Just "Select path") Nothing FileChooserActionOpen
+		fc	<- fileChooserDialogNew (Just "Select path") (Just parent) FileChooserActionOpen
 			[ (stockCancel, ResponseCancel)
 			, (stockOpen, ResponseAccept) ]
 		widgetShow fc

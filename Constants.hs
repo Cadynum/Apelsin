@@ -22,11 +22,7 @@ inConfDir x = do
 	createDirectoryIfMissing True dir
 	return (dir </> x)
 
-fromDataDir x = do
-	fp1 <- (</> x) `fmap` getCurrentDirectory
-	fp2 <- getDataFileName x
-	tst <- doesFileExist fp1
-	return $ if tst then fp1 else fp2
+fromDataDir = getDataFileName 
 
 spacing, spacingHalf, spacingBig :: Integral i => i
 spacing		= 4

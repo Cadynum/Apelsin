@@ -48,6 +48,7 @@ newServerInfo Bundle{..} = do
 	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
 	datta <- mkTable ["IP:Port", "Game (mod)", "Map", "Password protected"
 			, "Slots (+private)", "Ping (server average)"]
+	set (head datta) [ labelSelectable := True ]
 	
 	
 	-- Players
@@ -60,9 +61,9 @@ newServerInfo Bundle{..} = do
 					, ("Score", False, show . kills)
 					, ("Ping", False, show . ping)
 					]
-	(amodel, aview) <- playerView "Alien"
-	(hmodel, hview) <- playerView "Human"
-	(smodel, sview) <- simpleListView [("Spectator", True, pangoPretty colors . name)
+	(amodel, aview) <- playerView "Aliens"
+	(hmodel, hview) <- playerView "Humans"
+	(smodel, sview) <- simpleListView [("Spectators", True, pangoPretty colors . name)
 					, ("Ping", False, show . ping)]
 	
 	ascroll <- scrollIt aview PolicyNever PolicyAutomatic

@@ -18,6 +18,7 @@ newFilterBar filtered stat initial  = do
 	ent <- entryNew
 	set ent [ widgetHasFocus	:= True
 		, widgetIsFocus		:= True
+		, widgetCanDefault	:= True
 		, entryText		:= initial ]
 	lbl <- labelNewWithMnemonic "_Filter:"
 	set lbl [ labelMnemonicWidget := ent ]

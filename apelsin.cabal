@@ -10,7 +10,8 @@ Description:            Placeholder....
 
 Cabal-Version:          >= 1.10
 Build-Type:             Simple
-data-files:             apelsin.png
+Data-Dir:               data
+Data-Files:             *.png
 Tested-With:            GHC==7.0.3
 
 

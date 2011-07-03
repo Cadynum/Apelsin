@@ -5,7 +5,7 @@ import Control.Applicative
 import Control.Monad.IO.Class
 import Control.Exception
 import Control.Monad
-import Data.Set as S
+import qualified Data.Set as S
 import Network.Socket
 import Network.Tremulous.Protocol
 
@@ -31,6 +31,7 @@ main = withSocketsDo $ do
 				<$> newTMVar (PollMasters [] 0 0 S.empty)
 				<*> newTMVar config
 				<*> newTMVar cacheclans
+				<*> pure win
 
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle
 	(browser, browserUpdate)		<- newServerBrowser bundle currentSet
@@ -43,7 +44,7 @@ main = withSocketsDo $ do
 	toolbar <- newToolbar bundle
 		(clanlistUpdate >> onlineclansUpdate)
 		(browserUpdate >> findUpdate >> currentUpdate >> onlineclansUpdate)
-		
+
 	-- /// Layout ////////////////////////////////////////////////////////////////////////////
 
 	book <- notebookNew
@@ -52,7 +53,6 @@ main = withSocketsDo $ do
 	notebookAppendMnemonic book onlineclans	"_3: Online clans"
 	notebookAppendMnemonic book clanlist	"_4: Clan list"
 	notebookAppendMnemonic book preferences	"_5: Preferences"
-
 	leftView <- vBoxNew False 0
 	boxPackStart leftView toolbar PackNatural 0
 	boxPackStart leftView book PackGrow 0
@@ -74,9 +74,11 @@ main = withSocketsDo $ do
 		mainQuit
 
 	handleGError (const $ putStrLn "Window icon not found") $ do
-		winicon <- pixbufNewFromFile =<< fromDataDir "apelsin.png"
-		set win [ windowIcon := Just winicon ]
-
+		ddir <- fromDataDir ""
+		let list = map (\x -> ddir ++ "apelsin" ++ x ++ ".png") ["16", "32", "48", "64", "128"]
+		icons <- mapM pixbufNewFromFile list
+		set win [ windowIconList := icons]
+	
 	-- Without allowshrink the window may change size back and forth when selecting new servers
 	set win [ containerChild	:= pane
 		, windowTitle		:= fullProgramName
