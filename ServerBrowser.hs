@@ -33,13 +33,15 @@ newServerBrowser Bundle{..} setServer = do
 
 	(infobox, statNow, statTot, statRequested) <- newInfoboxBrowser
 	
-	Config {filterBrowser} <- atomically $ readTMVar mconfig
+	Config {filterBrowser, filterEmpty} <- atomically $ readTMVar mconfig
 	(filterbar, current) <- newFilterBar filtered statNow filterBrowser
 	empty <- checkButtonNewWithMnemonic "_empty"
+	set empty [ toggleButtonActive := filterEmpty ]
 	boxPackStart filterbar empty PackNatural 0
-	toggleButtonSetActive empty True
-	on empty toggled $
+	on empty toggled $ do
 		treeModelFilterRefilter filtered
+		n <- treeModelIterNChildren filtered Nothing
+		set statNow [ labelText := show n ]
 
 
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do

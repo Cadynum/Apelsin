@@ -45,7 +45,7 @@ newServerInfo Bundle{..} = do
 		tableAttach tbl b 1 2 pos (pos+1) [Expand, Fill] [Expand, Fill] 8 2 
 		return b
 		
-	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
+	let mkTable xs = mapM (uncurry easyAttach) (zip [0..] xs)
 	datta <- mkTable ["IP:Port", "Game (mod)", "Map", "Password protected"
 			, "Slots (+private)", "Ping (server average)"]
 	set (head datta) [ labelSelectable := True ]

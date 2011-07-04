@@ -22,6 +22,7 @@ data Config = Config {
 	, autoGeometry	:: !Bool
 	, filterBrowser
 	, filterPlayers	:: !String
+	, filterEmpty	:: !Bool
 	, delays	:: !Delay
 	, colors	:: !ColorTheme
 	} deriving (Show, Read)
@@ -38,6 +39,7 @@ defaultConfig = Config {
 	, autoGeometry	= True
 	, filterBrowser	= ""
 	, filterPlayers	= ""
+	, filterEmpty	= True
 	, delays	= Delay (400*1000) 2 (2*1000)
 	, colors	= makeColorsFromList $
 		TFNone : (map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"]) ++ [TFNone]

@@ -1,7 +1,7 @@
 module Preferences where
 import Graphics.UI.Gtk
 import Control.Monad
-import Control.Applicative
+import Control.Applicative hiding (empty)
 import Control.Concurrent.STM
 import Data.Char
 import Data.Array
@@ -19,7 +19,7 @@ newPreferences :: Bundle -> IO ScrolledWindow
 newPreferences Bundle{..} = do
 	-- Default filters
 	
-	(tbl, [filterBrowser', filterPlayers']) <-
+	(tbl, [filterBrowser', filterPlayers'], filterEmpty') <-
 		configTable ["_Browser:", "Find _players:"]
 	filters <- newLabeledFrame "Default filters"
 	set filters [ containerChild := tbl]
@@ -32,7 +32,7 @@ newPreferences Bundle{..} = do
 
 	-- Startup
 
-	startupMaster	<- checkButtonNewWithMnemonic "R_efresh all servers"
+	startupMaster	<- checkButtonNewWithMnemonic "Re_fresh all servers"
 	startupClan	<- checkButtonNewWithMnemonic "S_ync clan list"
 	startupGeometry	<- checkButtonNewWithMnemonic "Restore _window geometry from previous session"
 	
@@ -56,8 +56,7 @@ newPreferences Bundle{..} = do
 	-- Internals
 	(itbl, [itimeout, iresend, ibuf]) <- mkInternals 
 	(internals, ibox) <- framedVBox "Polling Internals"
-	ilbl <- labelNew $ Just "The throughput limit should be set as low as possible while pings remain correct."
-	set ilbl	[ labelWrap	:= True ]
+	ilbl <- labelNew $ Just "Tip: Hover the cursor over each option for a description"
 	miscSetAlignment ilbl 0 0
 	--labelSetLineWrap ilbl True
 	boxPackStart ibox itbl PackNatural 0
@@ -67,8 +66,6 @@ newPreferences Bundle{..} = do
 	-- Apply
 	
 	apply	<- buttonNewFromStock stockApply
-	tips <- tooltipsNew
-	tooltipsSetTip tips apply "alpha" ""
 	bbox	<- hBoxNew False 0
 	boxPackStartDefaults bbox apply
 	balign	<- alignmentNew 0.5 1 0 0
@@ -77,6 +74,7 @@ newPreferences Bundle{..} = do
 	on apply buttonActivated $ do
 		filterBrowser	<- get filterBrowser' entryText
 		filterPlayers	<- get filterPlayers' entryText
+		filterEmpty	<- get filterEmpty' toggleButtonActive
 		tremPath	<- get tremPath' entryText
 		tremGppPath	<- get tremGppPath' entryText
 		autoMaster	<- get startupMaster toggleButtonActive
@@ -96,7 +94,7 @@ newPreferences Bundle{..} = do
 		let new		= old {filterBrowser, filterPlayers, autoMaster
 				, autoClan, autoGeometry, tremPath, tremGppPath
 				, colors = makeColorsFromList rawcolors
-				, delays = Delay{..}}
+				, delays = Delay{..}, filterEmpty}
 		atomically $ putTMVar mconfig new
 		configToFile new
 		return ()
@@ -118,6 +116,7 @@ newPreferences Bundle{..} = do
 		Config {..} 		<- atomically $ readTMVar mconfig
 		set filterBrowser'	[ entryText := filterBrowser ]
 		set filterPlayers'	[ entryText := filterPlayers ]
+		set filterEmpty'	[ toggleButtonActive := filterEmpty]
 		set tremPath'		[ entryText := tremPath ]
 		set tremGppPath'	[ entryText := tremGppPath ]
 		set startupMaster	[ toggleButtonActive := autoMaster ]
@@ -138,9 +137,10 @@ newPreferences Bundle{..} = do
 		
 	scrollItV box PolicyNever PolicyAutomatic
 
-configTable :: [String] -> IO (Table, [Entry])
+configTable :: [String] -> IO (Table, [Entry], CheckButton)
 configTable ys = do
 	tbl <- tableNew 0 0 False
+	empty <- checkButtonNewWithMnemonic "_empty"
 	let easyAttach pos lbl  = do
 		a <- labelNewWithMnemonic lbl
 		b <- entryNew
@@ -148,11 +148,14 @@ configTable ys = do
 		miscSetAlignment a 0 0.5
 		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] spacing spacingHalf
 		tableAttach tbl b 1 2 pos (pos+1) [Expand, Fill] [] spacing spacingHalf
+		when (pos == 0) $ 
+			tableAttach tbl empty 2 3 pos (pos+1) [Fill] [] spacing spacingHalf
+				
 		return b
 		
-	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
+	let mkTable xs = mapM (uncurry easyAttach) (zip [0..] xs)
 	rt	<- mkTable ys
-	return (tbl, rt)
+	return (tbl, rt, empty)
 
 pathTable :: Window -> [String] -> IO (Table, [Entry])
 pathTable parent ys = do
@@ -166,15 +169,18 @@ pathTable parent ys = do
 		tableAttach tbl box 1 2 pos (pos+1) [Expand, Fill] [] spacing spacingHalf
 		return ent
 		
-	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
+	let mkTable xs = mapM (uncurry easyAttach) (zip [0..] xs)
 	rt	<- mkTable ys
 	return (tbl, rt)
 
 mkInternals :: IO (Table, [SpinButton])
 mkInternals = do
 	tbl <- tableNew 0 0 False
-	let easyAttach pos (lbl, lblafter)  = do
+	tips <- tooltipsNew
+
+	let easyAttach pos (lbl, lblafter, tip)  = do
 		a <- labelNewWithMnemonic lbl
+		tooltipsSetTip tips a tip ""
 		b <- spinButtonNewWithRange 0 10000 1
 		c <- labelNew (Just lblafter)
 		set a [ labelMnemonicWidget := b ]
@@ -185,10 +191,10 @@ mkInternals = do
 		tableAttach tbl c 2 3 pos (pos+1) [Fill] [] spacing spacingHalf
 		return b
 		
-	let mkTable xs = mapM (uncurry easyAttach) (zip (iterate (+1) 0) xs)
-	rt <- mkTable	[ ("Respo_nse Timeout:", "ms")
-			, ("Maximum packet _duplication:", "times")
-			, ("Throughput _limit:", "ms") ]
+	let mkTable xs = mapM (uncurry easyAttach) (zip [0..] xs)
+	rt <- mkTable	[ ("Respo_nse Timeout:", "ms", "How long Apelsin should wait before sending a new request to a server not responding")
+			, ("Maximum packet _duplication:", "times", "Maximum number of extra requests to send beoynd the initial one if a server does not respond" )
+			, ("Throughput _limit:", "ms", "Should be set as low as possible as long as pings from \"Refresh all servers\" remains the same as \"Refresh current\"") ]
 	return (tbl, rt)
 
 

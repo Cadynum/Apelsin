@@ -76,8 +76,7 @@ main = withSocketsDo $ do
 
 	ddir <- getDataDir
 	handleGError (const $ trace $ "Window icon not found: " ++ ddir) $ do
-		
-		let list = map (\x -> ddir </> "apelsin" ++ x ++ ".png") ["16", "32", "48", "64", "128"]
+		let list = map (\x -> ddir </> "apelsin" ++ x ++ ".png") ["16", "32", "48", "64"]
 		icons <- mapM pixbufNewFromFile list
 		set win [ windowIconList := icons]
 	
