@@ -8,6 +8,7 @@ import Control.Monad
 import qualified Data.Set as S
 import Network.Socket
 import Network.Tremulous.Protocol
+import System.FilePath ((</>))
 
 import Types
 import Constants
@@ -73,9 +74,10 @@ main = withSocketsDo $ do
 			writeFile file $ show (winw, winh, ppos)
 		mainQuit
 
-	handleGError (const $ putStrLn "Window icon not found") $ do
-		ddir <- fromDataDir ""
-		let list = map (\x -> ddir ++ "apelsin" ++ x ++ ".png") ["16", "32", "48", "64", "128"]
+	ddir <- getDataDir
+	handleGError (const $ trace $ "Window icon not found: " ++ ddir) $ do
+		
+		let list = map (\x -> ddir </> "apelsin" ++ x ++ ".png") ["16", "32", "48", "64", "128"]
 		icons <- mapM pixbufNewFromFile list
 		set win [ windowIconList := icons]
 	

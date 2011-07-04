@@ -15,6 +15,12 @@ Data-Files:             *.png
 Tested-With:            GHC==7.0.3
 
 
+Flag relativePath
+  description: Use relative paths for data files instead of cabal defaults
+  default:     False
+
+
+
 Executable apelsin
   Default-Language:     Haskell2010
   Default-Extensions:   BangPatterns NamedFieldPuns RecordWildCards
@@ -36,7 +42,6 @@ Executable apelsin
                         GtkUtils
                         InfoBox
                         List2
-                        Paths_apelsin
                         Preferences
                         ServerBrowser
                         ServerInfo
@@ -44,7 +49,13 @@ Executable apelsin
                         Toolbar
                         TremFormatting
                         Types
+                        Paths_apelsin
+                          
+  Ghc-Options:         -Wall -threaded -fno-warn-unused-do-bind -funbox-strict-fields
+  
+  if !flag(relativePath)
+    cpp-options: -DCABAL_PATH
+
   if os(windows)
-    Ghc-Options: -Wall -threaded -fno-warn-unused-do-bind -funbox-strict-fields
-  else
-    Ghc-Options: -optl-mwindows -Wall -threaded -fno-warn-unused-do-bind -funbox-strict-fields
+    ld-options: -mwindows
+   

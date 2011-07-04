@@ -67,6 +67,8 @@ newPreferences Bundle{..} = do
 	-- Apply
 	
 	apply	<- buttonNewFromStock stockApply
+	tips <- tooltipsNew
+	tooltipsSetTip tips apply "alpha" ""
 	bbox	<- hBoxNew False 0
 	boxPackStartDefaults bbox apply
 	balign	<- alignmentNew 0.5 1 0 0
