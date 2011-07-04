@@ -68,8 +68,8 @@ newClanList Bundle{..} = do
 
 	return (box, updateF)
 
-newOnlineClans :: Bundle-> (P.GameServer -> IO ()) -> IO (ScrolledWindow, IO ())
-newOnlineClans Bundle{..} setCurrent = do
+newOnlineClans :: Bundle-> (Bool -> P.GameServer -> IO ()) -> IO (ScrolledWindow, IO ())
+newOnlineClans Bundle{..} setServer = do
 	Config {colors} <- atomically $ readTMVar mconfig
 
 	let showName c =  case c of
@@ -106,7 +106,14 @@ newOnlineClans Bundle{..} setCurrent = do
 		item		<- treeModelGetRow raw iter
 		case item of
 			Left _ -> return ()
-			Right (_, a) -> setCurrent a
+			Right (_, a) -> setServer False a
+
+	onRowActivated view $ \path _ -> do
+		Just vIter	<- treeModelGetIter raw path
+		gs	<- treeModelGetRow raw vIter
+		case gs of
+			Left _ -> return ()
+			Right (_, gameserver) -> setServer True gameserver
 
 	scroll <- scrollIt view PolicyAutomatic PolicyAutomatic
 

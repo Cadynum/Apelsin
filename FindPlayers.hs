@@ -14,8 +14,8 @@ import InfoBox
 import Constants
 import Config
 
-newFindPlayers :: Bundle -> (GameServer -> IO ()) -> IO (VBox, IO ())
-newFindPlayers Bundle{..} currentSet = do
+newFindPlayers :: Bundle -> (Bool -> GameServer -> IO ()) -> IO (VBox, IO ())
+newFindPlayers Bundle{..} setServer = do
 	Config {colors} <- atomically $ readTMVar mconfig
 	rawmodel	<- listStoreNew []
 	model		<- treeModelFilterNew rawmodel []
@@ -50,8 +50,14 @@ newFindPlayers Bundle{..} currentSet = do
 		Just vIter <- treeModelGetIter model x
 		iter	<-treeModelFilterConvertIterToChildIter model vIter
 		gameserver <- treeModelGetRow rawmodel iter
-		currentSet (snd gameserver)
+		setServer False (snd gameserver)
 		return ()
+
+	onRowActivated view $ \path _ -> do
+		Just vIter	<- treeModelGetIter model path
+		fIter		<- treeModelFilterConvertIterToChildIter model vIter
+		gameserver	<- treeModelGetRow rawmodel fIter
+		setServer True (snd gameserver)
 	
 	scroll <- scrollIt view PolicyAutomatic PolicyAlways
 	
