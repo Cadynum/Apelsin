@@ -10,6 +10,7 @@ import Data.Tree
 import Data.List (sortBy)
 import Data.IORef
 import Network.Tremulous.NameInsensitive
+import Network.Tremulous.ByteStringUtils
 import qualified Network.Tremulous.Protocol as P
 import Network.Tremulous.Util
 
@@ -48,7 +49,7 @@ newClanList Bundle{..} = do
 	addColumnsFilterSort raw filtered sorted view (Just (comparing name)) [
 		  ("_Name"	, 0 , False	, True	, False	, unpackorig . name	, Just (comparing name))
 		, ("_Tag"	, 0 , False	, True	, False	, unpackorig . tag	, Just (comparing tag))
-		, ("Website"	, 0 , False	, True	, False	, B.unpack . website	, Nothing)
+		, ("Website"	, 0 , False	, True	, False	, B.unpack . showURL . website	, Nothing)
 		, ("IRC"	, 0 , False	, True	, False	, B.unpack . irc	, Nothing)
 		]
 
@@ -67,6 +68,9 @@ newClanList Bundle{..} = do
 	updateF
 
 	return (box, updateF)
+	where showURL x = case stripPrefix "http://" x of
+		Just a	-> a
+		Nothing -> x
 
 newOnlineClans :: Bundle-> (Bool -> P.GameServer -> IO ()) -> IO (ScrolledWindow, IO ())
 newOnlineClans Bundle{..} setServer = do
