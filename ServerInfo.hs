@@ -160,7 +160,7 @@ newServerInfo Bundle{..} = do
 	let updateF = withTMVar mpolled $ \PollMasters{..} -> do
 		withTMVar current $ \GameServer{address} -> do
 			case serverByAddress address polled of
-				Nothing -> gtkWarn "Server is no longer available"
+				Nothing -> return ()
 				Just a	-> setF False a
 			
 	

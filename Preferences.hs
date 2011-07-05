@@ -192,7 +192,7 @@ mkInternals = do
 		return b
 		
 	let mkTable xs = mapM (uncurry easyAttach) (zip [0..] xs)
-	rt <- mkTable	[ ("Respo_nse Timeout:", "ms", "How long Apelsin should wait before sending a new request to a server not responding")
+	rt <- mkTable	[ ("Respo_nse Timeout:", "ms", "How long Apelsin should wait before sending a new request to a server possibly not responding")
 			, ("Maximum packet _duplication:", "times", "Maximum number of extra requests to send beoynd the initial one if a server does not respond" )
 			, ("Throughput _limit:", "ms", "Should be set as low as possible as long as pings from \"Refresh all servers\" remains the same as \"Refresh current\"") ]
 	return (tbl, rt)
