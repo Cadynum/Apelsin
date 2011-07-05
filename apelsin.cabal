@@ -50,12 +50,12 @@ Executable apelsin
                         TremFormatting
                         Types
                         Paths_apelsin
-                          
+
   Ghc-Options:         -Wall -threaded -fno-warn-unused-do-bind -funbox-strict-fields
-  
+
   if !flag(relativePath)
     cpp-options: -DCABAL_PATH
 
   if os(windows)
     ld-options: -mwindows
-   
+

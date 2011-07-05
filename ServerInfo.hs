@@ -102,7 +102,7 @@ newServerInfo Bundle{..} = do
 
 	let launchTremulous = withTMVar current $ \GameServer{..} -> do
 		tst <- atomically $ tryTakeTMVar running
-		whenJust tst terminateProcess 
+		whenJust tst $ \a -> catch (terminateProcess a) (\_ -> return ())
 		Config {tremPath, tremGppPath} <- atomically $ readTMVar mconfig
 		let binary = case gameproto of
 			69 -> tremPath
@@ -110,7 +110,7 @@ newServerInfo Bundle{..} = do
 			_  -> ""
 
 		set join [ widgetSensitive := False ]
-		(_,_,_,p) <- createProcess $ (shell $ binary ++ " +connect " ++ show address)
+		(_,_,_,p) <- createProcess $ (proc binary ["+connect", show address])
 			{close_fds = True, std_in = Inherit, std_out = Inherit, std_err = Inherit}
 		atomically $ putTMVar running p
 		forkIO $ do

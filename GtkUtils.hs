@@ -147,6 +147,7 @@ gtkPopup :: MessageType -> String -> IO ()
 gtkPopup what str = do
 	a <- messageDialogNew Nothing [DialogDestroyWithParent, DialogModal]
 		what ButtonsOk str
+	set a [ windowWindowPosition := WinPosCenter]
 	dialogRun a
 	widgetDestroy a
 

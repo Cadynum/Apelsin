@@ -93,7 +93,7 @@ newOnlineClans Bundle{..} setServer = do
 	let updateF = do
 		P.PollMasters{..}	<- atomically $ readTMVar mpolled
 		clans			<- atomically $ readTMVar mclans
-		let players = buildTree $sortByPlayers $
+		let players = buildTree $ sortByPlayers $
 			associatePlayerToClans (toPlayerList polled) clans
 		treeStoreClear raw
 		treeViewColumnsAutosize view
@@ -133,8 +133,8 @@ type OnlineView = Forest (Either Clan (P.Player, P.GameServer))
 associatePlayerToClans :: PlayerList -> [Clan] -> [(Clan, PlayerList)]
 associatePlayerToClans players clans = map f clans
 	where
-	f c@Clan{tag} = (c, filter (cmp tag) players)
-	cmp tag x = cleanedCase tag `B.isInfixOf` (cleanedCase . P.name . fst) x
+	f c@Clan{tagexpr} = (c, filter (cmp tagexpr) players)
+	cmp e = matchTagExpr e . P.name . fst
 
 buildTree :: [(Clan, PlayerList)] -> OnlineView
 buildTree = filter notEmpty . foldr f [] where
@@ -165,7 +165,9 @@ newClanSync Bundle{..} updateF = do
 		forkIO $ do
 			new <- getClanList clanSyncURL
 			case new of
-				Nothing	-> postGUISync $ gtkError "Unable to download clanlist"
+				Nothing	-> postGUISync $ do
+					gtkError "Unable to download clanlist"
+					set button [ widgetSensitive := True ]
 				Just a	-> do
 					atomically $
 						swapTMVar mclans a
