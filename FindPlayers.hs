@@ -38,7 +38,7 @@ newFindPlayers Bundle{..} setServer = do
 	let updateFilter = do
 		PollMasters{..} <- atomically $ readTMVar mpolled
 		listStoreClear rawmodel
-		let plist = makePlayerList polled
+		let plist = makePlayerNameList polled
 		mapM_ (listStoreAppend rawmodel) plist
 		treeModelFilterRefilter model
 		set statTot [ labelText := show (length plist) ]

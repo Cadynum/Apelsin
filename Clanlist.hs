@@ -98,7 +98,7 @@ newOnlineClans Bundle{..} setServer = do
 		P.PollMasters{..}	<- atomically $ readTMVar mpolled
 		clans			<- atomically $ readTMVar mclans
 		let players = buildTree $ sortByPlayers $
-			associatePlayerToClans (toPlayerList polled) clans
+			associatePlayerToClans (makePlayerList polled) clans
 		treeStoreClear raw
 		treeViewColumnsAutosize view
 		mapM_ (treeStoreInsertTree raw [] 0) players
