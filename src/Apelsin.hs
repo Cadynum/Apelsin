@@ -29,7 +29,7 @@ main = withSocketsDo $ do
 	config		<- configFromFile
 	cacheclans	<- clanListFromCache
 	bundle		<- atomically $ Bundle
-				<$> newTMVar (PollMasters [] 0 0 S.empty)
+				<$> newTMVar (PollResult [] 0 0 S.empty)
 				<*> newTMVar config
 				<*> newTMVar cacheclans
 				<*> pure win

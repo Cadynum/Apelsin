@@ -104,7 +104,7 @@ newServerInfo Bundle{..} = do
 		tst <- atomically $ tryTakeTMVar running
 		whenJust tst $ \a -> catch (terminateProcess a) (\_ -> return ())
 		Config {tremPath, tremGppPath} <- atomically $ readTMVar mconfig
-		let binary = case gameproto of
+		let binary = case protocol of
 			69 -> tremPath
 			70 -> tremGppPath
 			_  -> ""
@@ -125,7 +125,7 @@ newServerInfo Bundle{..} = do
 		let (a:b:d:e:f:g:_) = datta
 		hostnamex `labelSetMarkup` ("<b><big>" ++ pangoColors colors (boxify $ htmlEscape $ unpackorig hostname) ++ "</big></b>")
 		a `labelSetMarkup` (show address)
-		b `labelSetMarkup` (proto2string gameproto ++ (case gamemod of
+		b `labelSetMarkup` (proto2string protocol ++ (case gamemod of
 					Nothing	-> ""
 					Just z	-> " (" ++ unpackorig z ++ ")"))
 		d `labelSetMarkup` (unpackorig mapname)
@@ -157,7 +157,7 @@ newServerInfo Bundle{..} = do
 		return ()
 
 		
-	let updateF = withTMVar mpolled $ \PollMasters{..} -> do
+	let updateF = withTMVar mpolled $ \PollResult{..} -> do
 		withTMVar current $ \GameServer{address} -> do
 			case serverByAddress address polled of
 				Nothing -> return ()

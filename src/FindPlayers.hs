@@ -36,7 +36,7 @@ newFindPlayers Bundle{..} setServer = do
 		return $ B.null s || s `B.isInfixOf` (cleanedCase item)
 		
 	let updateFilter = do
-		PollMasters{..} <- atomically $ readTMVar mpolled
+		PollResult{..} <- atomically $ readTMVar mpolled
 		listStoreClear rawmodel
 		let plist = makePlayerNameList polled
 		mapM_ (listStoreAppend rawmodel) plist

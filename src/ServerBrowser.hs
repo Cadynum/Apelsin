@@ -24,7 +24,7 @@ newServerBrowser Bundle{..} setServer = do
 	view		<- treeViewNewWithModel model
 	
 	addColumnsFilterSort rawmodel filtered model view (Just (comparing gameping)) [
-		  ("_Game"	, 0	, False	, False	, False	, showGame , Just (comparing (\x -> (gameproto x, gamemod x))))
+		  ("_Game"	, 0	, False	, False	, False	, showGame , Just (comparing (\x -> (protocol x, gamemod x))))
 		, ("_Name"	, 0	, True	, True	, True	, unfuckName colors . hostname	, Just (comparing hostname))
 		, ("_Map"	, 0	, True	, False	, False	, take 16 . unpackorig . mapname	, Just (comparing mapname))
 		, ("P_ing"	, 1	, False	, False , False	, show . gameping	, Just (comparing gameping))
@@ -52,7 +52,7 @@ newServerBrowser Bundle{..} setServer = do
 			smartFilter s [
 				  cleanedCase hostname
 				, cleanedCase mapname
-				, proto2string gameproto
+				, proto2string protocol
 				, maybe "" cleanedCase gamemod
 				])
 			
@@ -77,7 +77,7 @@ newServerBrowser Bundle{..} setServer = do
 	containerAdd scrollview view
 	
 	let updateF = do
-		PollMasters{..} <- atomically $ readTMVar mpolled
+		PollResult{..} <- atomically $ readTMVar mpolled
 		listStoreClear rawmodel
 		treeViewColumnsAutosize view
 		mapM_ (listStoreAppend rawmodel) polled
@@ -94,5 +94,5 @@ newServerBrowser Bundle{..} setServer = do
 	
 	return (box, updateF)
 	where
-	showGame GameServer{..} = proto2string gameproto ++ maybe "" (("-"++) . unpackorig) gamemod
+	showGame GameServer{..} = proto2string protocol ++ maybe "" (("-"++) . unpackorig) gamemod
 	showPlayers GameServer{..} = printf "%d / %2d" nplayers slots

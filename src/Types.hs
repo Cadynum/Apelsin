@@ -9,7 +9,7 @@ import Control.Concurrent.STM
 import Network.Tremulous.Protocol
 
 data Bundle = Bundle {
-	  mpolled	:: !(TMVar PollMasters)
+	  mpolled	:: !(TMVar PollResult)
 	, mconfig	:: !(TMVar Config)
 	, mclans	:: !(TMVar [Clan])
 	, parent	:: !Window

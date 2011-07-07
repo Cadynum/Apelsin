@@ -71,7 +71,7 @@ newToolbar bundle@Bundle{..} clanHook polledHook = do
 		Config {masterServers, delays=Delay{..}}	<- atomically $ readTMVar mconfig
 		
 		start <- getMicroTime
-		let tremTime = (resendTimes + 1) * resendWait
+		let tremTime = (packetDuplication + 1) * packetTimeout
 		pbth <- forkIO $ whileTrue $ do
 		
 			threadDelay 100000 --100 ms
@@ -88,7 +88,7 @@ newToolbar bundle@Bundle{..} clanHook polledHook = do
 		forkIO $ do
 			Config {delays} <- atomically $ readTMVar mconfig
 			hosts <- catMaybes <$> mapM
-				(\(host, port, proto) -> fmap (MasterServer proto) <$> getDNS host (show port))
+				(\(host, port, proto) -> fmap (`MasterServer` proto) <$> getDNS host (show port))
 				masterServers
 			result <- pollMasters delays hosts
 

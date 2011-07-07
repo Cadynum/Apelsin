@@ -80,9 +80,9 @@ newPreferences Bundle{..} = do
 		autoMaster	<- get startupMaster toggleButtonActive
 		autoClan	<- get startupClan toggleButtonActive
 		autoGeometry	<- get startupGeometry toggleButtonActive
-		resendWait	<- (*1000) <$> spinButtonGetValueAsInt itimeout
-		resendTimes	<- spinButtonGetValueAsInt iresend
-		outBufferDelay	<- (*1000) <$> spinButtonGetValueAsInt ibuf
+		packetTimeout	<- (*1000) <$> spinButtonGetValueAsInt itimeout
+		packetDuplication	<- spinButtonGetValueAsInt iresend
+		throughputDelay	<- (*1000) <$> spinButtonGetValueAsInt ibuf
 		
 		rawcolors	<- forM colorList $ \(colb, cb) -> do
 					bool <- get cb toggleButtonActive
@@ -122,9 +122,9 @@ newPreferences Bundle{..} = do
 		set startupMaster	[ toggleButtonActive := autoMaster ]
 		set startupClan		[ toggleButtonActive := autoClan ]
 		set startupGeometry	[ toggleButtonActive := autoGeometry ]
-		set itimeout		[ spinButtonValue := fromIntegral (resendWait delays `div` 1000) ]
-		set iresend		[ spinButtonValue := fromIntegral (resendTimes delays) ]
-		set ibuf		[ spinButtonValue := fromIntegral (outBufferDelay delays `div` 1000) ]
+		set itimeout		[ spinButtonValue := fromIntegral (packetTimeout delays `div` 1000) ]
+		set iresend		[ spinButtonValue := fromIntegral (packetDuplication delays) ]
+		set ibuf		[ spinButtonValue := fromIntegral (throughputDelay delays `div` 1000) ]
 		sequence_ $ zipWith f colorList (elems colors)
 		where	f (a, b) (TFColor c) = do
 				colorButtonSetColor a (hexToColor c)
