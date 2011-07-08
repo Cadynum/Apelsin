@@ -74,8 +74,10 @@ newToolbar bundle@Bundle{..} clanHook polledHook = do
 
 		-- This is a stupid guess based on that about 110 servers will respond and the master
 		-- will take about 200ms to respond
+		PollResult { serversResponded } <- atomically $ readTMVar mpolled
+		let serversGuess = if serversResponded == 0 then 110 else serversResponded
 		let tremTime = (packetDuplication + 1) * packetTimeout
-			+ 100 * throughputDelay + 200 * 1000
+			+ serversGuess * throughputDelay + 200 * 1000
 		
 		pbth <- forkIO $ whileTrue $ do
 			threadDelay 10000 --10 ms, 100 fps
