@@ -71,17 +71,21 @@ newToolbar bundle@Bundle{..} clanHook polledHook = do
 		Config {masterServers, delays=Delay{..}}	<- atomically $ readTMVar mconfig
 		
 		start <- getMicroTime
+
+		-- This is a stupid guess based on that about 110 servers will respond and the master
+		-- will take about 200ms to respond
 		let tremTime = (packetDuplication + 1) * packetTimeout
-		pbth <- forkIO $ whileTrue $ do
+			+ 100 * throughputDelay + 200 * 1000
 		
-			threadDelay 100000 --100 ms
+		pbth <- forkIO $ whileTrue $ do
+			threadDelay 10000 --10 ms, 100 fps
 			now <- getMicroTime
 			let diff = now - start
 			if now-start > fromIntegral tremTime then do
-				progressBarSetFraction pb 1
+				postGUISync $ progressBarSetFraction pb 1
 				return False
 			else do
-				progressBarSetFraction pb
+				postGUISync $ progressBarSetFraction pb
 					(fromIntegral diff / fromIntegral tremTime)
 				return True
 			
