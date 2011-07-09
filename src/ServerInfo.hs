@@ -149,7 +149,7 @@ newServerInfo Bundle{..} = do
 		treeViewColumnsAutosize hview
 		treeViewColumnsAutosize sview
 		Requisition _ sReq <- widgetSizeRequest sview
-		set specscroll [ widgetHeightRequest := sReq ]
+		set specscroll [ widgetHeightRequest := min 200 sReq ]
 		
 		atomically $ clearTMVar current >> putTMVar current gs
 		

@@ -37,7 +37,7 @@ Executable apelsin
   Other-Extensions:     CPP
   Build-Depends:        base>=4.3&&<5, array, mtl, stm, containers, transformers,
                         bytestring, directory, filepath, HTTP, network,
-                        tremulous-query, gtk, glib, process
+                        tremulous-query>=1.0.1, gtk, glib, process
   Hs-Source-Dirs:       src
   Main-is:              Apelsin.hs
   Other-Modules:        System.Environment.XDG.BaseDir
@@ -60,13 +60,13 @@ Executable apelsin
                         Types
                         Paths_apelsin
 
-  Ghc-Options:         -Wall -threaded -fno-warn-unused-do-bind -funbox-strict-fields
+  Ghc-Options:          -Wall -threaded -fno-warn-unused-do-bind -funbox-strict-fields
 
   if !flag(relativePath)
-    cpp-options: -DCABAL_PATH
+    cpp-options:        -DCABAL_PATH
 
   if os(windows)
-    ld-options: -mwindows
+    ld-options:         -mwindows
 
 Source-Repository head
   Type:                 git
