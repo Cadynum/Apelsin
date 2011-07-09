@@ -2,18 +2,11 @@ module TremFormatting where
 import Data.Array
 import Data.Char
 import Network.Tremulous.NameInsensitive
-import List2
 
 data TremFmt = TFColor !String | TFNone
 	deriving (Show, Read)
 
 type ColorArray = Array Int TremFmt
-
-unfuckName :: ColorArray -> TI -> String
-unfuckName arr = pangoColors arr . htmlEscape . stripw . filter isPrint . unpackorig
-
-boxify :: String -> String
-boxify = map (\a -> if isPrint a then a else '☐')
 
 htmlEscape :: String -> String
 htmlEscape = foldr f [] where
@@ -22,8 +15,6 @@ htmlEscape = foldr f [] where
 		'>' -> "&gt;" ++ xs
 		'&' -> "&amp;" ++ xs
 		_   -> x : xs 
-
-
 	
 pangoColors :: ColorArray -> String -> String
 pangoColors arr = f False where

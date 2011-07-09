@@ -7,6 +7,7 @@ import Control.Concurrent.STM
 import qualified Data.ByteString.Char8 as B
 import Data.Ord
 import Data.Tree
+import Data.Maybe
 import Data.List (sortBy)
 import Data.IORef
 import Network.Tremulous.NameInsensitive
@@ -68,9 +69,8 @@ newClanList Bundle{..} = do
 	updateF
 
 	return (box, updateF)
-	where showURL x = case stripPrefix "http://" x of
-		Just a	-> a
-		Nothing -> x
+	where showURL x = fromMaybe x (stripPrefix "http://" x)
+
 
 newOnlineClans :: Bundle-> (Bool -> P.GameServer -> IO ()) -> IO (ScrolledWindow, IO ())
 newOnlineClans Bundle{..} setServer = do
@@ -82,7 +82,7 @@ newOnlineClans Bundle{..} setServer = do
 
 	let showServer c =  case c of
 		Left _ -> ""
-		Right (_, P.GameServer{hostname}) -> unfuckName colors hostname
+		Right (_, P.GameServer{hostname}) -> pangoPretty colors hostname
 
 	raw	<- treeStoreNew []
 	view	<- treeViewNewWithModel raw

@@ -42,7 +42,7 @@ defaultConfig = Config {
 	, filterEmpty	= True
 	, delays	= defaultDelay
 	, colors	= makeColorsFromList $
-		TFNone : (map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"]) ++ [TFNone]
+		TFNone : map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"] ++ [TFNone]
 	} 
 makeColorsFromList :: [e] -> Array Int e
 makeColorsFromList = listArray (0,7)

@@ -1,4 +1,4 @@
-module List2 where
+module List2 (stripw, intmean) where
 import Prelude hiding (foldr, foldl, foldr1, foldl1)
 import Data.Char
 import Data.Foldable

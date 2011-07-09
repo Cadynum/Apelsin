@@ -25,7 +25,7 @@ newServerBrowser Bundle{..} setServer = do
 	
 	addColumnsFilterSort rawmodel filtered model view (Just (comparing gameping)) [
 		  ("_Game"	, 0	, False	, False	, False	, showGame , Just (comparing (\x -> (protocol x, gamemod x))))
-		, ("_Name"	, 0	, True	, True	, True	, unfuckName colors . hostname	, Just (comparing hostname))
+		, ("_Name"	, 0	, True	, True	, True	, pangoPretty colors . hostname	, Just (comparing hostname))
 		, ("_Map"	, 0	, True	, False	, False	, take 16 . unpackorig . mapname	, Just (comparing mapname))
 		, ("P_ing"	, 1	, False	, False , False	, show . gameping	, Just (comparing gameping))
 		, ("_Players"	, 1	, False	, False , False	, showPlayers		, Just (comparing nplayers))
@@ -94,5 +94,5 @@ newServerBrowser Bundle{..} setServer = do
 	
 	return (box, updateF)
 	where
-	showGame GameServer{..} = proto2string protocol ++ maybe "" (("-"++) . unpackorig) gamemod
+	showGame GameServer{..} = proto2string protocol ++ maybe "" (("-"++) . htmlEscape . unpackorig) gamemod
 	showPlayers GameServer{..} = printf "%d / %2d" nplayers slots

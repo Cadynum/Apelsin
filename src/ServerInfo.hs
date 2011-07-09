@@ -1,7 +1,10 @@
 module ServerInfo where
 import Graphics.UI.Gtk
 
+import Prelude hiding (catch)
 import Control.Monad hiding (join)
+import Control.Exception
+import Data.Ord
 import Data.List (sortBy)
 import System.Process
 
@@ -102,7 +105,7 @@ newServerInfo Bundle{..} = do
 
 	let launchTremulous = withTMVar current $ \GameServer{..} -> do
 		tst <- atomically $ tryTakeTMVar running
-		whenJust tst $ \a -> catch (terminateProcess a) (\_ -> return ())
+		whenJust tst $ \a -> catch (terminateProcess a) (\(_ :: IOError) -> return ())
 		Config {tremPath, tremGppPath} <- atomically $ readTMVar mconfig
 		let binary = case protocol of
 			69 -> tremPath
@@ -123,16 +126,16 @@ newServerInfo Bundle{..} = do
 		
 	let setF boolJoin gs@GameServer{..} = do
 		let (a:b:d:e:f:g:_) = datta
-		hostnamex `labelSetMarkup` ("<b><big>" ++ pangoColors colors (boxify $ htmlEscape $ unpackorig hostname) ++ "</big></b>")
-		a `labelSetMarkup` (show address)
+		hostnamex `labelSetMarkup` showHostname colors hostname
+		a `labelSetMarkup` show address
 		b `labelSetMarkup` (proto2string protocol ++ (case gamemod of
 					Nothing	-> ""
 					Just z	-> " (" ++ unpackorig z ++ ")"))
-		d `labelSetMarkup` (unpackorig mapname)
+		d `labelSetMarkup` unpackorig mapname
 		e `labelSetMarkup` if protected then "Yes" else "No"
 		f `labelSetMarkup` (show slots ++ " (+" ++ show privslots ++ ")")
-		labelSetMarkup g $ (show gameping) ++ 
-			" (" ++ (show $ intmean $ filter validping $ map ping players) ++ ")"
+		labelSetMarkup g $ show gameping ++ 
+			" (" ++ (show . intmean . filter validping . map ping) players ++ ")"
 		
 		listStoreClear amodel
 		listStoreClear hmodel
@@ -157,8 +160,8 @@ newServerInfo Bundle{..} = do
 		return ()
 
 		
-	let updateF = withTMVar mpolled $ \PollResult{..} -> do
-		withTMVar current $ \GameServer{address} -> do
+	let updateF = withTMVar mpolled $ \PollResult{..} ->
+		withTMVar current $ \GameServer{address} ->
 			case serverByAddress address polled of
 				Nothing -> return ()
 				Just a	-> setF False a
@@ -177,5 +180,10 @@ newServerInfo Bundle{..} = do
 	return (rightpane, updateF, setF)
 	where
 	validping x = x > 0 && x < 999
-	scoreSort = sortBy (\x y -> compare (kills y) (kills x))
+	scoreSort = sortBy (flip (comparing kills))
+	showHostname colors x = "<b><big>" ++
+		(case pangoPretty colors x of
+			"" -> "<i>Invalid name</i>"
+			a -> a)
+		++ "</big></b>"
 		

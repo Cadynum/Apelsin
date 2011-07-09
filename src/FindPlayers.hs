@@ -23,7 +23,7 @@ newFindPlayers Bundle{..} setServer = do
 	
 	addColumnsFilter rawmodel model view [
 		  ("Name", True, pangoPretty colors . fst)
-		, ("Server", True, unfuckName colors . hostname . snd) 
+		, ("Server", True, pangoPretty colors . hostname . snd) 
 		]
 
 	(infobox, statNow, statTot) <- newInfobox "players"
@@ -33,7 +33,7 @@ newFindPlayers Bundle{..} setServer = do
 	treeModelFilterSetVisibleFunc model $ \iter -> do
 		(item,_) <- treeModelGetRow rawmodel iter
 		s <- readIORef current
-		return $ B.null s || s `B.isInfixOf` (cleanedCase item)
+		return $ B.null s || s `B.isInfixOf` cleanedCase item
 		
 	let updateFilter = do
 		PollResult{..} <- atomically $ readTMVar mpolled

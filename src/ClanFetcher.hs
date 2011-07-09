@@ -90,8 +90,7 @@ lazyToStrict = B.concat . toChunks
 
 -- I blame this on buggy Network.HTTP
 get :: HStream ty => String -> IO (Either ty String)
-get url = do
-	case parseURI url of
+get url = case parseURI url of
 		Nothing -> return $ Right "Error in URL"
 		Just uri -> do
 			resp <- catch (getRight `fmap` simpleHTTP (mkRequest GET uri)) err

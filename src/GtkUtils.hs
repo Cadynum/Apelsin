@@ -1,8 +1,8 @@
 module GtkUtils where
 import Graphics.UI.Gtk
-import Control.Monad (when)
+import Control.Monad 
 
-whenJust :: Monad m => (Maybe a) -> (a -> m ()) -> m ()
+whenJust :: Monad m => Maybe a -> (a -> m ()) -> m ()
 whenJust x f = case x of
 	Nothing	-> return ()
 	Just a	-> f a 
@@ -25,7 +25,7 @@ scrollItV widget pol1 pol2 = do
 	return scroll
 	
 
-simpleListView :: [(String, Bool, (a -> String))] -> IO (ListStore a, TreeView)
+simpleListView :: [(String, Bool, a -> String)] -> IO (ListStore a, TreeView)
 simpleListView headers = do
 	model <- listStoreNew []
 	view <- treeViewNewWithModel model
@@ -111,7 +111,7 @@ addColumnsFilterSort :: (TreeViewClass self, TreeSortableClass self1, TreeModelS
 	model t -> self2 -> self1 -> self -> Maybe (t -> t -> Ordering)
 	-> [(String, Float, Bool, Bool, Bool, t -> String, Maybe (t -> t -> Ordering))]
 	-> IO ()
-addColumnsFilterSort raw filtered sorted view defaultSort xs = sequence_ $ zipWith f [0..] xs where
+addColumnsFilterSort raw filtered sorted view defaultSort xs = zipWithM_ f [0..] xs where
 	f n (title, align, format, expand, ellipsize, showf,  sortf) = do
 		col <- treeViewColumnNew
 		set col	[ treeViewColumnTitle := title
@@ -137,8 +137,7 @@ addColumnsFilterSort raw filtered sorted view defaultSort xs = sequence_ $ zipWi
 					rit1	<- treeModelFilterConvertIterToChildIter filtered it1
 					rit2	<- treeModelFilterConvertIterToChildIter filtered it2
 					xort raw g rit1 rit2
-		whenJust defaultSort $ \a -> do
-			treeSortableSetDefaultSortFunc sorted $ Just $ \it1 it2 -> do
+		whenJust defaultSort $ \a -> treeSortableSetDefaultSortFunc sorted $ Just $ \it1 it2 -> do
 				rit1	<- treeModelFilterConvertIterToChildIter filtered it1
 				rit2	<- treeModelFilterConvertIterToChildIter filtered it2
 				xort raw a rit1 rit2

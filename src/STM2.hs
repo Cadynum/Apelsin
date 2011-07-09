@@ -5,6 +5,7 @@ module STM2(
 
 import Control.Concurrent
 import Control.Concurrent.STM
+import Control.Monad
 
 tryReadTMVar :: TMVar a -> STM (Maybe a)
 tryReadTMVar v = do 
@@ -23,9 +24,9 @@ withTMVar mvar f = do
 clearTMVar :: TMVar a -> STM ()		
 clearTMVar mvar = do
 	t <- isEmptyTMVar mvar
-	if t 
-	then return ()
-	else takeTMVar mvar >> return ()
+	unless t $ do
+		takeTMVar mvar
+		return ()
 
 replaceTMVar :: TMVar a -> a -> STM ()
 replaceTMVar t x = clearTMVar t >> putTMVar t x
