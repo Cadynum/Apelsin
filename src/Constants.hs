@@ -32,7 +32,7 @@ getDataDir :: IO FilePath
 #ifdef CABAL_PATH
 getDataDir = dropTrailingPathSeparator `fmap` getDataFileName ""
 #else
-getDataDir = (</> "data") `fmap` getCurrentDirectory
+getDataDir = getCurrentDirectory
 #endif
 
 trace :: String -> IO ()
