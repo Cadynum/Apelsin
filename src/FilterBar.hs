@@ -1,8 +1,9 @@
-module FilterBar where
+module FilterBar (newFilterBar, smartFilter) where
 
 import Graphics.UI.Gtk
 import Data.IORef
 import qualified Data.ByteString.Char8 as B
+import Data.ByteString.Char8 (ByteString)
 import Data.Char
 import Network.Tremulous.ByteStringUtils as B
 
@@ -10,7 +11,7 @@ import Constants
 
 
 newFilterBar :: (TreeModelClass self, TreeModelFilterClass self) => self -> Label -> String
-	-> IO (HBox, IORef B.ByteString)
+	-> IO (HBox, IORef ByteString)
 newFilterBar filtered stat initial  = do
 	current <- newIORef ""
 	
@@ -40,7 +41,21 @@ newFilterBar filtered stat initial  = do
 		
 	return (findbar, current)
 
-smartFilter :: B.ByteString -> [B.ByteString] -> Bool
-smartFilter raw xs = all (\x -> any (x `B.isInfixOf`) xs) search 
+	
+data Expr = Is !ByteString | Not !ByteString
+
+mkExpr :: ByteString -> Expr
+mkExpr ss = case (B.head ss, B.tail ss) of
+	('-', xs) | B.length xs > 0	-> Not (B.tail ss)
+                  | otherwise		-> Is xs                 
+	_				-> Is ss
+
+matchExpr :: Expr -> [ByteString] -> Bool
+matchExpr (Is xs)  = any (xs `B.isInfixOf`)
+matchExpr (Not xs) = all (not . (xs `B.isInfixOf`))
+
+smartFilter :: ByteString -> [ByteString] -> Bool
+smartFilter raw xs = all (`matchExpr` xs) search 
 	where
-	search	= B.splitfilter ' ' raw
+	search	= map mkExpr (B.splitfilter ' ' raw)
+	
