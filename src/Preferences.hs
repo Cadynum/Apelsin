@@ -7,6 +7,7 @@ import Data.Char
 import Data.Array
 import Text.Printf
 import Network.Tremulous.Protocol
+import System.FilePath
 
 import Types
 import Config
@@ -176,16 +177,14 @@ pathTable parent ys = do
 mkInternals :: IO (Table, [SpinButton])
 mkInternals = do
 	tbl <- tableNew 0 0 False
-	tips <- tooltipsNew
-
 	let easyAttach pos (lbl, lblafter, tip)  = do
 		a <- labelNewWithMnemonic lbl
-		tooltipsSetTip tips a tip ""
 		b <- spinButtonNewWithRange 0 10000 1
 		c <- labelNew (Just lblafter)
-		set a [ labelMnemonicWidget := b ]
-		miscSetAlignment a 0 0.5
-		miscSetAlignment c 0 0
+		set a	[ labelMnemonicWidget := b
+			, widgetTooltipText := Just tip
+			, miscXalign := 0 ]
+		set c	[ miscXalign := 0 ]
 		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] spacing spacingHalf
 		tableAttach tbl b 1 2 pos (pos+1) [Fill] [] spacing spacingHalf
 		tableAttach tbl c 2 3 pos (pos+1) [Fill] [] spacing spacingHalf
@@ -244,6 +243,8 @@ pathSelectionEntryNew parent = do
 		fc	<- fileChooserDialogNew (Just "Select path") (Just parent) FileChooserActionOpen
 			[ (stockCancel, ResponseCancel)
 			, (stockOpen, ResponseAccept) ]
+		current <- takeDirectory <$> get ent entryText
+		fileChooserSetCurrentFolder fc current
 		widgetShow fc
 		resp <- dialogRun fc
 		case resp of

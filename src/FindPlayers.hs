@@ -26,12 +26,12 @@ newFindPlayers Bundle{..} setServer = do
 		, ("Server", True, pangoPretty colors . hostname . snd) 
 		]
 
-	(infobox, statNow, statTot) <- newInfobox "players"
-	Config {filterPlayers} <- atomically $ readTMVar mconfig
-	(filterbar, current)	<- newFilterBar model statNow filterPlayers
+	(infobox, statNow, statTot)	<- newInfobox "players"
+	Config {filterPlayers}		<- atomically $ readTMVar mconfig
+	(filterbar, current)		<- newFilterBar model statNow filterPlayers
 	
 	treeModelFilterSetVisibleFunc model $ \iter -> do
-		(item,_) <- treeModelGetRow rawmodel iter
+		(item, _) <- treeModelGetRow rawmodel iter
 		s <- readIORef current
 		return $ B.null s || s `B.isInfixOf` cleanedCase item
 		
@@ -46,18 +46,18 @@ newFindPlayers Bundle{..} setServer = do
 		set statNow [ labelText := show n ]
 						
 	onCursorChanged view $ do
-		(x, _) <- treeViewGetCursor view
-		Just vIter <- treeModelGetIter model x
-		iter	<-treeModelFilterConvertIterToChildIter model vIter
-		gameserver <- treeModelGetRow rawmodel iter
-		setServer False (snd gameserver)
+		(x, _)		<- treeViewGetCursor view
+		Just vIter	<- treeModelGetIter model x
+		iter		<-treeModelFilterConvertIterToChildIter model vIter
+		(_, gs)		<- treeModelGetRow rawmodel iter
+		setServer False gs
 		return ()
 
 	onRowActivated view $ \path _ -> do
 		Just vIter	<- treeModelGetIter model path
 		fIter		<- treeModelFilterConvertIterToChildIter model vIter
-		gameserver	<- treeModelGetRow rawmodel fIter
-		setServer True (snd gameserver)
+		(_, gs)		<- treeModelGetRow rawmodel fIter
+		setServer True gs
 	
 	scroll <- scrollIt view PolicyAutomatic PolicyAlways
 	

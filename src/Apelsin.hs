@@ -1,7 +1,6 @@
 import Graphics.UI.Gtk
 import System.Glib.GError
 
-import Control.Applicative
 import Control.Monad.IO.Class
 import Control.Exception
 import Control.Monad
@@ -28,17 +27,18 @@ main = withSocketsDo $ do
 	win		<- windowNew
 	config		<- configFromFile
 	cacheclans	<- clanListFromCache
-	bundle		<- atomically $ Bundle
-				<$> newTMVar (PollResult [] 0 0 S.empty)
-				<*> newTMVar config
-				<*> newTMVar cacheclans
-				<*> pure win
-
-	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle
-	(browser, browserUpdate)		<- newServerBrowser bundle currentSet
-	(findPlayers, findUpdate)		<- newFindPlayers bundle currentSet
+	bundle	<-	(do
+			mpolled		<- atomically $ newTMVar (PollResult [] 0 0 S.empty)
+			mconfig		<- atomically $ newTMVar config
+			mclans		<- atomically $ newTMVar cacheclans
+			browserStore	<- listStoreNew []
+			return Bundle {parent = win, ..}
+			)
+	(currentInfo, currentUpdate, currentSet, currentSet') <- newServerInfo bundle
+	(browser, browserUpdate)		<- newServerBrowser bundle currentSet'
+	(findPlayers, findUpdate)		<- newFindPlayers bundle currentSet'
 	(clanlist, clanlistUpdate)		<- newClanList bundle
-	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet
+	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet'
 
 	preferences				<- newPreferences bundle
 

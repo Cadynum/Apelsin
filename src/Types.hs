@@ -13,4 +13,5 @@ data Bundle = Bundle {
 	, mconfig	:: !(TMVar Config)
 	, mclans	:: !(TMVar [Clan])
 	, parent	:: !Window
+	, browserStore	:: !(ListStore GameServer)
 	}

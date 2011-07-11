@@ -36,15 +36,15 @@ newToolbar bundle@Bundle{..} clanHook polledHook = do
 	pb		<- progressBarNew
 	set pb		[ widgetNoShowAll := True ]
 	
-	refresh	<- buttonNewWithMnemonic "_Refresh all servers"
-	rimg		<- imageNewFromStock stockRefresh IconSizeButton
-	set refresh	[ buttonImage := rimg 
+	refresh		<- buttonNewWithMnemonic "_Refresh all servers" 
+	set refresh	[ buttonImage :=> imageNewFromStock stockRefresh IconSizeButton
 			, buttonRelief := ReliefNone 
 			, buttonFocusOnClick := False ]
 			
 	about		<- buttonNewFromStock stockAbout
 	set about	[ buttonRelief		:= ReliefNone 
-			, buttonFocusOnClick	:= False ]
+			, buttonFocusOnClick	:= False
+			, widgetCanDefault	:= False ]
 
 	on about buttonActivated $ newAbout parent
 			

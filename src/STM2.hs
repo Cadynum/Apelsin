@@ -1,6 +1,6 @@
 module STM2(
 	module Control.Concurrent, module Control.Concurrent.STM
-	, tryReadTMVar, withTMVar, clearTMVar, replaceTMVar
+	, tryReadTMVar, withTMVar, clearTMVar, replaceTMVar, modifyTMVar
 ) where
 
 import Control.Concurrent
@@ -30,3 +30,8 @@ clearTMVar mvar = do
 
 replaceTMVar :: TMVar a -> a -> STM ()
 replaceTMVar t x = clearTMVar t >> putTMVar t x
+
+modifyTMVar :: TMVar a -> (a -> a) -> STM ()
+modifyTMVar x f = do
+	t <- takeTMVar x
+	putTMVar x (f t)

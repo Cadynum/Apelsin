@@ -16,9 +16,9 @@ import Constants
 import Config
 
 newServerBrowser :: Bundle -> (Bool -> GameServer -> IO ()) -> IO (VBox, IO ())
-newServerBrowser Bundle{..} setServer = do
+newServerBrowser Bundle{browserStore=rawmodel, ..} setServer = do
 	Config {colors} <- atomically $ readTMVar mconfig
-	rawmodel	<- listStoreNew []
+	--rawmodel	<- listStoreNew []
 	filtered	<- treeModelFilterNew rawmodel []
 	model		<- treeModelSortNewWithModel filtered	
 	view		<- treeViewNewWithModel model
@@ -56,7 +56,7 @@ newServerBrowser Bundle{..} setServer = do
 				, maybe "" cleanedCase gamemod
 				])
 			
-	onCursorChanged view $ do
+	on view cursorChanged $ do
 		(x, _)		<- treeViewGetCursor view
 		Just vIter	<- treeModelGetIter model x
 		sIter		<- treeModelSortConvertIterToChildIter model vIter
@@ -64,7 +64,7 @@ newServerBrowser Bundle{..} setServer = do
 		gameserver	<- treeModelGetRow rawmodel fIter
 		setServer False gameserver
 
-	onRowActivated view $ \path _ -> do
+	on view rowActivated $ \path _ -> do
 		Just vIter	<- treeModelGetIter model path
 		sIter		<- treeModelSortConvertIterToChildIter model vIter
 		fIter		<- treeModelFilterConvertIterToChildIter filtered sIter
@@ -85,7 +85,7 @@ newServerBrowser Bundle{..} setServer = do
 		set statTot		[ labelText := show serversResponded ]
 		set statRequested	[ labelText := show (serversRequested-serversResponded) ]
 		n <- treeModelIterNChildren filtered Nothing
-		set statNow [ labelText := show n ]
+		set statNow 		[ labelText := show n ]
 		
 	box <- vBoxNew False 0
 	boxPackStart box filterbar PackNatural spacing

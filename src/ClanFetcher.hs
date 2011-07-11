@@ -1,5 +1,5 @@
 module ClanFetcher( 
-	Clan(..), TagExpr, matchTagExpr, getClanList, clanListFromCache
+	Clan(..), TagExpr, matchTagExpr, prettyTagExpr, getClanList, clanListFromCache
 ) where
 
 import Prelude as P hiding (catch)
@@ -13,6 +13,7 @@ import Data.Maybe
 import Network.HTTP
 import Network.URI
 import Network.Tremulous.NameInsensitive
+import TremFormatting
 
 import Constants
 
@@ -51,6 +52,16 @@ matchTagExpr expr raw = case expr of
 	TagContained xs ys	-> xs `B.isPrefixOf` str && ys `B.isSuffixOf` str
 	TagError		-> False
 	where str = cleanedCase raw
+
+prettyTagExpr :: TagExpr -> String
+prettyTagExpr expr = case expr of
+	TagPrefix bs	-> esc bs ++ wild
+	TagSuffix bs	-> wild ++ esc bs
+	TagInfix bs	-> wild ++ esc bs ++ wild
+	TagContained a b-> esc a ++ wild ++ esc b
+	TagError	-> "<span color=\"#BBB\">error</span>"
+	where	wild = "<span color=\"#BBB\">*</span>"
+		esc  = htmlEscape . B.unpack
 
 
 rawToClan :: L.ByteString -> Maybe [Clan]

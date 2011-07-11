@@ -1,4 +1,4 @@
-module Clanlist where
+module Clanlist (newClanList, newClanSync, newOnlineClans) where
 
 import Graphics.UI.Gtk
 
@@ -50,7 +50,7 @@ newClanList Bundle{..} = do
 
 	addColumnsFilterSort raw filtered sorted view (Just (comparing name)) [
 		  ("_Name"	, 0 , False	, True	, False	, unpackorig . name	, Just (comparing name))
-		, ("_Tag"	, 0 , False	, True	, False	, unpackorig . tag	, Just (comparing tag))
+		, ("_Tag"	, 0 , True	, True	, False	, prettyTagExpr . tagexpr	, Just (comparing tag))
 		, ("Website"	, 0 , False	, True	, False	, B.unpack . showURL . website	, Nothing)
 		, ("IRC"	, 0 , False	, True	, False	, B.unpack . irc	, Nothing)
 		]
@@ -80,6 +80,8 @@ newClanList Bundle{..} = do
 
 	return (box, updateF)
 	where showURL x = fromMaybe x (stripPrefix "http://" x)
+
+
 
 
 newOnlineClans :: Bundle-> (Bool -> P.GameServer -> IO ()) -> IO (ScrolledWindow, IO ())
@@ -163,8 +165,7 @@ sortByPlayers = sortBy (comparing (length . snd))
 newClanSync :: Bundle -> IO () -> IO (HBox, IO ())
 newClanSync Bundle{..} updateF = do
 	button	<- buttonNewWithMnemonic "_Sync clan list"
-	img	<- imageNewFromStock stockSave IconSizeButton
-	set button 	[ buttonImage := img
+	set button 	[ buttonImage :=> imageNewFromStock stockSave IconSizeButton
 			, buttonRelief := ReliefNone
 			, buttonFocusOnClick := False ]
 

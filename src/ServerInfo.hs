@@ -2,16 +2,18 @@ module ServerInfo (newServerInfo) where
 import Graphics.UI.Gtk
 
 import Prelude hiding (catch)
+import Control.Applicative
 import Control.Monad hiding (join)
 import Control.Exception
 import Data.Ord
-import Data.List (sortBy)
+import Data.List (sortBy, findIndex, find)
 import System.Process
 import System.FilePath
 
 import Network.Tremulous.Protocol
 import Network.Tremulous.Polling
 import Network.Tremulous.Util
+import Network.Socket
 
 import Types
 import STM2
@@ -21,7 +23,7 @@ import GtkUtils
 import Constants
 import Config
 
-newServerInfo :: Bundle -> IO (VBox, IO (), Bool -> GameServer -> IO ())
+newServerInfo :: Bundle -> IO (VBox, IO (), Bool -> SockAddr -> IO (), Bool -> GameServer -> IO ())
 newServerInfo Bundle{..} = do
 	Config {colors} <- atomically $ readTMVar mconfig
 	current		<- atomically newEmptyTMVar
@@ -29,42 +31,43 @@ newServerInfo Bundle{..} = do
 	
 	-- Host name
 	hostnamex <- labelNew Nothing
-	hostnamex `labelSetMarkup` "<b><big>Server</big></b>"
 	set hostnamex [
-		  labelWrap	:= True
-		, labelJustify	:= JustifyCenter
-		, labelSelectable := True
+		  labelWrap		:= True
+		, labelJustify		:= JustifyCenter
+		, labelSelectable	:= True
+		, labelUseMarkup	:= True
+		, labelLabel		:= formatHostname "Server"
 		-- failgtk exception..
 		--, labelWrapMode := WrapPartialWords
 		]
 	
-	-- Pretty Cvar table
+	-- Pretty CVar table
 	tbl <- tableNew 5 2 True
+	set tbl [ tableRowSpacing := spacing
+		, tableColumnSpacing := spacingBig ]
 	let easyAttach pos lbl  = do
 		a <- labelNew (Just lbl)
 		b <- labelNew Nothing
-		miscSetAlignment a 1 0.5
-		miscSetAlignment b 0 0.5
-		tableAttach tbl a 0 1 pos (pos+1) [Expand, Fill] [Expand, Fill] 8 2
-		tableAttach tbl b 1 2 pos (pos+1) [Expand, Fill] [Expand, Fill] 8 2 
+		set a [ miscXalign := 1 ]
+		set b [ miscXalign := 0 ]
+		tableAttachDefaults tbl a 0 1 pos (pos+1)
+		tableAttachDefaults tbl b 1 2 pos (pos+1)
 		return b
 		
-	let mkTable xs = mapM (uncurry easyAttach) (zip [0..] xs)
-	datta <- mkTable ["IP:Port", "Game (mod)", "Map", "Password protected"
+	let mkTable = zipWithM easyAttach [0..]
+	info <- mkTable ["IP:Port", "Game (mod)", "Map", "Password protected"
 			, "Slots (+private)", "Ping (server average)"]
-	set (head datta) [ labelSelectable := True ]
+	set (head info) [ labelSelectable := True ]
 	
 	
 	-- Players
-	allplayers <- vBoxNew False 4
-	--allplayersscroll <- scrollItV allplayers PolicyNever PolicyAutomatic
-		
-	alienshumans <- hBoxNew True 4
+	allplayers	<- vBoxNew False 4
+	alienshumans	<- hBoxNew True 4
 	
-	let playerView x = simpleListView [(x, True, pangoPretty colors . name)
-					, ("Score", False, show . kills)
-					, ("Ping", False, show . ping)
-					]
+	let playerView x = simpleListView
+		[ (x		, True	, pangoPretty colors . name)
+		, ("Score"	, False	, show . kills)
+		, ("Ping"	, False	, show . ping) ]
 	(amodel, aview) <- playerView "Aliens"
 	(hmodel, hview) <- playerView "Humans"
 	(smodel, sview) <- simpleListView [("Spectators", True, pangoPretty colors . name)
@@ -81,14 +84,11 @@ newServerInfo Bundle{..} = do
 	boxPackStart allplayers specscroll PackNatural 0
 
 	-- Action buttons
-	
 	join	<- buttonNewWithMnemonic "_Join Server"
 	refresh	<- buttonNewWithMnemonic "Refresh _current"
-	jimg	<- imageNewFromStock stockConnect IconSizeButton
-	rimg	<- imageNewFromStock stockRefresh IconSizeButton
-	set join 	[ buttonImage := jimg
+	set join 	[ buttonImage :=> imageNewFromStock stockConnect IconSizeButton
 			, widgetSensitive := False ]
-	set refresh	[ buttonImage := rimg
+	set refresh	[ buttonImage :=> imageNewFromStock stockRefresh IconSizeButton
 			, widgetSensitive := False ]
 	
 	serverbuttons <- hBoxNew False 0
@@ -123,19 +123,21 @@ newServerInfo Bundle{..} = do
 		return ()
 
 	on join buttonActivated launchTremulous
-		
-	let setF boolJoin gs@GameServer{..} = do
-		let (a:b:d:e:f:g:_) = datta
-		hostnamex `labelSetMarkup` showHostname colors hostname
-		a `labelSetMarkup` show address
-		b `labelSetMarkup` (proto2string protocol ++ (case gamemod of
+
+	
+	let setF' boolJoin gs@GameServer{..} = do
+		zipWithM_ labelSetMarkup info
+			[ show address
+			, (proto2string protocol ++ (case gamemod of
 					Nothing	-> ""
 					Just z	-> " (" ++ unpackorig z ++ ")"))
-		d `labelSetMarkup` unpackorig mapname
-		e `labelSetMarkup` if protected then "Yes" else "No"
-		f `labelSetMarkup` (show slots ++ " (+" ++ show privslots ++ ")")
-		labelSetMarkup g $ show gameping ++ 
-			" (" ++ (show . intmean . filter validping . map ping) players ++ ")"
+			, unpackorig mapname
+			, if protected then "Yes" else "No"
+			, show slots ++ " (+" ++ show privslots ++ ")"
+			, show gameping ++
+				" (" ++ (show . intmean . filter validping . map ping) players ++ ")"
+			]
+		hostnamex `labelSetMarkup` showHostname colors hostname
 		
 		listStoreClear amodel
 		listStoreClear hmodel
@@ -149,7 +151,7 @@ newServerInfo Bundle{..} = do
 		treeViewColumnsAutosize hview
 		treeViewColumnsAutosize sview
 		Requisition _ sReq <- widgetSizeRequest sview
-		set specscroll [ widgetHeightRequest := min 200 sReq ]
+		set specscroll [ widgetHeightRequest := sReq ]
 		
 		atomically $ clearTMVar current >> putTMVar current gs
 		
@@ -159,33 +161,50 @@ newServerInfo Bundle{..} = do
 		when boolJoin launchTremulous
 		return ()
 
+	let setF boolJoin addr = do
+		PollResult{..} <- atomically $ readTMVar mpolled
+		whenJust (find (\gs -> address gs == addr) polled)
+			(setF' boolJoin)
+
+
 		
 	let updateF = withTMVar mpolled $ \PollResult{..} ->
 		withTMVar current $ \GameServer{address} ->
 			case serverByAddress address polled of
 				Nothing -> return ()
-				Just a	-> setF False a
+				Just a	-> setF' False a
 			
 	
 	on refresh buttonActivated $ withTMVar current $ \x -> do
 		set refresh [ widgetSensitive := False ]
 		Config {delays} <- atomically $ readTMVar mconfig
 		forkIO $ do
-			new <- pollOne delays (address x)
+			result <- pollOne delays (address x)
 			postGUISync $ do
-				whenJust new (setF False)
+				whenJust result $ \new -> do
+					atomically $ do
+						modifyTMVar mpolled $ \pr@PollResult{polled} -> pr
+							{ polled = replace
+								(\old -> address old == address new)
+								new polled
+							}
+					setF' False new
+					mm <- findIndex (\old -> address old == address new) <$>
+						listStoreToList browserStore
+					whenJust mm $ \i -> do
+						listStoreSetValue browserStore i new
 				set refresh [ widgetSensitive := True ]
+				
 		return ()
 		
-	return (rightpane, updateF, setF)
+	return (rightpane, updateF, setF, setF')
 	where
-	validping x = x > 0 && x < 999
-	scoreSort = sortBy (flip (comparing kills))
-	showHostname colors x = "<b><big>" ++
-		(case pangoPretty colors x of
-			"" -> "<i>Invalid name</i>"
-			a -> a)
-		++ "</big></b>"
+	validping x		= x > 0 && x < 999
+	scoreSort		= sortBy (flip (comparing kills))
+	formatHostname x	= "<b><big>" ++ x ++ "</big></b>"
+	showHostname colors x	= formatHostname $ case pangoPretty colors x of
+					"" -> "<i>Invalid name</i>"
+					a  -> a
 
 runTremulous :: Config -> GameServer -> IO ProcessHandle
 runTremulous Config{..} GameServer{..} = do
