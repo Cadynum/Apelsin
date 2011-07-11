@@ -5,6 +5,7 @@ import System.Environment.XDG.BaseDir
 import System.FilePath
 import System.Directory
 import System.IO
+import System.Process
 
 #ifdef CABAL_PATH
 import Paths_apelsin
@@ -35,17 +36,27 @@ getDataDir = dropTrailingPathSeparator `fmap` getDataFileName ""
 getDataDir = getCurrentDirectory
 #endif
 
+
+defaultTremulousPath, defaultTremulousGPPPath:: FilePath
 trace :: String -> IO ()
-defaultTremulousPath, defaultTremulousGPPPath :: FilePath
+defaultBrowser :: String
 #if defined(mingw32_HOST_OS) || defined(__MINGW32__)
 defaultTremulousPath	= "C:\\Program Files\\Tremulous\\tremulous.exe"
 defaultTremulousGPPPath	= "C:\\Program Files\\Tremulous\\tremulous-gpp.exe"
 trace _			= return ()
+defaultBrowser		= "start"
 #else
 defaultTremulousPath	= "tremulous"
 defaultTremulousGPPPath	= "tremulous-gpp"
 trace 			= hPutStrLn stderr
+defaultBrowser		= "xdg-open"
 #endif
+
+openInBrowser :: String -> IO ()
+openInBrowser x = do
+	createProcess (proc defaultBrowser [x])
+		{close_fds = True, std_in = Inherit, std_out = Inherit, std_err = Inherit}
+	return ()
 
 
 spacing, spacingHalf, spacingBig :: Integral i => i

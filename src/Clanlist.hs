@@ -4,6 +4,7 @@ import Graphics.UI.Gtk
 
 import Control.Concurrent
 import Control.Concurrent.STM
+import Control.Monad
 import qualified Data.ByteString.Char8 as B
 import Data.Ord
 import Data.Tree
@@ -59,6 +60,15 @@ newClanList Bundle{..} = do
 		s		<- readIORef current
 		let cmplist	= [ cleanedCase name, cleanedCase tag ]
 		return $ B.null s || smartFilter s cmplist
+
+
+	onRowActivated view $ \path _ -> do
+		Just vIter	<- treeModelGetIter sorted path
+		sIter		<- treeModelSortConvertIterToChildIter sorted vIter
+		fIter		<- treeModelFilterConvertIterToChildIter filtered sIter
+		Clan{..}	<- treeModelGetRow raw fIter
+		unless (B.null website) $
+			openInBrowser (B.unpack website)
 
 	box <- vBoxNew False 0
 
@@ -146,7 +156,6 @@ buildTree = filter notEmpty . foldr f [] where
 	rightNode x = Node (Right x) []
 	notEmpty (Node _ [])	= False
 	notEmpty _		= True
---f tag x =
 
 sortByPlayers :: [(a, [b])] -> [(a, [b])]
 sortByPlayers = sortBy (comparing (length . snd))
