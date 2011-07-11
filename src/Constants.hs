@@ -39,22 +39,22 @@ getDataDir = getCurrentDirectory
 
 defaultTremulousPath, defaultTremulousGPPPath:: FilePath
 trace :: String -> IO ()
-defaultBrowser :: String
+defaultBrowser :: String -> CreateProcess
 #if defined(mingw32_HOST_OS) || defined(__MINGW32__)
 defaultTremulousPath	= "C:\\Program Files\\Tremulous\\tremulous.exe"
 defaultTremulousGPPPath	= "C:\\Program Files\\Tremulous\\tremulous-gpp.exe"
 trace _			= return ()
-defaultBrowser		= "start"
+defaultBrowser x	= shell ("start " ++ x)
 #else
 defaultTremulousPath	= "tremulous"
 defaultTremulousGPPPath	= "tremulous-gpp"
 trace 			= hPutStrLn stderr
-defaultBrowser		= "xdg-open"
+defaultBrowser	x	= proc "xdg-open" [x]
 #endif
 
 openInBrowser :: String -> IO ()
 openInBrowser x = do
-	createProcess (proc defaultBrowser [x])
+	createProcess (defaultBrowser x)
 		{close_fds = True, std_in = Inherit, std_out = Inherit, std_err = Inherit}
 	return ()
 
