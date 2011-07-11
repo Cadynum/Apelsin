@@ -1,4 +1,4 @@
-module ServerInfo where
+module ServerInfo (newServerInfo) where
 import Graphics.UI.Gtk
 
 import Prelude hiding (catch)
@@ -7,6 +7,7 @@ import Control.Exception
 import Data.Ord
 import Data.List (sortBy)
 import System.Process
+import System.FilePath
 
 import Network.Tremulous.Protocol
 import Network.Tremulous.Polling
@@ -103,19 +104,18 @@ newServerInfo Bundle{..} = do
 	boxPackStart rightpane serverbuttons PackNatural 2
 
 
-	let launchTremulous = withTMVar current $ \GameServer{..} -> do
+	let launchTremulous = withTMVar current $ \gs -> do
 		tst <- atomically $ tryTakeTMVar running
-		whenJust tst $ \a -> catch (terminateProcess a) (\(_ :: IOError) -> return ())
-		Config {tremPath, tremGppPath} <- atomically $ readTMVar mconfig
-		let binary = case protocol of
-			69 -> tremPath
-			70 -> tremGppPath
-			_  -> ""
+		whenJust tst $ \a ->
+			catch (terminateProcess a) (\(_ :: IOError) -> return ())
+		config <- atomically $ readTMVar mconfig
 
 		set join [ widgetSensitive := False ]
-		(_,_,_,p) <- createProcess (shell (unwords [binary, "+connect", show address]))
-			{close_fds = True, std_in = Inherit, std_out = Inherit, std_err = Inherit}
-		atomically $ putTMVar running p
+
+		pid <- runTremulous config gs
+		
+		atomically $ putTMVar running pid
+		
 		forkIO $ do
 			threadDelay 1000000
 			postGUISync $ set join [ widgetSensitive := True ]
@@ -186,4 +186,22 @@ newServerInfo Bundle{..} = do
 			"" -> "<i>Invalid name</i>"
 			a -> a)
 		++ "</big></b>"
+
+runTremulous :: Config -> GameServer -> IO ProcessHandle
+runTremulous Config{..} GameServer{..} = do
+	(_,_,_,p) <- createProcess ((toProc launch) {cwd = ldir})
+		{close_fds = True, std_in = Inherit, std_out = Inherit, std_err = Inherit}
+	return p
+
+	where
+	launch@(com,_) = case protocol of
+		70 -> (tremGppPath, ["+connect", show address])
+		_  -> (tremPath, ["-connect", show address, "+connect", show address])
 		
+	ldir = case takeDirectory com of
+		"" -> Nothing
+		x  -> Just x
+
+	toProc (a, b) = case words a of
+		(x:xs)	-> proc x (xs ++ b)
+		_	-> proc a b
