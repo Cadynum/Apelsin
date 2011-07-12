@@ -6,14 +6,13 @@ import Control.Applicative
 import Control.Monad hiding (join)
 import Control.Exception
 import Data.Ord
-import Data.List (sortBy, findIndex, find)
+import Data.List (sortBy, findIndex)
 import System.Process
 import System.FilePath
 
 import Network.Tremulous.Protocol
 import Network.Tremulous.Polling
 import Network.Tremulous.Util
-import Network.Socket
 
 import Types
 import STM2
@@ -23,7 +22,7 @@ import GtkUtils
 import Constants
 import Config
 
-newServerInfo :: Bundle -> IO (VBox, IO (), Bool -> SockAddr -> IO (), Bool -> GameServer -> IO ())
+newServerInfo :: Bundle -> IO (VBox, IO (), Bool -> GameServer -> IO ())
 newServerInfo Bundle{..} = do
 	Config {colors} <- atomically $ readTMVar mconfig
 	current		<- atomically newEmptyTMVar
@@ -125,7 +124,7 @@ newServerInfo Bundle{..} = do
 	on join buttonActivated launchTremulous
 
 	
-	let setF' boolJoin gs@GameServer{..} = do
+	let setF boolJoin gs@GameServer{..} = do
 		zipWithM_ labelSetMarkup info
 			[ show address
 			, (proto2string protocol ++ (case gamemod of
@@ -161,18 +160,11 @@ newServerInfo Bundle{..} = do
 		when boolJoin launchTremulous
 		return ()
 
-	let setF boolJoin addr = do
-		PollResult{..} <- atomically $ readTMVar mpolled
-		whenJust (find (\gs -> address gs == addr) polled)
-			(setF' boolJoin)
-
-
-		
 	let updateF = withTMVar mpolled $ \PollResult{..} ->
 		withTMVar current $ \GameServer{address} ->
 			case serverByAddress address polled of
 				Nothing -> return ()
-				Just a	-> setF' False a
+				Just a	-> setF False a
 			
 	
 	on refresh buttonActivated $ withTMVar current $ \x -> do
@@ -188,7 +180,7 @@ newServerInfo Bundle{..} = do
 								(\old -> address old == address new)
 								new polled
 							}
-					setF' False new
+					setF False new
 					mm <- findIndex (\old -> address old == address new) <$>
 						listStoreToList browserStore
 					whenJust mm $ \i -> do
@@ -197,7 +189,7 @@ newServerInfo Bundle{..} = do
 				
 		return ()
 		
-	return (rightpane, updateF, setF, setF')
+	return (rightpane, updateF, setF)
 	where
 	validping x		= x > 0 && x < 999
 	scoreSort		= sortBy (flip (comparing kills))

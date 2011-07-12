@@ -2,6 +2,8 @@ module FindPlayers where
 import Graphics.UI.Gtk
 
 import Data.IORef
+import Data.List
+import Data.Ord
 import qualified Data.ByteString.Char8 as B
 import Network.Tremulous.Protocol
 import Network.Tremulous.Util
@@ -38,7 +40,7 @@ newFindPlayers Bundle{..} setServer = do
 	let updateFilter = do
 		PollResult{..} <- atomically $ readTMVar mpolled
 		listStoreClear rawmodel
-		let plist = makePlayerNameList polled
+		let plist = sortBy (comparing fst) (makePlayerNameList polled)
 		mapM_ (listStoreAppend rawmodel) plist
 		treeModelFilterRefilter model
 		set statTot [ labelText := show (length plist) ]

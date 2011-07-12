@@ -34,11 +34,11 @@ main = withSocketsDo $ do
 			browserStore	<- listStoreNew []
 			return Bundle {parent = win, ..}
 			)
-	(currentInfo, currentUpdate, currentSet, currentSet') <- newServerInfo bundle
-	(browser, browserUpdate)		<- newServerBrowser bundle currentSet'
-	(findPlayers, findUpdate)		<- newFindPlayers bundle currentSet'
+	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle
+	(browser, browserUpdate)		<- newServerBrowser bundle currentSet
+	(findPlayers, findUpdate)		<- newFindPlayers bundle currentSet
 	(clanlist, clanlistUpdate)		<- newClanList bundle
-	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet'
+	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet
 
 	preferences				<- newPreferences bundle
 

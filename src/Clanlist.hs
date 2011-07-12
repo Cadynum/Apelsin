@@ -90,7 +90,7 @@ newOnlineClans Bundle{..} setServer = do
 
 	let showName c =  case c of
 		Left Clan{..}		-> "<b>" ++ htmlEscape (unpackorig name) ++ "</b>"
-		Right (P.Player{..}, _)	-> pangoPretty colors name
+		Right (name, _)		-> pangoPretty colors name
 
 	let showServer c =  case c of
 		Left _ -> ""
@@ -98,7 +98,6 @@ newOnlineClans Bundle{..} setServer = do
 
 	raw	<- treeStoreNew []
 	view	<- treeViewNewWithModel raw
-
 
 	treeViewExpandAll view
 	addColumns raw view [
@@ -110,7 +109,7 @@ newOnlineClans Bundle{..} setServer = do
 		P.PollResult{..}	<- atomically $ readTMVar mpolled
 		clans			<- atomically $ readTMVar mclans
 		let players = buildTree $ sortByPlayers $
-			associatePlayerToClans (makePlayerList polled) clans
+			associatePlayerToClans (makePlayerNameList polled) clans
 		treeStoreClear raw
 		treeViewColumnsAutosize view
 		mapM_ (treeStoreInsertTree raw [] 0) players
@@ -126,7 +125,7 @@ newOnlineClans Bundle{..} setServer = do
 
 	onRowActivated view $ \path _ -> do
 		Just vIter	<- treeModelGetIter raw path
-		gs	<- treeModelGetRow raw vIter
+		gs		<- treeModelGetRow raw vIter
 		case gs of
 			Left _ -> return ()
 			Right (_, gameserver) -> setServer True gameserver
@@ -137,20 +136,17 @@ newOnlineClans Bundle{..} setServer = do
 	return (scroll, updateF)
 
 
-
-
-
 -- /// Utility functions ///////////////////////////////////////////////////////////////////////////
 
-type PlayerList = [(P.Player, P.GameServer)]
+type PlayerList = [(TI, P.GameServer)]
 
-type OnlineView = Forest (Either Clan (P.Player, P.GameServer))
+type OnlineView = Forest (Either Clan (TI, P.GameServer))
 
 associatePlayerToClans :: PlayerList -> [Clan] -> [(Clan, PlayerList)]
 associatePlayerToClans players clans = map f clans
 	where
 	f c@Clan{tagexpr} = (c, filter (cmp tagexpr) players)
-	cmp e = matchTagExpr e . P.name . fst
+	cmp e = matchTagExpr e . fst
 
 buildTree :: [(Clan, PlayerList)] -> OnlineView
 buildTree = filter notEmpty . foldr f [] where
@@ -159,8 +155,8 @@ buildTree = filter notEmpty . foldr f [] where
 	notEmpty (Node _ [])	= False
 	notEmpty _		= True
 
-sortByPlayers :: [(a, [b])] -> [(a, [b])]
-sortByPlayers = sortBy (comparing (length . snd))
+sortByPlayers :: [(Clan, [b])] -> [(Clan, [b])]
+sortByPlayers = sortBy (flip (comparing (\(a, b) -> (-length b, name a))))
 
 newClanSync :: Bundle -> IO () -> IO (HBox, IO ())
 newClanSync Bundle{..} updateF = do
