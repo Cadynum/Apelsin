@@ -50,7 +50,7 @@ newClanList Bundle{..} = do
 
 	addColumnsFilterSort raw filtered sorted view (Just (comparing name)) [
 		  ("_Name"	, 0 , False	, True	, False	, unpackorig . name	, Just (comparing name))
-		, ("_Tag"	, 0 , True	, True	, False	, prettyTagExpr . tagexpr	, Just (comparing tag))
+		, ("_Tag"	, 0 , True	, True	, False	, prettyTagExpr . tagexpr	, Just (comparing tagexpr))
 		, ("Website"	, 0 , False	, True	, False	, B.unpack . showURL . website	, Nothing)
 		, ("IRC"	, 0 , False	, True	, False	, B.unpack . irc	, Nothing)
 		]
@@ -58,7 +58,7 @@ newClanList Bundle{..} = do
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
 		Clan{..}	<- treeModelGetRow raw iter
 		s		<- readIORef current
-		let cmplist	= [ cleanedCase name, cleanedCase tag ]
+		let cmplist	= [ cleanedCase name, tagExprGet tagexpr ]
 		return $ B.null s || smartFilter s cmplist
 
 
