@@ -49,7 +49,13 @@ defaultBrowser x	= shell ("start " ++ x)
 defaultTremulousPath	= "tremulous"
 defaultTremulousGPPPath	= "tremulous-gpp"
 trace 			= hPutStrLn stderr
+
+#if defined(__APPLE__) || defined(__MACH__)
+defaultBrowser	x	= proc "open" [x]
+#else
 defaultBrowser	x	= proc "xdg-open" [x]
+#endif
+
 #endif
 
 openInBrowser :: String -> IO ()

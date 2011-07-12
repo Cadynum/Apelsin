@@ -172,20 +172,25 @@ newServerInfo Bundle{..} mupdate = do
 		Config {delays} <- atomically $ readTMVar mconfig
 		forkIO $ do
 			result <- pollOne delays (address x)
-			postGUISync $ do
-				whenJust result $ \new -> do
-					atomically $ do
-						modifyTMVar mpolled $ \pr@PollResult{polled} -> pr
-							{ polled = replace
-								(\old -> address old == address new)
-								new polled
-							}
+			
+			whenJust result $ \new -> do
+				atomically $ do
+					modifyTMVar mpolled $ \pr@PollResult{polled} -> pr
+						{ polled = replace
+							(\old -> address old == address new)
+							new polled
+						}
+						
+				mm <- findIndex (\old -> address old == address new) <$>
+					listStoreToList browserStore
+				postGUISync $ do
 					id =<< atomically (readTMVar mupdate)
 					setF False new
-					mm <- findIndex (\old -> address old == address new) <$>
-						listStoreToList browserStore
-					whenJust mm $ \i -> do
-						listStoreSetValue browserStore i new
+					-- This generates a gtk assertion fail. Howerver it
+					-- seems innocent
+					whenJust mm $ \i -> 
+						listStoreSetValue browserStore i new	
+			postGUISync $
 				set refresh [ widgetSensitive := True ]
 				
 		return ()
