@@ -34,13 +34,15 @@ main = withSocketsDo $ do
 			browserStore	<- listStoreNew []
 			return Bundle {parent = win, ..}
 			)
-	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle
+	mupdate <- atomically newEmptyTMVar
+	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle mupdate
 	(browser, browserUpdate)		<- newServerBrowser bundle currentSet
 	(findPlayers, findUpdate)		<- newFindPlayers bundle currentSet
 	(clanlist, clanlistUpdate)		<- newClanList bundle
 	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet
 
 	preferences				<- newPreferences bundle
+	atomically $ putTMVar mupdate (findUpdate >> onlineclansUpdate)
 
 	toolbar <- newToolbar bundle
 		(clanlistUpdate >> onlineclansUpdate)

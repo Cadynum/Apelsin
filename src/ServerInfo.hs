@@ -22,8 +22,8 @@ import GtkUtils
 import Constants
 import Config
 
-newServerInfo :: Bundle -> IO (VBox, IO (), Bool -> GameServer -> IO ())
-newServerInfo Bundle{..} = do
+newServerInfo :: Bundle -> TMVar (IO ()) -> IO (VBox, IO (), Bool -> GameServer -> IO ())
+newServerInfo Bundle{..} mupdate = do
 	Config {colors} <- atomically $ readTMVar mconfig
 	current		<- atomically newEmptyTMVar
 	running		<- atomically newEmptyTMVar
@@ -180,6 +180,7 @@ newServerInfo Bundle{..} = do
 								(\old -> address old == address new)
 								new polled
 							}
+					id =<< atomically (readTMVar mupdate)
 					setF False new
 					mm <- findIndex (\old -> address old == address new) <$>
 						listStoreToList browserStore
