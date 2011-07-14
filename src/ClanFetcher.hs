@@ -22,7 +22,6 @@ data TagExpr =
 	| TagSuffix !TI
 	| TagInfix !TI
 	| TagContained !TI !TI
-	| TagError
 	deriving Eq
 
 instance Ord TagExpr where
@@ -34,25 +33,24 @@ tagExprGet x = case x of
 	TagSuffix (TI _ v)	-> v
 	TagInfix (TI _ v)	-> v
 	TagContained (TI _ v) _	-> v
-	TagError		-> ""
 
 data Clan = Clan {
-	  clanid	:: !B.ByteString
-	, name		:: !TI
+	  name		:: !TI
 	, website
 	, irc		:: !B.ByteString
 	, tagexpr	:: !TagExpr
 	}
 
-mkTagExpr :: B.ByteString -> TagExpr
+mkTagExpr :: B.ByteString -> Maybe TagExpr
 mkTagExpr str
 	| B.length str > 0 = case x of
-	'<' -> TagPrefix (mk xs)
-	'>' -> TagSuffix (mk xs)
-	'^' -> TagInfix (mk xs)
-	'%' -> let (a, b) = B.break (=='%') xs in TagContained (mk a) (mk (B.drop 1 b))
-	_   -> TagError
-	| otherwise = TagError
+		'<' -> Just (TagPrefix (mk xs))
+		'>' -> Just (TagSuffix (mk xs))
+		'^' -> Just (TagInfix (mk xs))
+		'%' -> let (a, b) = B.break (=='%') xs
+				in Just (TagContained (mk a) (mk (B.drop 1 b)))
+		_   -> Nothing
+	| otherwise = Nothing
 	where	(x, xs)	= (B.head str, B.tail str)
 
 matchTagExpr :: TagExpr -> TI -> Bool
@@ -61,7 +59,6 @@ matchTagExpr expr raw = case expr of
 	TagSuffix (TI _ xs)		-> xs `B.isSuffixOf` str
 	TagInfix (TI _ xs)		-> xs `B.isInfixOf` str
 	TagContained (TI _ xs) (TI _ ys)-> xs `B.isPrefixOf` str && ys `B.isSuffixOf` str
-	TagError			-> False
 	where str = cleanedCase raw
 
 prettyTagExpr :: TagExpr -> String
@@ -70,17 +67,14 @@ prettyTagExpr expr = case expr of
 	TagSuffix bs	-> wild ++ esc bs
 	TagInfix bs	-> wild ++ esc bs ++ wild
 	TagContained a b-> esc a ++ wild ++ esc b
-	TagError	-> "<span color=\"#BBB\">error</span>"
 	where	wild = "<span color=\"#BBB\">*</span>"
 		esc  = htmlEscape . B.unpack . original
 
 
 rawToClan :: L.ByteString -> Maybe [Clan]
 rawToClan = mapM (f . B.split '\t' . lazyToStrict) . P.filter (not . L.null) . L.split '\n' where 
-	f [clanid, rname, _, website, irc, rexpr, _] =
-		Just Clan	{ name = mkAlphaNum rname
-				, tagexpr = mkTagExpr rexpr
-				, .. }
+	f [_, rname, _, website, irc, rexpr, _]
+		| Just tagexpr <- mkTagExpr rexpr = Just Clan { name = mkAlphaNum rname, .. }
 	f _	= Nothing
 
 getClanList :: String -> IO (Maybe [Clan])
@@ -102,7 +96,7 @@ clanListFromCache = handle err $ do
 	file	<- inCacheDir "clans"
 	fromMaybe [] . rawToClan <$> L.readFile file
 	where
-	err (_::IOError) = return [] 
+	err (_ :: IOError) = return [] 
 	
 
 lazyToStrict :: L.ByteString -> B.ByteString		
