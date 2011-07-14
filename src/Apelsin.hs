@@ -30,7 +30,7 @@ main = withSocketsDo $ do
 	bundle	<-	(do
 			mpolled		<- atomically $ newTMVar (PollResult [] 0 0 S.empty)
 			mconfig		<- atomically $ newTMVar config
-			mclans		<- atomically $ newTMVar []
+			mclans		<- atomically $ newTMVar cacheclans
 			browserStore	<- listStoreNew []
 			return Bundle {parent = win, ..}
 			)
