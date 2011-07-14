@@ -22,7 +22,7 @@ import GtkUtils
 import Constants
 import Config
 
-newServerInfo :: Bundle -> TMVar (IO ()) -> IO (VBox, IO (), Bool -> GameServer -> IO ())
+newServerInfo :: Bundle -> TMVar (PolledHook, ClanPolledHook) -> IO (VBox, PolledHook, SetCurrent)
 newServerInfo Bundle{..} mupdate = do
 	Config {colors} <- atomically $ readTMVar mconfig
 	current		<- atomically newEmptyTMVar
@@ -160,11 +160,8 @@ newServerInfo Bundle{..} mupdate = do
 		when boolJoin launchTremulous
 		return ()
 
-	let updateF = withTMVar mpolled $ \PollResult{..} ->
-		withTMVar current $ \GameServer{address} ->
-			case serverByAddress address polled of
-				Nothing -> return ()
-				Just a	-> setF False a
+	let updateF PollResult{..} = withTMVar current $ \GameServer{address} ->
+			whenJust (serverByAddress address polled) (setF False)
 			
 	
 	on refresh buttonActivated $ withTMVar current $ \x -> do
@@ -174,17 +171,23 @@ newServerInfo Bundle{..} mupdate = do
 			result <- pollOne delays (address x)
 			
 			whenJust result $ \new -> do
-				atomically $ do
-					modifyTMVar mpolled $ \pr@PollResult{polled} -> pr
+				pr <- atomically $ do
+					pr@PollResult{polled} <- takeTMVar mpolled
+					let pr' = pr 
 						{ polled = replace
 							(\old -> address old == address new)
 							new polled
 						}
+					putTMVar mpolled pr'
+					return pr'
 						
 				mm <- findIndex (\old -> address old == address new) <$>
 					listStoreToList browserStore
+				(fa, fb)	<- atomically (readTMVar mupdate)
+				clans		<- atomically (readTMVar mclans)
 				postGUISync $ do
-					id =<< atomically (readTMVar mupdate)
+					fa pr
+					fb clans pr
 					setF False new
 					-- This generates a gtk assertion fail. Howerver it
 					-- seems innocent

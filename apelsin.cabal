@@ -37,7 +37,7 @@ Executable apelsin
   Other-Extensions:     CPP
   Build-Depends:        base>=4.3&&<5, array, mtl, stm, containers, transformers,
                         bytestring, directory, filepath, HTTP, network,
-                        tremulous-query>=1.0.1, gtk, glib, process
+                        tremulous-query>=1.0.2, gtk, glib, process
   Hs-Source-Dirs:       src
   Main-is:              Apelsin.hs
   Other-Modules:        System.Environment.XDG.BaseDir

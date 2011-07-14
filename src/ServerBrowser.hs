@@ -15,15 +15,14 @@ import TremFormatting
 import Constants
 import Config
 
-newServerBrowser :: Bundle -> (Bool -> GameServer -> IO ()) -> IO (VBox, IO ())
-newServerBrowser Bundle{browserStore=rawmodel, ..} setServer = do
-	Config {colors} <- atomically $ readTMVar mconfig
-	--rawmodel	<- listStoreNew []
-	filtered	<- treeModelFilterNew rawmodel []
-	model		<- treeModelSortNewWithModel filtered	
-	view		<- treeViewNewWithModel model
+newServerBrowser :: Bundle -> SetCurrent -> IO (VBox, PolledHook)
+newServerBrowser Bundle{browserStore=raw, ..} setServer = do
+	Config {..}	<- atomically $ readTMVar mconfig
+	filtered	<- treeModelFilterNew raw []
+	sorted		<- treeModelSortNewWithModel filtered	
+	view		<- treeViewNewWithModel sorted
 	
-	addColumnsFilterSort rawmodel filtered model view (Just (comparing gameping)) [
+	addColumnsFilterSort raw filtered sorted view (Just (comparing gameping)) [
 		  ("_Game"	, 0	, False	, False	, False	, showGame , Just (comparing (\x -> (protocol x, gamemod x))))
 		, ("_Name"	, 0	, True	, True	, True	, pangoPretty colors . hostname	, Just (comparing hostname))
 		, ("_Map"	, 0	, True	, False	, False	, take 16 . unpackorig . mapname	, Just (comparing mapname))
@@ -33,7 +32,6 @@ newServerBrowser Bundle{browserStore=rawmodel, ..} setServer = do
 
 	(infobox, statNow, statTot, statRequested) <- newInfoboxBrowser
 	
-	Config {filterBrowser, filterEmpty} <- atomically $ readTMVar mconfig
 	(filterbar, current) <- newFilterBar filtered statNow filterBrowser
 	empty <- checkButtonNewWithMnemonic "_empty"
 	set empty [ toggleButtonActive := filterEmpty ]
@@ -45,7 +43,7 @@ newServerBrowser Bundle{browserStore=rawmodel, ..} setServer = do
 
 
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
-		GameServer{..}	<- treeModelGetRow rawmodel iter
+		GameServer{..}	<- treeModelGetRow raw iter
 		s		<- readIORef current
 		showEmpty	<- toggleButtonGetActive empty
 		return $ (showEmpty || not (null players)) && (B.null s ||
@@ -57,30 +55,20 @@ newServerBrowser Bundle{browserStore=rawmodel, ..} setServer = do
 				])
 			
 	on view cursorChanged $ do
-		(x, _)		<- treeViewGetCursor view
-		Just vIter	<- treeModelGetIter model x
-		sIter		<- treeModelSortConvertIterToChildIter model vIter
-		fIter		<- treeModelFilterConvertIterToChildIter filtered sIter
-		gameserver	<- treeModelGetRow rawmodel fIter
-		setServer False gameserver
+		(path, _) <- treeViewGetCursor view
+		setServer False =<< getElementFS raw sorted filtered path
 
-	on view rowActivated $ \path _ -> do
-		Just vIter	<- treeModelGetIter model path
-		sIter		<- treeModelSortConvertIterToChildIter model vIter
-		fIter		<- treeModelFilterConvertIterToChildIter filtered sIter
-		gameserver	<- treeModelGetRow rawmodel fIter
-		setServer True gameserver
+	on view rowActivated $ \path _ ->
+		setServer True =<< getElementFS raw sorted filtered path
 		
-	
 	scrollview <- scrolledWindowNew Nothing Nothing
 	scrolledWindowSetPolicy scrollview PolicyNever PolicyAlways
 	containerAdd scrollview view
 	
-	let updateF = do
-		PollResult{..} <- atomically $ readTMVar mpolled
-		listStoreClear rawmodel
+	let updateF PollResult{..} = do
+		listStoreClear raw
 		treeViewColumnsAutosize view
-		mapM_ (listStoreAppend rawmodel) polled
+		mapM_ (listStoreAppend raw) polled
 		treeModelFilterRefilter filtered
 		set statTot		[ labelText := show serversResponded ]
 		set statRequested	[ labelText := show (serversRequested-serversResponded) ]

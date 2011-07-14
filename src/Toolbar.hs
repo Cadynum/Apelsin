@@ -29,17 +29,17 @@ getDNS host port = handle (\(_::IOException) -> return Nothing) $ do
 whileTrue :: Monad m => m Bool -> m ()
 whileTrue f = f >>= \t -> when t (whileTrue f)
 
-newToolbar :: Bundle -> IO () -> IO () -> IO HBox
-newToolbar bundle@Bundle{..} clanHook polledHook = do	
+newToolbar :: Bundle -> [ClanHook] -> [PolledHook] -> [ClanPolledHook] -> IO HBox
+newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do	
 	pbrbox		<- hBoxNew False spacing
 		
 	pb		<- progressBarNew
 	set pb		[ widgetNoShowAll := True ]
 	
 	refresh		<- buttonNewWithMnemonic "_Refresh all servers" 
-	set refresh	[ buttonImage :=> imageNewFromStock stockRefresh IconSizeButton
-			, buttonRelief := ReliefNone 
-			, buttonFocusOnClick := False ]
+	set refresh	[ buttonImage		:=> imageNewFromStock stockRefresh IconSizeButton
+			, buttonRelief		:= ReliefNone 
+			, buttonFocusOnClick	:= False ]
 			
 	about		<- buttonNewFromStock stockAbout
 	set about	[ buttonRelief		:= ReliefNone 
@@ -48,7 +48,7 @@ newToolbar bundle@Bundle{..} clanHook polledHook = do
 
 	on about buttonActivated $ newAbout parent
 			
-	(clanSync, doSync) <- newClanSync bundle clanHook
+	(clanSync, doSync) <- newClanSync bundle clanHook bothHook
 	
 	align		<- alignmentNew 0 0 0 0
 	alignbox	<- hBoxNew False spacing
@@ -68,7 +68,7 @@ newToolbar bundle@Bundle{..} clanHook polledHook = do
 		progressBarSetFraction pb 0
 		widgetShow pb
 		refresh `set` [ widgetSensitive := False ]
-		Config {masterServers, delays=Delay{..}}	<- atomically $ readTMVar mconfig
+		Config {masterServers, delays=delays@Delay{..}} <- atomically $ readTMVar mconfig
 		
 		start <- getMicroTime
 
@@ -92,7 +92,6 @@ newToolbar bundle@Bundle{..} clanHook polledHook = do
 				return True
 			
 		forkIO $ do
-			Config {delays} <- atomically $ readTMVar mconfig
 			hosts <- catMaybes <$> mapM
 				(\(host, port, proto) -> fmap (`MasterServer` proto) <$> getDNS host (show port))
 				masterServers
@@ -100,8 +99,10 @@ newToolbar bundle@Bundle{..} clanHook polledHook = do
 
 			atomically $ replaceTMVar mpolled result
 			killThread pbth
+			clans <- atomically $ readTMVar mclans
 			postGUISync $ do
-				polledHook
+				mapM_ ($ result) polledHook
+				mapM_ (\f -> f clans result) bothHook
 				refresh `set` [ widgetSensitive := True ]
 				widgetHide pb
 		return ()

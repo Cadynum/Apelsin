@@ -141,7 +141,26 @@ addColumnsFilterSort raw filtered sorted view defaultSort xs = zipWithM_ f [0..]
 				rit1	<- treeModelFilterConvertIterToChildIter filtered it1
 				rit2	<- treeModelFilterConvertIterToChildIter filtered it2
 				xort raw a rit1 rit2
-				
+getElementFS :: (TreeModelClass self, TreeModelFilterClass self1, TreeModelSortClass self, TypedTreeModelClass model) =>
+	model b -> self -> self1 -> TreePath -> IO b
+getElementFS store sorted filtered x = do
+	Just vIter	<- treeModelGetIter sorted x
+	sIter		<- treeModelSortConvertIterToChildIter sorted vIter
+	fIter		<- treeModelFilterConvertIterToChildIter filtered sIter
+	treeModelGetRow store fIter
+
+getElementF :: (TreeModelClass self, TreeModelFilterClass self, TypedTreeModelClass model) =>
+	model b -> self -> TreePath -> IO b
+getElementF store filtered path = do
+	Just vIter	<- treeModelGetIter filtered path
+	iter		<- treeModelFilterConvertIterToChildIter filtered vIter
+	treeModelGetRow store iter
+	
+getElement :: (TreeModelClass (model m), TypedTreeModelClass model) => model m -> TreePath -> IO m
+getElement raw path = do
+	Just iter	<- treeModelGetIter raw path
+	treeModelGetRow raw iter
+		
 gtkPopup :: MessageType -> String -> IO ()
 gtkPopup what str = do
 	a <- messageDialogNew Nothing [DialogDestroyWithParent, DialogModal]

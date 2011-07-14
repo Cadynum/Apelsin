@@ -26,8 +26,8 @@ import GtkUtils
 import TremFormatting
 
 
-newClanList :: Bundle -> IO (VBox, IO ())
-newClanList Bundle{..} = do
+newClanList :: [Clan] -> IO (VBox, ClanHook)
+newClanList cache = do
 	raw			<- listStoreNew []
 	filtered		<- treeModelFilterNew raw []
 	sorted			<- treeModelSortNewWithModel filtered
@@ -38,8 +38,7 @@ newClanList Bundle{..} = do
 
 	(filterbar, current)	<- newFilterBar filtered statNow ""
 
-	let updateF = do
-		new <- atomically $ readTMVar mclans
+	let updateF new = do
 		listStoreClear raw
 		treeViewColumnsAutosize view
 		mapM_ (listStoreAppend raw) new
@@ -62,11 +61,8 @@ newClanList Bundle{..} = do
 		return $ B.null s || smartFilter s cmplist
 
 
-	onRowActivated view $ \path _ -> do
-		Just vIter	<- treeModelGetIter sorted path
-		sIter		<- treeModelSortConvertIterToChildIter sorted vIter
-		fIter		<- treeModelFilterConvertIterToChildIter filtered sIter
-		Clan{..}	<- treeModelGetRow raw fIter
+	on view rowActivated $ \path _ -> do
+		Clan{..}	<- getElementFS raw sorted filtered path
 		unless (B.null website) $
 			openInBrowser (B.unpack website)
 
@@ -76,15 +72,14 @@ newClanList Bundle{..} = do
 	boxPackStart box scrollview PackGrow 0
 	boxPackStart box infobox PackNatural 0
 
-	updateF
+	updateF cache
 
 	return (box, updateF)
-	where showURL x = fromMaybe x (stripPrefix "http://" x)
+	where
+	showURL x = fromMaybe x (stripPrefix "http://" x)
 
 
-
-
-newOnlineClans :: Bundle-> (Bool -> P.GameServer -> IO ()) -> IO (ScrolledWindow, IO ())
+newOnlineClans :: Bundle-> SetCurrent -> IO (ScrolledWindow, ClanPolledHook)
 newOnlineClans Bundle{..} setServer = do
 	Config {colors} <- atomically $ readTMVar mconfig
 
@@ -105,9 +100,7 @@ newOnlineClans Bundle{..} setServer = do
 		, ("Server"	, 0	, True	, True	, True	, showServer )
 		]
 
-	let updateF = do
-		P.PollResult{..}	<- atomically $ readTMVar mpolled
-		clans			<- atomically $ readTMVar mclans
+	let updateF clans P.PollResult{..} = do
 		let players = buildTree $ sortByPlayers $
 			associatePlayerToClans (makePlayerNameList polled) clans
 		treeStoreClear raw
@@ -115,23 +108,20 @@ newOnlineClans Bundle{..} setServer = do
 		mapM_ (treeStoreInsertTree raw [] 0) players
 		treeViewExpandAll view
 
-	onCursorChanged view $ do
-		(x, _)		<- treeViewGetCursor view
-		Just iter	<- treeModelGetIter raw x
-		item		<- treeModelGetRow raw iter
+	on view cursorChanged $ do
+		(path, _)	<- treeViewGetCursor view
+		item		<- getElement raw path
 		case item of
 			Left _ -> return ()
 			Right (_, a) -> setServer False a
 
-	onRowActivated view $ \path _ -> do
-		Just vIter	<- treeModelGetIter raw path
-		gs		<- treeModelGetRow raw vIter
+	on view rowActivated $ \path _ -> do
+		gs		<- getElement raw path
 		case gs of
 			Left _ -> return ()
 			Right (_, gameserver) -> setServer True gameserver
 
 	scroll <- scrollIt view PolicyAutomatic PolicyAutomatic
-
 
 	return (scroll, updateF)
 
@@ -158,8 +148,8 @@ buildTree = filter notEmpty . foldr f [] where
 sortByPlayers :: [(Clan, [b])] -> [(Clan, [b])]
 sortByPlayers = sortBy (flip (comparing (\(a, b) -> (-length b, name a))))
 
-newClanSync :: Bundle -> IO () -> IO (HBox, IO ())
-newClanSync Bundle{..} updateF = do
+newClanSync :: Bundle -> [ClanHook] -> [ClanPolledHook] -> IO (HBox, IO ())
+newClanSync Bundle{..} clanHook bothHook = do
 	button	<- buttonNewWithMnemonic "_Sync clan list"
 	set button 	[ buttonImage :=> imageNewFromStock stockSave IconSizeButton
 			, buttonRelief := ReliefNone
@@ -179,10 +169,12 @@ newClanSync Bundle{..} updateF = do
 					gtkError "Unable to download clanlist"
 					set button [ widgetSensitive := True ]
 				Just a	-> do
-					atomically $
+					result <- atomically $ do
 						swapTMVar mclans a
+						readTMVar mpolled
 					postGUISync $ do
-						updateF
+						mapM_ ($ a) clanHook
+						mapM_ (\f -> f a result) bothHook
 						set button [ widgetSensitive := True ]
 		return ()
 

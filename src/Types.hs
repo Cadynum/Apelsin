@@ -1,6 +1,6 @@
 module Types (
 	module Control.Concurrent.STM
-	, Bundle(..)
+	, Bundle(..), ClanHook, PolledHook, ClanPolledHook, SetCurrent
 ) where
 import Graphics.UI.Gtk
 import Config
@@ -15,3 +15,8 @@ data Bundle = Bundle {
 	, parent	:: !Window
 	, browserStore	:: !(ListStore GameServer)
 	}
+
+type ClanHook		= [Clan] -> IO ()
+type PolledHook		= PollResult -> IO ()
+type ClanPolledHook	= [Clan] -> PollResult -> IO ()
+type SetCurrent		= Bool -> GameServer -> IO ()

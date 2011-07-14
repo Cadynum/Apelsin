@@ -61,7 +61,7 @@ matchTagExpr expr raw = case expr of
 	TagSuffix (TI _ xs)		-> xs `B.isSuffixOf` str
 	TagInfix (TI _ xs)		-> xs `B.isInfixOf` str
 	TagContained (TI _ xs) (TI _ ys)-> xs `B.isPrefixOf` str && ys `B.isSuffixOf` str
-	TagError		-> False
+	TagError			-> False
 	where str = cleanedCase raw
 
 prettyTagExpr :: TagExpr -> String

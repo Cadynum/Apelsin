@@ -16,50 +16,41 @@ import InfoBox
 import Constants
 import Config
 
-newFindPlayers :: Bundle -> (Bool -> GameServer -> IO ()) -> IO (VBox, IO ())
+newFindPlayers :: Bundle -> SetCurrent -> IO (VBox, PolledHook)
 newFindPlayers Bundle{..} setServer = do
-	Config {colors} <- atomically $ readTMVar mconfig
-	rawmodel	<- listStoreNew []
-	model		<- treeModelFilterNew rawmodel []
-	view		<- treeViewNewWithModel model
+	Config {..}	<- atomically $ readTMVar mconfig
+	raw		<- listStoreNew []
+	filtered	<- treeModelFilterNew raw []
+	view		<- treeViewNewWithModel filtered
 	
-	addColumnsFilter rawmodel model view [
+	addColumnsFilter raw filtered view [
 		  ("Name", True, pangoPretty colors . fst)
 		, ("Server", True, pangoPretty colors . hostname . snd) 
 		]
 
 	(infobox, statNow, statTot)	<- newInfobox "players"
-	Config {filterPlayers}		<- atomically $ readTMVar mconfig
-	(filterbar, current)		<- newFilterBar model statNow filterPlayers
+	(filterbar, current)		<- newFilterBar filtered statNow filterPlayers
 	
-	treeModelFilterSetVisibleFunc model $ \iter -> do
-		(item, _) <- treeModelGetRow rawmodel iter
+	treeModelFilterSetVisibleFunc filtered $ \iter -> do
+		(item, _) <- treeModelGetRow raw iter
 		s <- readIORef current
 		return $ B.null s || s `B.isInfixOf` cleanedCase item
 		
-	let updateFilter = do
-		PollResult{..} <- atomically $ readTMVar mpolled
-		listStoreClear rawmodel
+	let updateFilter PollResult{..} = do
+		listStoreClear raw
 		let plist = sortBy (comparing fst) (makePlayerNameList polled)
-		mapM_ (listStoreAppend rawmodel) plist
-		treeModelFilterRefilter model
+		mapM_ (listStoreAppend raw) plist
+		treeModelFilterRefilter filtered
 		set statTot [ labelText := show (length plist) ]
-		n <- treeModelIterNChildren model Nothing
+		n <- treeModelIterNChildren filtered Nothing
 		set statNow [ labelText := show n ]
 						
-	onCursorChanged view $ do
-		(x, _)		<- treeViewGetCursor view
-		Just vIter	<- treeModelGetIter model x
-		iter		<-treeModelFilterConvertIterToChildIter model vIter
-		(_, gs)		<- treeModelGetRow rawmodel iter
-		setServer False gs
-		return ()
+	on view cursorChanged $ do
+		(path, _) <- treeViewGetCursor view
+		setServer False . snd =<< getElementF raw filtered path
 
-	onRowActivated view $ \path _ -> do
-		Just vIter	<- treeModelGetIter model path
-		fIter		<- treeModelFilterConvertIterToChildIter model vIter
-		(_, gs)		<- treeModelGetRow rawmodel fIter
-		setServer True gs
+	on view rowActivated $ \path _ -> do
+		setServer True . snd =<< getElementF raw filtered path
 	
 	scroll <- scrollIt view PolicyAutomatic PolicyAlways
 	

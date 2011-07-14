@@ -48,7 +48,7 @@ defaultBrowser x	= shell ("start " ++ x)
 #else
 defaultTremulousPath	= "tremulous"
 defaultTremulousGPPPath	= "tremulous-gpp"
-trace 			= hPutStrLn stderr
+trace x			= hPutStrLn stderr x >> hFlush stderr
 
 #if defined(__APPLE__) || defined(__MACH__)
 defaultBrowser	x	= proc "open" [x]

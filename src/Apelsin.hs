@@ -30,7 +30,7 @@ main = withSocketsDo $ do
 	bundle	<-	(do
 			mpolled		<- atomically $ newTMVar (PollResult [] 0 0 S.empty)
 			mconfig		<- atomically $ newTMVar config
-			mclans		<- atomically $ newTMVar cacheclans
+			mclans		<- atomically $ newTMVar []
 			browserStore	<- listStoreNew []
 			return Bundle {parent = win, ..}
 			)
@@ -38,15 +38,16 @@ main = withSocketsDo $ do
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle mupdate
 	(browser, browserUpdate)		<- newServerBrowser bundle currentSet
 	(findPlayers, findUpdate)		<- newFindPlayers bundle currentSet
-	(clanlist, clanlistUpdate)		<- newClanList bundle
+	(clanlist, clanlistUpdate)		<- newClanList cacheclans
 	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet
 
 	preferences				<- newPreferences bundle
-	atomically $ putTMVar mupdate (findUpdate >> onlineclansUpdate)
+	atomically $ putTMVar mupdate (findUpdate, onlineclansUpdate)
 
 	toolbar <- newToolbar bundle
-		(clanlistUpdate >> onlineclansUpdate)
-		(browserUpdate >> findUpdate >> currentUpdate >> onlineclansUpdate)
+		[clanlistUpdate]
+		[browserUpdate, findUpdate, currentUpdate]
+		[onlineclansUpdate]
 
 	-- /// Layout ////////////////////////////////////////////////////////////////////////////
 
