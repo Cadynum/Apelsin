@@ -22,14 +22,13 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	sorted		<- treeModelSortNewWithModel filtered	
 	view		<- treeViewNewWithModel sorted
 	
-	addColumnsFilterSort raw filtered sorted view (Just (comparing gameping)) [
+	addColumnsFilterSort raw filtered sorted view 3 SortAscending [
 		  ("_Game"	, 0	, False	, False	, False	, showGame , Just (comparing (\x -> (protocol x, gamemod x))))
 		, ("_Name"	, 0	, True	, True	, True	, pangoPretty colors . hostname	, Just (comparing hostname))
 		, ("_Map"	, 0	, True	, False	, False	, take 16 . unpackorig . mapname	, Just (comparing mapname))
 		, ("P_ing"	, 1	, False	, False , False	, show . gameping	, Just (comparing gameping))
 		, ("_Players"	, 1	, False	, False , False	, showPlayers		, Just (comparing nplayers))
 		]
-
 	(infobox, statNow, statTot, statRequested) <- newInfoboxBrowser
 	
 	(filterbar, current) <- newFilterBar filtered statNow filterBrowser

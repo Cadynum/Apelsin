@@ -60,7 +60,7 @@ main = withSocketsDo $ do
 	leftView <- vBoxNew False 0
 	boxPackStart leftView toolbar PackNatural 0
 	boxPackStart leftView book PackGrow 0
-
+	
 
 	pane <- hPanedNew
 	panedPack1 pane leftView True False
@@ -78,7 +78,7 @@ main = withSocketsDo $ do
 		mainQuit
 
 	ddir <- getDataDir
-	handleGError (const $ trace $ "Window icon not found: " ++ ddir) $ do
+	handleGError (const $ trace $ "Window icon not found in: " ++ ddir) $ do
 		let list = map
 			(\x -> joinPath [ddir, "icons", "hicolor", x ++ "x" ++ x, "apps", "apelsin.png"])
 			["16", "32", "48", "64"]
@@ -106,9 +106,6 @@ main = withSocketsDo $ do
 			set win [ widgetHeightRequest	:= max minh winh
 				, widgetWidthRequest	:= max (minw+panebuf) winw ]
 	widgetShowAll win
-
-
-
 	mainGUI
 
 

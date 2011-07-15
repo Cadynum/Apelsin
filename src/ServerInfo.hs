@@ -54,7 +54,7 @@ newServerInfo Bundle{..} mupdate = do
 		return b
 		
 	let mkTable = zipWithM easyAttach [0..]
-	info <- mkTable ["IP:Port", "Game (mod)", "Map", "Password protected"
+	info <- mkTable ["IP:Port", "Game (mod)", "Map", "Timelimit (SD)"
 			, "Slots (+private)", "Ping (server average)"]
 	set (head info) [ labelSelectable := True ]
 	
@@ -131,7 +131,7 @@ newServerInfo Bundle{..} mupdate = do
 					Nothing	-> ""
 					Just z	-> " (" ++ unpackorig z ++ ")"))
 			, unpackorig mapname
-			, if protected then "Yes" else "No"
+			, maybeQ timelimit ++ " (" ++ maybeQ suddendeath ++ ")"
 			, show slots ++ " (+" ++ show privslots ++ ")"
 			, show gameping ++
 				" (" ++ (show . intmean . filter validping . map ping) players ++ ")"
@@ -206,6 +206,7 @@ newServerInfo Bundle{..} mupdate = do
 	showHostname colors x	= formatHostname $ case pangoPretty colors x of
 					"" -> "<i>Invalid name</i>"
 					a  -> a
+	maybeQ			= maybe "?" show
 
 runTremulous :: Config -> GameServer -> IO ProcessHandle
 runTremulous Config{..} GameServer{..} = do
@@ -225,3 +226,4 @@ runTremulous Config{..} GameServer{..} = do
 	toProc (a, b) = case words a of
 		(x:xs)	-> proc x (xs ++ b)
 		_	-> proc a b
+

@@ -21,7 +21,7 @@ import About
 import Clanlist
 
 getDNS :: String -> String -> IO (Maybe SockAddr)
-getDNS host port = handle (\(_::IOException) -> return Nothing) $ do
+getDNS host port = handle (\(_ :: IOException) -> return Nothing) $ do
 	AddrInfo _ _ _ _ addr _ <- Prelude.head `liftM` getAddrInfo Nothing (Just host) (Just port)
 	return $ Just addr
 
@@ -30,9 +30,7 @@ whileTrue :: Monad m => m Bool -> m ()
 whileTrue f = f >>= \t -> when t (whileTrue f)
 
 newToolbar :: Bundle -> [ClanHook] -> [PolledHook] -> [ClanPolledHook] -> IO HBox
-newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do	
-	pbrbox		<- hBoxNew False spacing
-		
+newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do		
 	pb		<- progressBarNew
 	set pb		[ widgetNoShowAll := True ]
 	
@@ -58,7 +56,7 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	boxPackStartDefaults alignbox clanSync
 	boxPackStartDefaults alignbox about
 			
-	
+	pbrbox		<- hBoxNew False spacing
 	set pbrbox [ containerBorderWidth := spacing ]
 	boxPackStart pbrbox align PackNatural 0
 	boxPackStart pbrbox pb PackGrow 0

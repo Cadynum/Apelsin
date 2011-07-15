@@ -21,6 +21,7 @@ newFilterBar filtered stat initial  = do
 		, widgetIsFocus		:= True
 		, widgetCanDefault	:= True
 		, entryText		:= initial ]
+		
 	lbl <- labelNewWithMnemonic "_Filter:"
 	set lbl [ labelMnemonicWidget := ent ]
 	
@@ -35,9 +36,8 @@ newFilterBar filtered stat initial  = do
 		treeModelFilterRefilter filtered
 		n <- treeModelIterNChildren filtered Nothing
 		set stat [ labelText := show n ]
-		return True
 	f 
-	onKeyRelease ent (const f) 
+	on ent editableChanged f
 		
 	return (findbar, current)
 

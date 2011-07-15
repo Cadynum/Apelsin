@@ -87,10 +87,8 @@ newPreferences Bundle{..} = do
 		
 		rawcolors	<- forM colorList $ \(colb, cb) -> do
 					bool <- get cb toggleButtonActive
-					if bool then
-						TFColor . colorToHex <$> colorButtonGetColor colb
-					else
-						return TFNone
+					(if bool then TFColor else TFNone)
+						 . colorToHex <$> colorButtonGetColor colb
 		old		<- atomically $ takeTMVar mconfig
 		let new		= old {filterBrowser, filterPlayers, autoMaster
 				, autoClan, autoGeometry, tremPath, tremGppPath
@@ -130,7 +128,8 @@ newPreferences Bundle{..} = do
 		where	f (a, b) (TFColor c) = do
 				colorButtonSetColor a (hexToColor c)
 				toggleButtonSetActive b True
-			f (_,b) _ = do
+			f (a ,b) (TFNone c) = do
+				colorButtonSetColor a (hexToColor c)
 				toggleButtonSetActive b False
 				-- Apparently this is needed too
 				toggleButtonToggled b

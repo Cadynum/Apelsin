@@ -47,7 +47,7 @@ newClanList cache = do
 		n <- treeModelIterNChildren filtered Nothing
 		set statNow [ labelText := show n ]
 
-	addColumnsFilterSort raw filtered sorted view (Just (comparing name)) [
+	addColumnsFilterSort raw filtered sorted view 0 SortAscending [
 		  ("_Name"	, 0 , False	, True	, False	, unpackorig . name	, Just (comparing name))
 		, ("_Tag"	, 0 , True	, True	, False	, prettyTagExpr . tagexpr	, Just (comparing tagexpr))
 		, ("Website"	, 0 , False	, True	, False	, B.unpack . showURL . website	, Nothing)
@@ -67,7 +67,6 @@ newClanList cache = do
 			openInBrowser (B.unpack website)
 
 	box <- vBoxNew False 0
-
 	boxPackStart box filterbar PackNatural spacing
 	boxPackStart box scrollview PackGrow 0
 	boxPackStart box infobox PackNatural 0

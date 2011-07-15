@@ -108,10 +108,10 @@ addColumnsFilter raw model view xs = mapM_ f xs where
 
 addColumnsFilterSort :: (TreeViewClass self, TreeSortableClass self1, TreeModelSortClass self1,
 	TreeModelFilterClass self2, TreeModelClass self1, TypedTreeModelClass model) =>
-	model t -> self2 -> self1 -> self -> Maybe (t -> t -> Ordering)
+	model t -> self2 -> self1 -> self -> Int -> SortType
 	-> [(String, Float, Bool, Bool, Bool, t -> String, Maybe (t -> t -> Ordering))]
 	-> IO ()
-addColumnsFilterSort raw filtered sorted view defaultSort xs = zipWithM_ f [0..] xs where
+addColumnsFilterSort raw filtered sorted view defaultSort sortType xs = zipWithM_ f [0..] xs where
 	f n (title, align, format, expand, ellipsize, showf,  sortf) = do
 		col <- treeViewColumnNew
 		set col	[ treeViewColumnTitle := title
@@ -137,10 +137,9 @@ addColumnsFilterSort raw filtered sorted view defaultSort xs = zipWithM_ f [0..]
 					rit1	<- treeModelFilterConvertIterToChildIter filtered it1
 					rit2	<- treeModelFilterConvertIterToChildIter filtered it2
 					xort raw g rit1 rit2
-		whenJust defaultSort $ \a -> treeSortableSetDefaultSortFunc sorted $ Just $ \it1 it2 -> do
-				rit1	<- treeModelFilterConvertIterToChildIter filtered it1
-				rit2	<- treeModelFilterConvertIterToChildIter filtered it2
-				xort raw a rit1 rit2
+		treeSortableSetDefaultSortFunc sorted Nothing
+		treeSortableSetSortColumnId sorted defaultSort sortType
+		
 getElementFS :: (TreeModelClass self, TreeModelFilterClass self1, TreeModelSortClass self, TypedTreeModelClass model) =>
 	model b -> self -> self1 -> TreePath -> IO b
 getElementFS store sorted filtered x = do

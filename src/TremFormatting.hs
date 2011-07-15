@@ -3,7 +3,7 @@ import Data.Array
 import Data.Char
 import Network.Tremulous.NameInsensitive
 
-data TremFmt = TFColor !String | TFNone
+data TremFmt = TFColor !String | TFNone !String
 	deriving (Show, Read)
 
 type ColorArray = Array Int TremFmt
@@ -20,7 +20,7 @@ pangoColors :: ColorArray -> String -> String
 pangoColors arr = f False where
 	f n ('^':x:xs) | isAlphaNum x = case arr ! (a `mod` 8) of
 		TFColor color	-> close n ++ "<span color=\"" ++ color ++ "\">" ++ f True xs
-		TFNone		-> close n ++ f False xs
+		TFNone	_	-> close n ++ f False xs
 		where a = ord x - ord '0'
 			  
 			

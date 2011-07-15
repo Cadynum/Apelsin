@@ -10,6 +10,7 @@ import Data.ByteString.Char8 as B
 import Data.ByteString.Lazy.Char8 as L
 import Data.Char (intToDigit)
 import Data.Maybe
+import Data.Ord
 import Network.HTTP
 import Network.URI
 import Network.Tremulous.NameInsensitive
@@ -25,7 +26,7 @@ data TagExpr =
 	deriving Eq
 
 instance Ord TagExpr where
-	compare a b = compare (tagExprGet a) (tagExprGet b) where
+	compare = comparing tagExprGet
 
 tagExprGet :: TagExpr -> B.ByteString
 tagExprGet x = case x of
