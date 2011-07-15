@@ -20,6 +20,7 @@ newFilterBar filtered stat initial  = do
 	set ent [ entryText := initial ]
 		
 	lbl <- labelNew (Just "Filter:")
+	set lbl [ widgetTooltipText := Just "Ctrl+L or Ctrl+F" ]
 	
 	findbar <- hBoxNew False spacing
 	boxPackStart findbar lbl PackNatural 0

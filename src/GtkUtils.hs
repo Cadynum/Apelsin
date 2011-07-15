@@ -43,14 +43,6 @@ newLabeledFrame lbl = do
 	frameSetLabel frame lbl
 	return frame
 	
-	
-notebookAppendMnemonic :: (NotebookClass self, WidgetClass child) => self -> child -> String -> IO Int
-notebookAppendMnemonic nb child txt = do
-	n <- notebookAppendPage nb child ""
-	lbl <- labelNewWithMnemonic txt
-	notebookSetTabLabel nb child lbl
-	return n
-
 addColumns :: (TreeViewClass view, TreeModelClass (model row), TypedTreeModelClass model) =>
 	model row -> view -> [(String, Float, Bool, Bool, Bool, row -> String)] -> IO ()
 addColumns model view xs = mapM_ g xs where

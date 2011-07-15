@@ -116,7 +116,7 @@ main = withSocketsDo $ do
 			[Alt]	| Just page <- mread k
 				, page >= 1
 				, page <= 5
-				-> do	liftIO (notebookSetCurrentPage book (page - 1))
+				-> do	liftIO (set book [ notebookPage := page - 1])
 					return True
 			[Control]
 				| k == "l" || k == "f"
@@ -128,6 +128,7 @@ main = withSocketsDo $ do
 						_ -> return ()
 					return True
 			_ -> return False
+			
 	widgetGrabFocus ent0
 	mainGUI
 

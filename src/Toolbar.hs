@@ -45,8 +45,6 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	on about buttonActivated $ newAbout parent
 	on clansync buttonActivated $ doSync
 			
-	
-	
 	align		<- alignmentNew 0 0 0 0
 	alignbox	<- hBoxNew False spacing
 	set align [ containerChild := alignbox ]
