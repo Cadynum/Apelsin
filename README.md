@@ -8,6 +8,7 @@ Written in: Haskell
 ## Features
 #### Right pane
 Shows information about your currently selected server.
+
 Note: You can change the ratio between the panes by dragging the handle in the middle.
 
 #### Server Browser
@@ -34,8 +35,8 @@ Set your tremulous path, change the color theme and modify various other setting
 
 
 ## Keyboard shotcuts
-Ctrl+R or F5		Refresh all servers
-Ctrl+S or F6		Sync clan list
-Ctrl+A or f7		About
-Ctrl+L or Ctrl+F	Focus Input
-Alt+1-5			Switch tab
+* Ctrl+R or F5:		Refresh all servers
+* Ctrl+S or F6:		Sync clan list
+* Ctrl+A or F7:		About
+* Ctrl+L or Ctrl+F:	Focus Input
+* Alt+1-5:		Switch tab

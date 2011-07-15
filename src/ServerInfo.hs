@@ -58,7 +58,6 @@ newServerInfo Bundle{..} mupdate = do
 			, "Slots (+private)", "Ping (server average)"]
 	set (head info) [ labelSelectable := True ]
 	
-	
 	-- Players
 	allplayers	<- vBoxNew False 4
 	alienshumans	<- hBoxNew True 4
@@ -71,9 +70,14 @@ newServerInfo Bundle{..} mupdate = do
 	(hmodel, hview) <- playerView "Humans"
 	(smodel, sview) <- simpleListView [("Spectators", True, pangoPretty colors . name)
 					, ("Ping", False, show . ping)]
+	-- For servers not giving the P CVar
+	(umodel, uview) <- playerView "Players"
+	
 	
 	ascroll <- scrollIt aview PolicyNever PolicyAutomatic
 	hscroll <- scrollIt hview PolicyNever PolicyAutomatic
+	uscroll	<- scrollIt uview PolicyNever PolicyAutomatic
+	set uscroll [ widgetNoShowAll := True ]
 	boxPackStart alienshumans ascroll PackGrow 0
 	boxPackStart alienshumans hscroll PackGrow 0
 
@@ -100,6 +104,7 @@ newServerInfo Bundle{..} mupdate = do
 	boxPackStart rightpane hostnamex PackNatural 1
 	boxPackStart rightpane tbl PackNatural 0
 	boxPackStart rightpane allplayers PackGrow 0
+	boxPackStart rightpane uscroll PackGrow 0
 	boxPackStart rightpane serverbuttons PackNatural 2
 
 
@@ -141,16 +146,27 @@ newServerInfo Bundle{..} mupdate = do
 		listStoreClear amodel
 		listStoreClear hmodel
 		listStoreClear smodel
+		listStoreClear umodel
 		
-		let (s', a', h', _) = partitionTeams (scoreSort players)
-		mapM_ (listStoreAppend amodel) a'
-		mapM_ (listStoreAppend hmodel) h'
-		mapM_ (listStoreAppend smodel) s'
-		treeViewColumnsAutosize aview
-		treeViewColumnsAutosize hview
-		treeViewColumnsAutosize sview
-		Requisition _ sReq <- widgetSizeRequest sview
-		set specscroll [ widgetHeightRequest := sReq ]
+		let	sortedPlayers		= scoreSort players
+			(s', a', h', u')	= partitionTeams sortedPlayers
+		if null u' then do		
+			mapM_ (listStoreAppend amodel) a'
+			mapM_ (listStoreAppend hmodel) h'
+			mapM_ (listStoreAppend smodel) s'
+			treeViewColumnsAutosize aview
+			treeViewColumnsAutosize hview
+			treeViewColumnsAutosize sview
+			Requisition _ sReq <- widgetSizeRequest sview
+			set specscroll [ widgetHeightRequest := sReq ]
+			widgetShow allplayers				
+			widgetHide uscroll	
+		else do
+			mapM_ (listStoreAppend umodel) sortedPlayers
+			treeViewColumnsAutosize uview
+			widgetShow uscroll
+			widgetShow uview
+			widgetHide allplayers
 		
 		atomically $ clearTMVar current >> putTMVar current gs
 		
