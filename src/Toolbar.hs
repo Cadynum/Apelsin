@@ -12,7 +12,7 @@ import Data.Char (toLower)
 import Network.Socket 
 import Network.Tremulous.Protocol
 import Network.Tremulous.Polling
-import Network.Tremulous.Scheduler (getMicroTime)
+import Network.Tremulous.MicroTime
 
 import Types
 import Constants
