@@ -5,7 +5,9 @@ import Graphics.UI.Gtk
 import Control.Applicative
 import Control.Exception
 import Control.Monad
+import Control.Monad.IO.Class
 import Data.Maybe
+import Data.Char (toLower)
 
 import Network.Socket 
 import Network.Tremulous.Protocol
@@ -34,26 +36,23 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	pb		<- progressBarNew
 	set pb		[ widgetNoShowAll := True ]
 	
-	refresh		<- buttonNewWithMnemonic "_Refresh all servers" 
-	set refresh	[ buttonImage		:=> imageNewFromStock stockRefresh IconSizeButton
-			, buttonRelief		:= ReliefNone 
-			, buttonFocusOnClick	:= False ]
-			
-	about		<- buttonNewFromStock stockAbout
-	set about	[ buttonRelief		:= ReliefNone 
-			, buttonFocusOnClick	:= False
-			, widgetCanDefault	:= False ]
-
+	refresh		<- mkToolButton "Refresh all servers" stockRefresh "Ctrl+R or F5"
+	clansync	<- mkToolButton "Sync clan list" stockSave "Ctrl+S or F6"		
+	about		<- mkToolButton "About" stockAbout "Ctrl+A or F7"
+		
+	let doSync = newClanSync bundle clansync clanHook bothHook
+	
 	on about buttonActivated $ newAbout parent
+	on clansync buttonActivated $ doSync
 			
-	(clanSync, doSync) <- newClanSync bundle clanHook bothHook
+	
 	
 	align		<- alignmentNew 0 0 0 0
 	alignbox	<- hBoxNew False spacing
 	set align [ containerChild := alignbox ]
 	
 	boxPackStartDefaults alignbox refresh
-	boxPackStartDefaults alignbox clanSync
+	boxPackStartDefaults alignbox clansync
 	boxPackStartDefaults alignbox about
 			
 	pbrbox		<- hBoxNew False spacing
@@ -109,5 +108,26 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	Config {..} <- atomically $ readTMVar mconfig
 	when autoMaster serverRefresh
 	when autoClan doSync
-	return pbrbox
+
+	on parent keyPressEvent $  do
+		kmod	<- eventModifier
+		k	<- map toLower <$> eventKeyName
+		case kmod of
+			[Control]
+				| k == "r" -> liftIO serverRefresh	>> return True
+				| k == "s" -> liftIO doSync		>> return True
+				| k == "a" -> liftIO (newAbout parent)	>> return True
+			[]	| k == "f5" -> liftIO serverRefresh	>> return True
+			[]	| k == "f6" -> liftIO doSync		>> return True
+			[]	| k == "f7" -> liftIO (newAbout parent)	>> return True
+			_ -> return False 				
 	
+	return pbrbox
+	where mkToolButton lbl icon tip = do
+		button <- buttonNewWithLabel lbl
+		set button	[ buttonImage		:=> imageNewFromStock icon IconSizeButton
+				, buttonRelief		:= ReliefNone 
+				, buttonFocusOnClick	:= False
+				, widgetTooltipText	:= Just tip ]
+		return button
+		

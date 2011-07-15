@@ -11,19 +11,15 @@ import Constants
 
 
 newFilterBar :: (TreeModelClass self, TreeModelFilterClass self) => self -> Label -> String
-	-> IO (HBox, IORef ByteString)
+	-> IO (HBox, IORef ByteString, Entry)
 newFilterBar filtered stat initial  = do
 	current <- newIORef ""
 	
 	-- Filterbar
 	ent <- entryNew
-	set ent [ widgetHasFocus	:= True
-		, widgetIsFocus		:= True
-		, widgetCanDefault	:= True
-		, entryText		:= initial ]
+	set ent [ entryText := initial ]
 		
-	lbl <- labelNewWithMnemonic "_Filter:"
-	set lbl [ labelMnemonicWidget := ent ]
+	lbl <- labelNew (Just "Filter:")
 	
 	findbar <- hBoxNew False spacing
 	boxPackStart findbar lbl PackNatural 0
@@ -39,7 +35,7 @@ newFilterBar filtered stat initial  = do
 	f 
 	on ent editableChanged f
 		
-	return (findbar, current)
+	return (findbar, current, ent)
 
 	
 data Expr = Is !ByteString | Not !ByteString

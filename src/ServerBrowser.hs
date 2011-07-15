@@ -15,7 +15,7 @@ import TremFormatting
 import Constants
 import Config
 
-newServerBrowser :: Bundle -> SetCurrent -> IO (VBox, PolledHook)
+newServerBrowser :: Bundle -> SetCurrent -> IO (VBox, PolledHook,Entry)
 newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	Config {..}	<- atomically $ readTMVar mconfig
 	filtered	<- treeModelFilterNew raw []
@@ -31,7 +31,7 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 		]
 	(infobox, statNow, statTot, statRequested) <- newInfoboxBrowser
 	
-	(filterbar, current) <- newFilterBar filtered statNow filterBrowser
+	(filterbar, current, ent) <- newFilterBar filtered statNow filterBrowser
 	empty <- checkButtonNewWithMnemonic "_empty"
 	set empty [ toggleButtonActive := filterEmpty ]
 	boxPackStart filterbar empty PackNatural 0
@@ -79,7 +79,7 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	boxPackStart box scrollview PackGrow 0
 	boxPackStart box infobox PackNatural 0
 	
-	return (box, updateF)
+	return (box, updateF, ent)
 	where
 	showGame GameServer{..} = proto2string protocol ++ maybe "" (("-"++) . htmlEscape . unpackorig) gamemod
 	showPlayers GameServer{..} = printf "%d / %2d" nplayers slots

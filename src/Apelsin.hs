@@ -1,9 +1,11 @@
 import Graphics.UI.Gtk
 import System.Glib.GError
 
+import Control.Applicative
 import Control.Monad.IO.Class
 import Control.Exception
 import Control.Monad
+import Data.Char (toLower)
 import qualified Data.Set as S
 import Network.Socket
 import Network.Tremulous.Protocol
@@ -36,9 +38,9 @@ main = withSocketsDo $ do
 			)
 	mupdate <- atomically newEmptyTMVar
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle mupdate
-	(browser, browserUpdate)		<- newServerBrowser bundle currentSet
-	(findPlayers, findUpdate)		<- newFindPlayers bundle currentSet
-	(clanlist, clanlistUpdate)		<- newClanList cacheclans
+	(browser, browserUpdate, ent0)		<- newServerBrowser bundle currentSet
+	(findPlayers, findUpdate, ent1)		<- newFindPlayers bundle currentSet
+	(clanlist, clanlistUpdate, ent3)	<- newClanList cacheclans
 	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet
 
 	preferences				<- newPreferences bundle
@@ -52,11 +54,11 @@ main = withSocketsDo $ do
 	-- /// Layout ////////////////////////////////////////////////////////////////////////////
 
 	book <- notebookNew
-	notebookAppendMnemonic book browser	"_1: Browser"
-	notebookAppendMnemonic book findPlayers	"_2: Find players"
-	notebookAppendMnemonic book onlineclans	"_3: Online clans"
-	notebookAppendMnemonic book clanlist	"_4: Clan list"
-	notebookAppendMnemonic book preferences	"_5: Preferences"
+	notebookAppendPage book browser		"Browser"
+	notebookAppendPage book findPlayers	"Find players"
+	notebookAppendPage book onlineclans	"Online clans"
+	notebookAppendPage book clanlist	"Clan list"
+	notebookAppendPage book preferences	"Preferences"
 	leftView <- vBoxNew False 0
 	boxPackStart leftView toolbar PackNatural 0
 	boxPackStart leftView book PackGrow 0
@@ -106,6 +108,27 @@ main = withSocketsDo $ do
 			set win [ widgetHeightRequest	:= max minh winh
 				, widgetWidthRequest	:= max (minw+panebuf) winw ]
 	widgetShowAll win
+
+	on win keyPressEvent $  do
+		kmod	<- eventModifier
+		k	<- map toLower <$> eventKeyName
+		case kmod of
+			[Alt]	| Just page <- mread k
+				, page >= 1
+				, page <= 5
+				-> do	liftIO (notebookSetCurrentPage book (page - 1))
+					return True
+			[Control]
+				| k == "l" || k == "f"
+				-> do	page <- liftIO (get book notebookPage)
+					case page of
+						0 -> liftIO $ widgetGrabFocus ent0
+						1 -> liftIO $ widgetGrabFocus ent1
+						3 -> liftIO $ widgetGrabFocus ent3
+						_ -> return ()
+					return True
+			_ -> return False
+	widgetGrabFocus ent0
 	mainGUI
 
 

@@ -26,7 +26,7 @@ import GtkUtils
 import TremFormatting
 
 
-newClanList :: [Clan] -> IO (VBox, ClanHook)
+newClanList :: [Clan] -> IO (VBox, ClanHook, Entry)
 newClanList cache = do
 	raw			<- listStoreNew []
 	filtered		<- treeModelFilterNew raw []
@@ -36,7 +36,7 @@ newClanList cache = do
 
 	(infobox, statNow, statTot) <- newInfobox "clans"
 
-	(filterbar, current)	<- newFilterBar filtered statNow ""
+	(filterbar, current, ent)	<- newFilterBar filtered statNow ""
 
 	let updateF new = do
 		listStoreClear raw
@@ -73,7 +73,7 @@ newClanList cache = do
 
 	updateF cache
 
-	return (box, updateF)
+	return (box, updateF, ent)
 	where
 	showURL x = fromMaybe x (stripPrefix "http://" x)
 
@@ -147,36 +147,22 @@ buildTree = filter notEmpty . foldr f [] where
 sortByPlayers :: [(Clan, [b])] -> [(Clan, [b])]
 sortByPlayers = sortBy (flip (comparing (\(a, b) -> (-length b, name a))))
 
-newClanSync :: Bundle -> [ClanHook] -> [ClanPolledHook] -> IO (HBox, IO ())
-newClanSync Bundle{..} clanHook bothHook = do
-	button	<- buttonNewWithMnemonic "_Sync clan list"
-	set button 	[ buttonImage :=> imageNewFromStock stockSave IconSizeButton
-			, buttonRelief := ReliefNone
-			, buttonFocusOnClick := False ]
-
-	box	<- hBoxNew False 0
-	boxPackStart box button PackRepel 0
-
-
-	let doSync = do
-		set button [ widgetSensitive := False ]
-		Config {clanSyncURL} <- atomically $ readTMVar mconfig
-		forkIO $ do
-			new <- getClanList clanSyncURL
-			case new of
-				Nothing	-> postGUISync $ do
-					gtkError "Unable to download clanlist"
+newClanSync :: Bundle -> Button -> [ClanHook] -> [ClanPolledHook] -> IO ()
+newClanSync Bundle{..} button clanHook bothHook = do
+	set button [ widgetSensitive := False ]
+	Config {clanSyncURL} <- atomically $ readTMVar mconfig
+	forkIO $ do
+		new <- getClanList clanSyncURL
+		case new of
+			Nothing	-> postGUISync $ do
+				gtkError "Unable to download clanlist"
+				set button [ widgetSensitive := True ]
+			Just a	-> do
+				result <- atomically $ do
+					swapTMVar mclans a
+					readTMVar mpolled
+				postGUISync $ do
+					mapM_ ($ a) clanHook
+					mapM_ (\f -> f a result) bothHook
 					set button [ widgetSensitive := True ]
-				Just a	-> do
-					result <- atomically $ do
-						swapTMVar mclans a
-						readTMVar mpolled
-					postGUISync $ do
-						mapM_ ($ a) clanHook
-						mapM_ (\f -> f a result) bothHook
-						set button [ widgetSensitive := True ]
-		return ()
-
-	on button buttonActivated doSync
-
-	return (box, doSync)
+	return ()

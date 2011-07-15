@@ -25,16 +25,14 @@ newPreferences Bundle{..} = do
 	filters <- newLabeledFrame "Default filters"
 	set filters [ containerChild := tbl]
 
-
 	-- Tremulous path
 	(pathstbl, [tremPath', tremGppPath']) <- pathTable parent ["_Tremulous 1.1:", "Tremulous _GPP:"]
 	paths <- newLabeledFrame "Tremulous path or command"
 	set paths [ containerChild := pathstbl]
 
 	-- Startup
-
-	startupMaster	<- checkButtonNewWithMnemonic "Re_fresh all servers"
-	startupClan	<- checkButtonNewWithMnemonic "S_ync clan list"
+	startupMaster	<- checkButtonNewWithMnemonic "_Refresh all servers"
+	startupClan	<- checkButtonNewWithMnemonic "_Sync clan list"
 	startupGeometry	<- checkButtonNewWithMnemonic "Restore _window geometry from previous session"
 	
 	(startup, startupBox) <- framedVBox ("On startup")

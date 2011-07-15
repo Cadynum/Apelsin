@@ -16,7 +16,7 @@ import InfoBox
 import Constants
 import Config
 
-newFindPlayers :: Bundle -> SetCurrent -> IO (VBox, PolledHook)
+newFindPlayers :: Bundle -> SetCurrent -> IO (VBox, PolledHook, Entry)
 newFindPlayers Bundle{..} setServer = do
 	Config {..}	<- atomically $ readTMVar mconfig
 	raw		<- listStoreNew []
@@ -29,7 +29,7 @@ newFindPlayers Bundle{..} setServer = do
 		]
 
 	(infobox, statNow, statTot)	<- newInfobox "players"
-	(filterbar, current)		<- newFilterBar filtered statNow filterPlayers
+	(filterbar, current, ent)	<- newFilterBar filtered statNow filterPlayers
 	
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
 		(item, _) <- treeModelGetRow raw iter
@@ -59,4 +59,4 @@ newFindPlayers Bundle{..} setServer = do
 	boxPackStart box scroll PackGrow 0
 	boxPackStart box infobox PackNatural 0
 	
-	return (box, updateFilter)
+	return (box, updateFilter, ent)
