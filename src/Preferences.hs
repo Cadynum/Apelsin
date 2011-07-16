@@ -227,7 +227,7 @@ numberedColors = do
 pathSelectionEntryNew :: Window -> IO (HBox, Entry)
 pathSelectionEntryNew parent = do
 	box	<- hBoxNew False 0
-	img	<- imageNewFromStock stockOpen (IconSizeUser 1)
+	img	<- imageNewFromStock stockOpen IconSizeButton
 	button	<- buttonNew
 	set button [ buttonImage := img ]
 	ent	<- entryNew

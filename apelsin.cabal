@@ -41,6 +41,7 @@ Executable apelsin
   Hs-Source-Dirs:       src
   Main-is:              Apelsin.hs
   Other-Modules:        System.Environment.XDG.BaseDir
+                        GtkExts
                         About
                         ClanFetcher
                         Clanlist

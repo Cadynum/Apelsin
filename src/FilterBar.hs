@@ -5,8 +5,10 @@ import Data.IORef
 import qualified Data.ByteString.Char8 as B
 import Data.ByteString.Char8 (ByteString)
 import Data.Char
+import Control.Monad.IO.Class
 import Network.Tremulous.ByteStringUtils as B
 
+import GtkExts
 import Constants
 
 
@@ -18,6 +20,7 @@ newFilterBar filtered stat initial  = do
 	-- Filterbar
 	ent <- entryNew
 	set ent [ entryText := initial ]
+	entrySetIconFromStock ent EntryIconSecondary stockClear
 		
 	lbl <- labelNew (Just "Filter:")
 	set lbl [ widgetTooltipText := Just "Ctrl+L or Ctrl+F" ]
@@ -35,6 +38,9 @@ newFilterBar filtered stat initial  = do
 		set stat [ labelText := show n ]
 	f 
 	on ent editableChanged f
+
+	on ent entryIconPress $
+		const $ liftIO $editableDeleteText ent 0 (-1)
 		
 	return (findbar, current, ent)
 
