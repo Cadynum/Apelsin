@@ -110,15 +110,13 @@ newServerInfo Bundle{..} mupdate = do
 
 	let launchTremulous = withTMVar current $ \gs -> do
 		tst <- atomically $ tryTakeTMVar running
-		whenJust tst $ \a ->
-			catch (terminateProcess a) (\(_ :: IOError) -> return ())
+		whenJust tst (ignoreIOException . terminateProcess)
 		config <- atomically $ readTMVar mconfig
 
 		set join [ widgetSensitive := False ]
 
-		pid <- runTremulous config gs
-		
-		atomically $ putTMVar running pid
+		pid <- maybeIO (runTremulous config gs)
+		whenJust pid (atomically . putTMVar running)
 		
 		forkIO $ do
 			threadDelay 1000000
@@ -243,3 +241,8 @@ runTremulous Config{..} GameServer{..} = do
 		(x:xs)	-> proc x (xs ++ b)
 		_	-> proc a b
 
+ignoreIOException :: IO () -> IO ()
+ignoreIOException = handle (\(_ :: IOError) -> return ())
+
+maybeIO :: IO a -> IO (Maybe a)
+maybeIO = handle (\(_ :: IOError) -> return Nothing) . fmap Just
