@@ -2,7 +2,6 @@ module FindPlayers where
 import Graphics.UI.Gtk
 
 import Data.IORef
-import Data.List
 import Data.Ord
 import qualified Data.ByteString.Char8 as B
 import Network.Tremulous.Protocol
@@ -21,11 +20,12 @@ newFindPlayers Bundle{..} setServer = do
 	Config {..}	<- atomically $ readTMVar mconfig
 	raw		<- listStoreNew []
 	filtered	<- treeModelFilterNew raw []
-	view		<- treeViewNewWithModel filtered
+	sorted		<- treeModelSortNewWithModel filtered	
+	view		<- treeViewNewWithModel sorted
 	
-	addColumnsFilter raw filtered view [
-		  ("Name", True, pangoPretty colors . fst)
-		, ("Server", True, pangoPretty colors . hostname . snd) 
+	addColumnsFilterSort raw filtered sorted view 0 SortAscending [
+		  ("Name"	, True	, simpleColumn colors fst		, Just (comparing fst))
+		, ("Server"	, True	, simpleColumn colors (hostname . snd)	, Just (comparing (address .snd))) 
 		]
 
 	(infobox, statNow, statTot)	<- newInfobox "players"
@@ -42,7 +42,7 @@ newFindPlayers Bundle{..} setServer = do
 		
 	let updateFilter PollResult{..} = do
 		listStoreClear raw
-		let plist = sortBy (comparing fst) (makePlayerNameList polled)
+		let plist = makePlayerNameList polled
 		mapM_ (listStoreAppend raw) plist
 		treeModelFilterRefilter filtered
 		set statTot [ labelText := show (length plist) ]
@@ -64,3 +64,6 @@ newFindPlayers Bundle{..} setServer = do
 	boxPackStart box infobox PackNatural 0
 	
 	return (box, updateFilter, ent)
+	where simpleColumn colors f item =
+		[ cellTextEllipsize := EllipsizeEnd
+		, cellTextMarkup := Just (pangoPretty colors (f item)) ]

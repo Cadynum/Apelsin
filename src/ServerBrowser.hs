@@ -23,11 +23,11 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	view		<- treeViewNewWithModel sorted
 	
 	addColumnsFilterSort raw filtered sorted view 3 SortAscending [
-		  ("_Game"	, 0	, False	, False	, False	, showGame , Just (comparing (\x -> (protocol x, gamemod x))))
-		, ("_Name"	, 0	, True	, True	, True	, pangoPretty colors . hostname	, Just (comparing hostname))
-		, ("_Map"	, 0	, True	, False	, False	, take 16 . unpackorig . mapname	, Just (comparing mapname))
-		, ("P_ing"	, 1	, False	, False , False	, show . gameping	, Just (comparing gameping))
-		, ("_Players"	, 1	, False	, False , False	, showPlayers		, Just (comparing nplayers))
+		  ("_Game"	, False	, simpleColumn showGame 	, Just (comparing (\x -> (protocol x, gamemod x))))
+		, ("_Name"	, True	, markupColumn colors hostname	, Just (comparing hostname))
+		, ("_Map"	, False	, simpleColumn (take 16 . unpackorig . mapname)	, Just (comparing mapname))
+		, ("P_ing"	, False	, intColumn (show . gameping)	, Just (comparing gameping))
+		, ("_Players"	, False	, intColumn (showPlayers)	, Just (comparing nplayers))
 		]
 	(infobox, statNow, statTot, statRequested) <- newInfoboxBrowser
 	
@@ -83,3 +83,8 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	where
 	showGame GameServer{..} = proto2string protocol ++ maybe "" (("-"++) . htmlEscape . unpackorig) gamemod
 	showPlayers GameServer{..} = printf "%d / %2d" nplayers slots
+	markupColumn colors f item =
+		[ cellTextEllipsize := EllipsizeEnd
+		, cellTextMarkup := Just (pangoPretty colors (f item)) ]
+	intColumn f item = [ cellText := f item , cellXAlign := 1 ]
+	simpleColumn f item = [ cellText := f item ]

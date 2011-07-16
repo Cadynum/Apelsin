@@ -48,10 +48,10 @@ newClanList cache = do
 		set statNow [ labelText := show n ]
 
 	addColumnsFilterSort raw filtered sorted view 0 SortAscending [
-		  ("_Name"	, 0 , False	, True	, False	, unpackorig . name	, Just (comparing name))
-		, ("_Tag"	, 0 , True	, True	, False	, prettyTagExpr . tagexpr	, Just (comparing tagexpr))
-		, ("Website"	, 0 , False	, True	, False	, B.unpack . showURL . website	, Nothing)
-		, ("IRC"	, 0 , False	, True	, False	, B.unpack . irc	, Nothing)
+		  ("_Name"	, False	, simpleColumn (unpackorig . name)		, Just (comparing name))
+		, ("_Tag"	, False	, markupColumn (prettyTagExpr . tagexpr)	, Just (comparing tagexpr))
+		, ("Website"	, False	, simpleColumn (B.unpack . showURL . website)	, Nothing)
+		, ("IRC"	, False , simpleColumn (B.unpack . irc)			, Nothing)
 		]
 
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
@@ -76,6 +76,9 @@ newClanList cache = do
 	return (box, updateF, ent)
 	where
 	showURL x = fromMaybe x (stripPrefix "http://" x)
+	markupColumn f item = [ cellTextMarkup := Just (f item) ]
+	simpleColumn f item = [ cellText := f item ]
+
 
 
 newOnlineClans :: Bundle-> SetCurrent -> IO (ScrolledWindow, ClanPolledHook)
