@@ -6,6 +6,7 @@ import System.FilePath
 import System.Directory
 import System.IO
 import System.Process
+import Control.Exception
 
 #ifdef CABAL_PATH
 import Paths_apelsin
@@ -59,11 +60,10 @@ defaultBrowser	x	= proc "xdg-open" [x]
 #endif
 
 openInBrowser :: String -> IO ()
-openInBrowser x = do
+openInBrowser x = handle (\(_ :: IOError) -> return ()) $ do
 	createProcess (defaultBrowser x)
 		{close_fds = True, std_in = Inherit, std_out = Inherit, std_err = Inherit}
 	return ()
-
 
 spacing, spacingHalf, spacingBig :: Integral i => i
 spacing		= 4
