@@ -116,7 +116,12 @@ newServerInfo Bundle{..} mupdate = do
 		set join [ widgetSensitive := False ]
 
 		pid <- maybeIO (runTremulous config gs)
-		whenJust pid (atomically . putTMVar running)
+		case pid of
+			Nothing -> gtkError $ "Unable to run \"" ++ path ++ "\".\nHave you set your path correctly in Preferences?"
+				where path = case protocol gs of
+						70 -> tremGppPath config
+						_  -> tremPath config
+			Just a -> (atomically . putTMVar running) a
 		
 		forkIO $ do
 			threadDelay 1000000
@@ -222,14 +227,13 @@ newServerInfo Bundle{..} mupdate = do
 					a  -> a
 	maybeQ			= maybe "?" show
 
-runTremulous :: Config -> GameServer -> IO ProcessHandle
+runTremulous :: Config -> GameServer -> IO (Maybe ProcessHandle)
 runTremulous Config{..} GameServer{..} = do
-	(_,_,_,p) <- createProcess ((toProc launch) {cwd = ldir})
+	(_,_,_,p) <- createProcess ((proc com args) {cwd = ldir})
 		{close_fds = True, std_in = Inherit, std_out = Inherit, std_err = Inherit}
-	return p
-
+	maybe (Just p) (const Nothing) <$> getProcessExitCode p
 	where
-	launch@(com,_) = case protocol of
+	(com, args) = case protocol of
 		70 -> (tremGppPath, ["+connect", show address])
 		_  -> (tremPath, ["-connect", show address, "+connect", show address])
 		
@@ -237,12 +241,9 @@ runTremulous Config{..} GameServer{..} = do
 		"" -> Nothing
 		x  -> Just x
 
-	toProc (a, b) = case words a of
-		(x:xs)	-> proc x (xs ++ b)
-		_	-> proc a b
 
 ignoreIOException :: IO () -> IO ()
 ignoreIOException = handle (\(_ :: IOError) -> return ())
 
-maybeIO :: IO a -> IO (Maybe a)
-maybeIO = handle (\(_ :: IOError) -> return Nothing) . fmap Just
+maybeIO :: IO (Maybe a) -> IO (Maybe a)
+maybeIO = handle (\(_ :: IOError) -> return Nothing)
