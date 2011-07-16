@@ -32,9 +32,13 @@ newFindPlayers Bundle{..} setServer = do
 	(filterbar, current, ent)	<- newFilterBar filtered statNow filterPlayers
 	
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
-		(item, _) <- treeModelGetRow raw iter
+		(item, GameServer{..}) <- treeModelGetRow raw iter
 		s <- readIORef current
-		return $ B.null s || s `B.isInfixOf` cleanedCase item
+		return $ B.null s || smartFilter s [
+				  cleanedCase item
+				, proto2string protocol
+				, maybe "" cleanedCase gamemod
+				]
 		
 	let updateFilter PollResult{..} = do
 		listStoreClear raw
