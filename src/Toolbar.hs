@@ -74,22 +74,22 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 		let tremTime = (packetDuplication + 1) * packetTimeout
 			+ serversGuess * throughputDelay + 200 * 1000
 		
-		pbth <- forkIO $ whileTrue $ do
-			threadDelay 10000 --10 ms, 100 fps
-			now <- getMicroTime
-			let diff = now - start
-			if now-start > fromIntegral tremTime then do
-				postGUISync $ progressBarSetFraction pb 1
-				return False
-			else do
-				postGUISync $ progressBarSetFraction pb
-					(fromIntegral diff / fromIntegral tremTime)
-				return True
-			
 		forkIO $ do
 			hosts <- catMaybes <$> mapM
 				(\(host, port, proto) -> fmap (`MasterServer` proto) <$> getDNS host (show port))
 				masterServers
+			pbth <- forkIO $ whileTrue $ do
+				threadDelay 10000 --10 ms, 100 fps
+				now <- getMicroTime
+				let diff = now - start
+				if now-start > fromIntegral tremTime then do
+					postGUISync $ progressBarSetFraction pb 1
+					return False
+				else do
+					postGUISync $ progressBarSetFraction pb
+						(fromIntegral diff / fromIntegral tremTime)
+					return True
+				
 			result <- pollMasters delays hosts
 
 			atomically $ replaceTMVar mpolled result

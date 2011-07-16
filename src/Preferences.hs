@@ -19,7 +19,6 @@ import TremFormatting
 newPreferences :: Bundle -> IO ScrolledWindow
 newPreferences Bundle{..} = do
 	-- Default filters
-	
 	(tbl, [filterBrowser', filterPlayers'], filterEmpty') <-
 		configTable ["_Browser:", "Find _players:"]
 	filters <- newLabeledFrame "Default filters"
@@ -63,7 +62,6 @@ newPreferences Bundle{..} = do
 
 
 	-- Apply
-	
 	apply	<- buttonNewFromStock stockApply
 	bbox	<- hBoxNew False 0
 	boxPackStartDefaults bbox apply

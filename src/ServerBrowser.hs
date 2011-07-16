@@ -34,7 +34,7 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	(filterbar, current, ent) <- newFilterBar filtered statNow filterBrowser
 	empty <- checkButtonNewWithMnemonic "_empty"
 	set empty [ toggleButtonActive := filterEmpty ]
-	boxPackStart filterbar empty PackNatural 0
+	boxPackStart filterbar empty PackNatural spacingHalf
 	on empty toggled $ do
 		treeModelFilterRefilter filtered
 		n <- treeModelIterNChildren filtered Nothing

@@ -45,7 +45,9 @@ defaultBrowser :: String -> CreateProcess
 defaultTremulousPath	= "C:\\Program Files\\Tremulous\\tremulous.exe"
 defaultTremulousGPPPath	= "C:\\Program Files\\Tremulous\\tremulous-gpp.exe"
 trace _			= return ()
-defaultBrowser x	= proc "wscript" ["open.vbs", x]
+defaultBrowser x	= do
+	ddir <- getDataDir
+	proc "wscript" [ddir </> "open.vbs", x]
 #else
 defaultTremulousPath	= "tremulous"
 defaultTremulousGPPPath	= "tremulous-gpp"

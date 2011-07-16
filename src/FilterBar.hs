@@ -25,9 +25,9 @@ newFilterBar filtered stat initial  = do
 	lbl <- labelNew (Just "Filter:")
 	set lbl [ widgetTooltipText := Just "Ctrl+L or Ctrl+F" ]
 	
-	findbar <- hBoxNew False spacing
-	boxPackStart findbar lbl PackNatural 0
-	boxPackStart findbar ent PackGrow 0
+	findbar <- hBoxNew False 0
+	boxPackStart findbar lbl PackNatural spacingHalf
+	boxPackStart findbar ent PackGrow spacingHalf
 	
 	let f = do
 		rawstr <- entryGetText ent
@@ -41,7 +41,7 @@ newFilterBar filtered stat initial  = do
 
 	on ent entryIconPress $
 		const $ liftIO $editableDeleteText ent 0 (-1)
-		
+	
 	return (findbar, current, ent)
 
 	
