@@ -53,10 +53,10 @@ newFindPlayers Bundle{..} setServer = do
 						
 	on view cursorChanged $ do
 		(path, _) <- treeViewGetCursor view
-		setServer False . snd =<< getElementF raw filtered path
+		setServer False . snd =<< getElementFS raw sorted filtered path
 
 	on view rowActivated $ \path _ -> do
-		setServer True . snd =<< getElementF raw filtered path
+		setServer True . snd =<< getElementFS raw sorted filtered path
 	
 	scroll <- scrollIt view PolicyAutomatic PolicyAlways
 	
