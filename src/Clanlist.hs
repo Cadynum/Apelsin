@@ -40,8 +40,8 @@ newClanList Bundle{..} cache setCurrent = do
 
 	let updateF newraw P.PollResult{..} = do
 		let new = (`map` newraw) $ \c -> case clanserver c of
-			Nothing -> c { activeserver = False }
-			Just a -> c { activeserver = a `elemByAddress` polled }
+			Nothing -> (c, False)
+			Just a -> (c, a `elemByAddress` polled)
 		listStoreClear raw
 		treeViewColumnsAutosize view
 		mapM_ (listStoreAppend raw) new
@@ -52,11 +52,11 @@ newClanList Bundle{..} cache setCurrent = do
 
 	addColumnsFilterSort raw filtered sorted view 1 SortAscending 
 		[ (""		, False	, RendPixbuf haveServer
-			, Just (comparing (isJust . clanserver)))
+			, Just (comparing (isJust . clanserver . fst)))
 		, ("_Name"	, False	, RendText (simpleColumn (unpackorig . name))
-			, Just (comparing name))
+			, Just (comparing (name . fst)))
 		, ("_Tag"	, False	, RendText (markupColumn (prettyTagExpr . tagexpr))
-			, Just (comparing tagexpr))
+			, Just (comparing (tagexpr . fst)))
 		, ("Website"	, False	, RendText (simpleColumn (B.unpack . showURL . website))
 			, Nothing)
 		, ("IRC"	, False , RendText (simpleColumn (B.unpack . irc))
@@ -64,21 +64,21 @@ newClanList Bundle{..} cache setCurrent = do
 		]
 
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
-		Clan{..}	<- treeModelGetRow raw iter
+		(Clan{..}, _)	<- treeModelGetRow raw iter
 		s		<- readIORef current
 		let cmplist	= [ cleanedCase name, tagExprGet tagexpr ]
 		return $ B.null s || smartFilter s cmplist
 
 	on view cursorChanged $ do
-		(path, _)	<- treeViewGetCursor view
-		Clan{..}	<- getElementFS raw sorted filtered path
+		(path, _)		<- treeViewGetCursor view
+		(Clan{..}, active)	<- getElementFS raw sorted filtered path
 		
-		whenJust clanserver $ \server -> do
+		when active $ whenJust clanserver $ \server -> do
 			P.PollResult{..} <- atomically $ readTMVar mpolled
 			whenJust (serverByAddress server polled) (setCurrent False)
 
 	on view rowActivated $ \path _ -> do
-		Clan{..}	<- getElementFS raw sorted filtered path
+		(Clan{..}, _) <- getElementFS raw sorted filtered path
 		unless (B.null website) $
 			openInBrowser (B.unpack website)
 
@@ -93,10 +93,10 @@ newClanList Bundle{..} cache setCurrent = do
 	return (box, updateF, ent)
 	where
 	showURL x = fromMaybe x (stripPrefix "http://" x)
-	markupColumn f item = [ cellTextMarkup := Just (f item) ]
-	simpleColumn f item = [ cellText := f item ]
-	haveServer Clan{..} = case clanserver of
-		Just _	-> [cellPixbufStockId := stockNetwork, cellSensitive := activeserver]
+	markupColumn f (item, _) = [ cellTextMarkup := Just (f item) ]
+	simpleColumn f (item, _) = [ cellText := f item ]
+	haveServer (Clan{..}, active) = case clanserver of
+		Just _	-> [cellPixbufStockId := stockNetwork, cellSensitive := active]
 		Nothing	-> [cellPixbufStockId := ""]
 
 

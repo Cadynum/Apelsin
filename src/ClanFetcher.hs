@@ -42,7 +42,6 @@ data Clan = Clan {
 	, irc		:: !B.ByteString
 	, tagexpr	:: !TagExpr
 	, clanserver	:: !(Maybe SockAddr)
-	, activeserver	:: !Bool
 	}
 
 mkTagExpr :: B.ByteString -> Maybe TagExpr
@@ -84,7 +83,7 @@ rawToClan = fmap sequence . mapM (f . B.split '\t' . lazyToStrict) . P.filter (n
 			clanserver <- if B.null ip || B.null port
 				then return Nothing
 				else getDNS (B.unpack ip) (B.unpack port)
-			return $ Just Clan { name = mkAlphaNum rname, activeserver = False, .. }
+			return $ Just Clan { name = mkAlphaNum rname, .. }
 	f _	= return Nothing
 
 getClanList :: String -> IO (Maybe [Clan])

@@ -19,9 +19,9 @@ scrollItV widget pol1 pol2 = do
 	scroll <- scrolledWindowNew Nothing Nothing
 	scrolledWindowSetPolicy scroll pol1 pol2
 	scrolledWindowAddWithViewport scroll widget
-	set scroll [ scrolledWindowShadowType := ShadowNone ]
 	Just vp <- binGetChild scroll
-	set (castToViewport vp) [ viewportShadowType  := ShadowNone ]
+	set scroll [ scrolledWindowShadowType := ShadowNone ]
+	set (castToViewport vp) [ viewportShadowType := ShadowNone ]
 	return scroll
 	
 
