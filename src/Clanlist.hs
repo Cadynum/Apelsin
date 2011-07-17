@@ -26,7 +26,7 @@ import GtkUtils
 import TremFormatting
 
 
-newClanList :: Bundle -> [Clan] -> SetCurrent -> IO (VBox, ClanHook, Entry)
+newClanList :: Bundle -> [Clan] -> SetCurrent -> IO (VBox, ClanPolledHook, Entry)
 newClanList Bundle{..} cache setCurrent = do
 	raw			<- listStoreNew []
 	filtered		<- treeModelFilterNew raw []
@@ -38,7 +38,10 @@ newClanList Bundle{..} cache setCurrent = do
 
 	(filterbar, current, ent)	<- newFilterBar filtered statNow ""
 
-	let updateF new = do
+	let updateF newraw P.PollResult{..} = do
+		let new = (`map` newraw) $ \c -> case clanserver c of
+			Nothing -> c { activeserver = False }
+			Just a -> c { activeserver = a `elemByAddress` polled }
 		listStoreClear raw
 		treeViewColumnsAutosize view
 		mapM_ (listStoreAppend raw) new
@@ -84,7 +87,8 @@ newClanList Bundle{..} cache setCurrent = do
 	boxPackStart box scrollview PackGrow 0
 	boxPackStart box infobox PackNatural 0
 
-	updateF cache
+	
+	updateF cache =<< atomically (readTMVar mpolled)
 
 	return (box, updateF, ent)
 	where
@@ -92,7 +96,7 @@ newClanList Bundle{..} cache setCurrent = do
 	markupColumn f item = [ cellTextMarkup := Just (f item) ]
 	simpleColumn f item = [ cellText := f item ]
 	haveServer Clan{..} = case clanserver of
-		Just _	-> [cellPixbufStockId := stockNetwork]
+		Just _	-> [cellPixbufStockId := stockNetwork, cellSensitive := activeserver]
 		Nothing	-> [cellPixbufStockId := ""]
 
 

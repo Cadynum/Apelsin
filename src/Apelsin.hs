@@ -47,9 +47,9 @@ main = withSocketsDo $ do
 	atomically $ putTMVar mupdate (findUpdate, onlineclansUpdate)
 
 	toolbar <- newToolbar bundle
-		[clanlistUpdate]
+		[]
 		[browserUpdate, findUpdate, currentUpdate]
-		[onlineclansUpdate]
+		[onlineclansUpdate, clanlistUpdate]
 
 	-- /// Layout ////////////////////////////////////////////////////////////////////////////
 
