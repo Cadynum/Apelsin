@@ -38,7 +38,7 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	
 	refresh		<- mkToolButton "Refresh all servers" stockRefresh "Ctrl+R or F5"
 	clansync	<- mkToolButton "Sync clan list" stockSave "Ctrl+S or F6"		
-	about		<- mkToolButton "About" stockAbout "Ctrl+A or F7"
+	about		<- mkToolButton "About" stockAbout "F7"
 		
 	let doSync = newClanSync bundle clansync clanHook bothHook
 	
@@ -114,7 +114,6 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 			[Control]
 				| k == "r" -> liftIO serverRefresh	>> return True
 				| k == "s" -> liftIO doSync		>> return True
-				| k == "a" -> liftIO (newAbout parent)	>> return True
 			[]	| k == "f5" -> liftIO serverRefresh	>> return True
 			[]	| k == "f6" -> liftIO doSync		>> return True
 			[]	| k == "f7" -> liftIO (newAbout parent)	>> return True

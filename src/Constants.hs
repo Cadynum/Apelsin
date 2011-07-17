@@ -47,7 +47,7 @@ defaultTremulousGPPPath	= "C:\\Program Files\\Tremulous\\tremulous-gpp.exe"
 trace _			= return ()
 defaultBrowser x	= do
 	ddir <- getDataDir
-	proc "wscript" [ddir </> "open.vbs", x]
+	return (proc "wscript" [ddir </> "open.vbs", x])
 #else
 defaultTremulousPath	= "tremulous"
 defaultTremulousGPPPath	= "tremulous-gpp"
