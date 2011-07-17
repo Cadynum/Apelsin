@@ -40,7 +40,7 @@ getDataDir = getCurrentDirectory
 
 defaultTremulousPath, defaultTremulousGPPPath:: FilePath
 trace :: String -> IO ()
-defaultBrowser :: String -> CreateProcess
+defaultBrowser :: String -> IO CreateProcess
 #if defined(mingw32_HOST_OS) || defined(__MINGW32__)
 defaultTremulousPath	= "C:\\Program Files\\Tremulous\\tremulous.exe"
 defaultTremulousGPPPath	= "C:\\Program Files\\Tremulous\\tremulous-gpp.exe"
@@ -54,16 +54,17 @@ defaultTremulousGPPPath	= "tremulous-gpp"
 trace x			= hPutStrLn stderr x >> hFlush stderr
 
 #if defined(__APPLE__) || defined(__MACH__)
-defaultBrowser	x	= proc "open" [x]
+defaultBrowser	x	= return $ proc "open" [x]
 #else
-defaultBrowser	x	= proc "xdg-open" [x]
+defaultBrowser	x	= return $ proc "xdg-open" [x]
 #endif
 
 #endif
 
 openInBrowser :: String -> IO ()
 openInBrowser x = handle (\(_ :: IOError) -> return ()) $ do
-	createProcess (defaultBrowser x)
+	p <-defaultBrowser x
+	createProcess p
 		{close_fds = True, std_in = Inherit, std_out = Inherit, std_err = Inherit}
 	return ()
 
