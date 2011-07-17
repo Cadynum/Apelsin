@@ -16,7 +16,7 @@ import GtkUtils
 import TremFormatting
 
 
---newPreferences :: Bundle -> IO ScrolledWindow
+newPreferences :: Bundle -> IO ScrolledWindow
 newPreferences Bundle{..} = do
 	-- Default filters
 	(tbl, [filterBrowser', filterPlayers'], filterEmpty') <-
@@ -131,7 +131,7 @@ newPreferences Bundle{..} = do
 				toggleButtonToggled b
 	updateF
 		
-	return box
+	scrollItV box PolicyNever PolicyAutomatic
 
 configTable :: [String] -> IO (Table, [Entry], CheckButton)
 configTable ys = do

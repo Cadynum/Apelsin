@@ -19,7 +19,7 @@ scrollItV widget pol1 pol2 = do
 	scroll <- scrolledWindowNew Nothing Nothing
 	scrolledWindowSetPolicy scroll pol1 pol2
 	scrolledWindowAddWithViewport scroll widget
-	--set scroll [ scrolledWindowShadowType := ShadowNone ]
+	set scroll [ scrolledWindowShadowType := ShadowNone ]
 	Just vp <- binGetChild scroll
 	set (castToViewport vp) [ viewportShadowType  := ShadowNone ]
 	return scroll
@@ -99,11 +99,11 @@ addColumnsFilter raw model view xs = mapM_ f xs where
 		treeViewAppendColumn view col
 
 data RendType i = RendText (i -> [AttrOp CellRendererText]) | RendPixbuf (i -> [AttrOp CellRendererPixbuf])
-{-addColumnsFilterSort :: (TreeViewClass self, TreeSortableClass self1, TreeModelSortClass self1,
+addColumnsFilterSort :: (TreeViewClass self, TreeSortableClass self1, TreeModelSortClass self1,
 	TreeModelFilterClass self2, TreeModelClass self1, TypedTreeModelClass model) =>
 	model t -> self2 -> self1 -> self -> Int -> SortType
-	-> [(RendType, String, Bool, t -> [AttrOp CellRendererText], Maybe (t -> t -> Ordering))]
-	-> IO () -}
+	-> [(String, Bool, RendType t, Maybe (t -> t -> Ordering))]
+	-> IO ()
 addColumnsFilterSort raw filtered sorted view defaultSort sortType xs = zipWithM_ f [0..] xs where
 	f n (title, expand, rt, sortf) = do
 		col <- treeViewColumnNew

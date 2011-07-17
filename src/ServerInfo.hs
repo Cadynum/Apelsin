@@ -171,7 +171,7 @@ newServerInfo Bundle{..} mupdate = do
 			widgetShow uview
 			widgetHide allplayers
 		
-		atomically $ clearTMVar current >> putTMVar current gs
+		atomically $ replaceTMVar current gs
 		
 		set join [ widgetSensitive := True ]
 		set refresh [ widgetSensitive := True ]
