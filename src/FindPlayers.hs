@@ -23,9 +23,11 @@ newFindPlayers Bundle{..} setServer = do
 	sorted		<- treeModelSortNewWithModel filtered	
 	view		<- treeViewNewWithModel sorted
 	
-	addColumnsFilterSort raw filtered sorted view 0 SortAscending [
-		  ("Name"	, True	, simpleColumn colors fst		, Just (comparing fst))
-		, ("Server"	, True	, simpleColumn colors (hostname . snd)	, Just (comparing (address .snd))) 
+	addColumnsFilterSort raw filtered sorted view 0 SortAscending
+		[ ("Name"	, True	, RendText (simpleColumn colors fst)
+			, Just (comparing fst))
+		, ("Server"	, True	, RendText (simpleColumn colors (hostname . snd))
+			, Just (comparing (address .snd))) 
 		]
 
 	(infobox, statNow, statTot)	<- newInfobox "players"

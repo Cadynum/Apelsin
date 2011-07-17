@@ -98,23 +98,34 @@ addColumnsFilter raw model view xs = mapM_ f xs where
 			set rend [ cellTextMarkup := Just (showf item) ]
 		treeViewAppendColumn view col
 
-addColumnsFilterSort :: (TreeViewClass self, TreeSortableClass self1, TreeModelSortClass self1,
+data RendType i = RendText (i -> [AttrOp CellRendererText]) | RendPixbuf (i -> [AttrOp CellRendererPixbuf])
+{-addColumnsFilterSort :: (TreeViewClass self, TreeSortableClass self1, TreeModelSortClass self1,
 	TreeModelFilterClass self2, TreeModelClass self1, TypedTreeModelClass model) =>
 	model t -> self2 -> self1 -> self -> Int -> SortType
-	-> [(String, Bool, t -> [AttrOp CellRendererText], Maybe (t -> t -> Ordering))]
-	-> IO ()
+	-> [(RendType, String, Bool, t -> [AttrOp CellRendererText], Maybe (t -> t -> Ordering))]
+	-> IO () -}
 addColumnsFilterSort raw filtered sorted view defaultSort sortType xs = zipWithM_ f [0..] xs where
-	f n (title, expand, p,  sortf) = do
+	f n (title, expand, rt, sortf) = do
 		col <- treeViewColumnNew
 		set col	[ treeViewColumnTitle := title
 			, treeViewColumnExpand := expand ]
-		rend <- cellRendererTextNew
-		cellLayoutPackStart col rend True
-		cellLayoutSetAttributeFunc col rend sorted $ \iter -> do
-			cIter	<- treeModelSortConvertIterToChildIter sorted iter
-			rcIter	<- treeModelFilterConvertIterToChildIter filtered cIter
-			item	<- treeModelGetRow raw rcIter
-			set rend $ p item
+		case rt of
+			RendText attr -> do
+				rend <- cellRendererTextNew
+				cellLayoutPackStart col rend True
+				cellLayoutSetAttributeFunc col rend sorted $ \iter -> do
+					cIter	<- treeModelSortConvertIterToChildIter sorted iter
+					rcIter	<- treeModelFilterConvertIterToChildIter filtered cIter
+					item	<- treeModelGetRow raw rcIter
+					set rend $ attr item
+			RendPixbuf attr -> do
+				rend <- cellRendererPixbufNew
+				cellLayoutPackStart col rend True
+				cellLayoutSetAttributeFunc col rend sorted $ \iter -> do
+					cIter	<- treeModelSortConvertIterToChildIter sorted iter
+					rcIter	<- treeModelFilterConvertIterToChildIter filtered cIter
+					item	<- treeModelGetRow raw rcIter
+					set rend $ attr item
 		treeViewAppendColumn view col
 		case sortf of
 			Nothing	-> return ()

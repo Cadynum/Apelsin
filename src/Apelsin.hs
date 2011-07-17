@@ -40,7 +40,7 @@ main = withSocketsDo $ do
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle mupdate
 	(browser, browserUpdate, ent0)		<- newServerBrowser bundle currentSet
 	(findPlayers, findUpdate, ent1)		<- newFindPlayers bundle currentSet
-	(clanlist, clanlistUpdate, ent3)	<- newClanList cacheclans
+	(clanlist, clanlistUpdate, ent3)	<- newClanList bundle cacheclans currentSet
 	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet
 
 	preferences				<- newPreferences bundle

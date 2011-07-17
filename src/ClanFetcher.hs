@@ -11,6 +11,7 @@ import Data.ByteString.Lazy.Char8 as L
 import Data.Char (intToDigit)
 import Data.Maybe
 import Data.Ord
+import Network.Socket
 import Network.HTTP
 import Network.URI
 import Network.Tremulous.NameInsensitive
@@ -40,11 +41,12 @@ data Clan = Clan {
 	, website
 	, irc		:: !B.ByteString
 	, tagexpr	:: !TagExpr
+	, clanserver	:: !(Maybe SockAddr)
 	}
 
 mkTagExpr :: B.ByteString -> Maybe TagExpr
 mkTagExpr str
-	| B.length str > 0 = case x of
+	| Just (x, xs) <- B.uncons str = case x of
 		'<' -> Just (TagPrefix (mk xs))
 		'>' -> Just (TagSuffix (mk xs))
 		'^' -> Just (TagInfix (mk xs))
@@ -52,7 +54,6 @@ mkTagExpr str
 				in Just (TagContained (mk a) (mk (B.drop 1 b)))
 		_   -> Nothing
 	| otherwise = Nothing
-	where	(x, xs)	= (B.head str, B.tail str)
 
 matchTagExpr :: TagExpr -> TI -> Bool
 matchTagExpr expr raw = case expr of
@@ -72,11 +73,18 @@ prettyTagExpr expr = case expr of
 		esc  = htmlEscape . B.unpack . original
 
 
-rawToClan :: L.ByteString -> Maybe [Clan]
-rawToClan = mapM (f . B.split '\t' . lazyToStrict) . P.filter (not . L.null) . L.split '\n' where 
-	f [_, rname, _, website, irc, rexpr, _]
-		| Just tagexpr <- mkTagExpr rexpr = Just Clan { name = mkAlphaNum rname, .. }
-	f _	= Nothing
+rawToClan :: L.ByteString -> IO (Maybe [Clan])
+rawToClan = fmap sequence . mapM (f . B.split '\t' . lazyToStrict) . P.filter (not . L.null) . L.split '\n' where 
+	f [_, rname, _, website, irc, rexpr, rserver]
+		| Just tagexpr <- mkTagExpr rexpr
+		= do
+			let	(ip, port1)	= B.break (==':') rserver
+				port		= B.drop 1 port1
+			clanserver <- if B.null ip || B.null port
+				then return Nothing
+				else getDNS (B.unpack ip) (B.unpack port)
+			return $ Just Clan { name = mkAlphaNum rname, .. }
+	f _	= return Nothing
 
 getClanList :: String -> IO (Maybe [Clan])
 getClanList url = do
@@ -85,7 +93,7 @@ getClanList url = do
 		Right _ -> return Nothing
 		Left raw -> do
 			file	<- inCacheDir "clans"
-			let clans = rawToClan raw
+			clans	<- rawToClan raw
 			when (isJust clans) $
 				L.writeFile file raw
 
@@ -95,7 +103,7 @@ getClanList url = do
 clanListFromCache :: IO [Clan]
 clanListFromCache = handle err $ do
 	file	<- inCacheDir "clans"
-	fromMaybe [] . rawToClan <$> L.readFile file
+	fromMaybe [] <$> (rawToClan =<< L.readFile file)
 	where
 	err (_ :: IOError) = return [] 
 	
@@ -120,3 +128,8 @@ get url = case parseURI url of
 	getRight (Left _) = error ""
 	err :: IOException -> IO (Either String a )
 	err = return . Left . show
+
+getDNS :: String -> String -> IO (Maybe SockAddr)
+getDNS host port = handle (\(_ :: IOException) -> return Nothing) $ do
+	AddrInfo _ _ _ _ addr _ <- P.head `liftM` getAddrInfo Nothing (Just host) (Just port)
+	return $ Just addr

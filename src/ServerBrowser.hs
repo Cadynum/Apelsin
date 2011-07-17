@@ -22,12 +22,17 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	sorted		<- treeModelSortNewWithModel filtered	
 	view		<- treeViewNewWithModel sorted
 	
-	addColumnsFilterSort raw filtered sorted view 3 SortAscending [
-		  ("_Game"	, False	, simpleColumn showGame 	, Just (comparing (\x -> (protocol x, gamemod x))))
-		, ("_Name"	, True	, markupColumn colors hostname	, Just (comparing hostname))
-		, ("_Map"	, False	, simpleColumn (take 16 . unpackorig . mapname)	, Just (comparing mapname))
-		, ("P_ing"	, False	, intColumn (show . gameping)	, Just (comparing gameping))
-		, ("_Players"	, False	, intColumn (showPlayers)	, Just (comparing nplayers))
+	addColumnsFilterSort raw filtered sorted view 3 SortAscending
+		[ ("_Game"	, False	, RendText (simpleColumn showGame)
+		   	, Just (comparing (\x -> (protocol x, gamemod x))))
+		, ("_Name"	, True	, RendText (markupColumn colors hostname)
+			, Just (comparing hostname))
+		, ("_Map"	, False	, RendText (simpleColumn (take 16 . unpackorig . mapname))
+			, Just (comparing mapname))
+		, ("P_ing"	, False	, RendText (intColumn (show . gameping))
+			, Just (comparing gameping))
+		, ("_Players"	, False	, RendText (intColumn (showPlayers))
+			, Just (comparing nplayers))
 		]
 	(infobox, statNow, statTot, statRequested) <- newInfoboxBrowser
 	

@@ -26,8 +26,8 @@ import GtkUtils
 import TremFormatting
 
 
-newClanList :: [Clan] -> IO (VBox, ClanHook, Entry)
-newClanList cache = do
+newClanList :: Bundle -> [Clan] -> SetCurrent -> IO (VBox, ClanHook, Entry)
+newClanList Bundle{..} cache setCurrent = do
 	raw			<- listStoreNew []
 	filtered		<- treeModelFilterNew raw []
 	sorted			<- treeModelSortNewWithModel filtered
@@ -47,11 +47,17 @@ newClanList cache = do
 		n <- treeModelIterNChildren filtered Nothing
 		set statNow [ labelText := show n ]
 
-	addColumnsFilterSort raw filtered sorted view 0 SortAscending [
-		  ("_Name"	, False	, simpleColumn (unpackorig . name)		, Just (comparing name))
-		, ("_Tag"	, False	, markupColumn (prettyTagExpr . tagexpr)	, Just (comparing tagexpr))
-		, ("Website"	, False	, simpleColumn (B.unpack . showURL . website)	, Nothing)
-		, ("IRC"	, False , simpleColumn (B.unpack . irc)			, Nothing)
+	addColumnsFilterSort raw filtered sorted view 1 SortAscending 
+		[ (""		, False	, RendPixbuf haveServer
+			, Just (comparing (isJust . clanserver)))
+		, ("_Name"	, False	, RendText (simpleColumn (unpackorig . name))
+			, Just (comparing name))
+		, ("_Tag"	, False	, RendText (markupColumn (prettyTagExpr . tagexpr))
+			, Just (comparing tagexpr))
+		, ("Website"	, False	, RendText (simpleColumn (B.unpack . showURL . website))
+			, Nothing)
+		, ("IRC"	, False , RendText (simpleColumn (B.unpack . irc))
+			, Nothing)
 		]
 
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
@@ -60,6 +66,13 @@ newClanList cache = do
 		let cmplist	= [ cleanedCase name, tagExprGet tagexpr ]
 		return $ B.null s || smartFilter s cmplist
 
+	on view cursorChanged $ do
+		(path, _)	<- treeViewGetCursor view
+		Clan{..}	<- getElementFS raw sorted filtered path
+		
+		whenJust clanserver $ \server -> do
+			P.PollResult{..} <- atomically $ readTMVar mpolled
+			whenJust (serverByAddress server polled) (setCurrent False)
 
 	on view rowActivated $ \path _ -> do
 		Clan{..}	<- getElementFS raw sorted filtered path
@@ -78,7 +91,9 @@ newClanList cache = do
 	showURL x = fromMaybe x (stripPrefix "http://" x)
 	markupColumn f item = [ cellTextMarkup := Just (f item) ]
 	simpleColumn f item = [ cellText := f item ]
-
+	haveServer Clan{..} = case clanserver of
+		Just _	-> [cellPixbufStockId := stockNetwork]
+		Nothing	-> [cellPixbufStockId := ""]
 
 
 newOnlineClans :: Bundle-> SetCurrent -> IO (ScrolledWindow, ClanPolledHook)
