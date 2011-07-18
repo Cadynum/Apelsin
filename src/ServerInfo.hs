@@ -59,8 +59,8 @@ newServerInfo Bundle{..} mupdate = do
 	set (head info) [ labelSelectable := True ]
 	
 	-- Players
-	allplayers	<- vBoxNew False 4
-	alienshumans	<- hBoxNew True 4
+	allplayers	<- vBoxNew False spacing
+	alienshumans	<- hBoxNew True spacing
 	
 	let playerView x = simpleListView
 		[ (x		, True	, pangoPretty colors . name)
@@ -77,14 +77,14 @@ newServerInfo Bundle{..} mupdate = do
 	ascroll <- scrollIt aview PolicyNever PolicyAutomatic
 	hscroll <- scrollIt hview PolicyNever PolicyAutomatic
 	uscroll	<- scrollIt uview PolicyNever PolicyAutomatic
+	sscroll <- scrollIt sview PolicyNever PolicyAutomatic
 	set uscroll [ widgetNoShowAll := True ]
 	boxPackStart alienshumans ascroll PackGrow 0
 	boxPackStart alienshumans hscroll PackGrow 0
 
 
 	boxPackStart allplayers alienshumans PackGrow 0
-	specscroll <- scrollIt sview PolicyNever PolicyAutomatic
-	boxPackStart allplayers specscroll PackNatural 0
+	boxPackStart allplayers sscroll PackNatural 0
 
 	-- Action buttons
 	join	<- buttonNewWithMnemonic "_Join Server"
@@ -160,8 +160,9 @@ newServerInfo Bundle{..} mupdate = do
 			treeViewColumnsAutosize aview
 			treeViewColumnsAutosize hview
 			treeViewColumnsAutosize sview
-			Requisition _ sReq <- widgetSizeRequest sview
-			set specscroll [ widgetHeightRequest := sReq ]
+			Requisition _ sReq	<- widgetSizeRequest sview
+			
+			set sscroll [ widgetHeightRequest := min 300 sReq ]
 			widgetShow allplayers				
 			widgetHide uscroll	
 		else do
