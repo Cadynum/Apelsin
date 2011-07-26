@@ -52,6 +52,7 @@ Executable apelsin
                         GtkUtils
                         InfoBox
                         List2
+                        Monad2
                         Preferences
                         ServerBrowser
                         ServerInfo
@@ -59,6 +60,7 @@ Executable apelsin
                         Toolbar
                         TremFormatting
                         Types
+                        OnlineClans
                         Paths_apelsin
 
   Ghc-Options:          -Wall -threaded -fno-warn-unused-do-bind -funbox-strict-fields

@@ -18,6 +18,7 @@ import ServerInfo
 import ServerBrowser
 import FindPlayers
 import Clanlist
+import OnlineClans
 import ClanFetcher
 import Preferences
 import Config

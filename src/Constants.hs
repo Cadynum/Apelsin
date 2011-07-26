@@ -72,7 +72,7 @@ openInBrowser x = handle (\(_ :: IOError) -> return ()) $ do
 	return ()
 
 spacing, spacingHalf, spacingBig :: Integral i => i
-spacing		= 4
 spacingHalf	= 2
+spacing		= 4
 spacingBig	= 8
 

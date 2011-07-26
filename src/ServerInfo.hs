@@ -30,16 +30,15 @@ newServerInfo Bundle{..} mupdate = do
 	running		<- newEmptyMVar
 	
 	-- Host name
-	hostnamex <- labelNew Nothing
+	hostnamex <- labelNew (Just "Server")
 	set hostnamex [
 		  labelWrap		:= True
 		, labelJustify		:= JustifyCenter
 		, labelSelectable	:= True
 		, labelUseMarkup	:= True
-		, labelLabel		:= formatHostname "Server"
-		-- failgtk exception..
-		--, labelWrapMode := WrapPartialWords
+		, labelAttributes 	:= [AttrWeight 0 (-1) WeightBold, AttrScale 0 (-1) 1.2]
 		]
+	labelSetLineWrapMode hostnamex WrapPartialWords
 	
 	-- Pretty CVar table
 	tbl <- tableNew 5 2 True
@@ -106,7 +105,7 @@ newServerInfo Bundle{..} mupdate = do
 	boxPackStart rightpane tbl PackNatural 0
 	boxPackStart rightpane allplayers PackGrow 0
 	boxPackStart rightpane uscroll PackGrow 0
-	boxPackStart rightpane serverbuttons PackNatural 2
+	boxPackStart rightpane serverbuttons PackNatural spacingHalf
 
 
 	let launchTremulous gs = whenM (isEmptyMVar running) $ do
@@ -157,7 +156,7 @@ newServerInfo Bundle{..} mupdate = do
 		
 		let	sortedPlayers		= scoreSort players
 			(s', a', h', u')	= partitionTeams sortedPlayers
-		if null u' then do		
+		if null u' then do
 			mapM_ (listStoreAppend amodel) a'
 			mapM_ (listStoreAppend hmodel) h'
 			mapM_ (listStoreAppend smodel) s'
@@ -165,19 +164,18 @@ newServerInfo Bundle{..} mupdate = do
 			treeViewColumnsAutosize hview
 			treeViewColumnsAutosize sview
 			Requisition _ sReq	<- widgetSizeRequest sview
-			
 			set sscroll [ widgetHeightRequest := min 300 sReq ]
-			widgetShow allplayers				
-			widgetHide uscroll	
+			widgetShow allplayers
+			widgetHide uscroll
 		else do
 			mapM_ (listStoreAppend umodel) sortedPlayers
 			treeViewColumnsAutosize uview
 			widgetShow uscroll
 			widgetShow uview
 			widgetHide allplayers
-		
+
 		atomically $ replaceTMVar current gs
-		
+
 		whenM (isEmptyMVar running) $
 			set join [ widgetSensitive := True ]
 		set refresh [ widgetSensitive := True ]
@@ -222,15 +220,13 @@ newServerInfo Bundle{..} mupdate = do
 				set refresh [ widgetSensitive := True ]
 				
 		return ()
-		
+
 	return (rightpane, updateF, setF)
 	where
 	validping x		= x > 0 && x < 999
 	scoreSort		= sortBy (flip (comparing kills))
-	formatHostname x	= "<b><big>" ++ x ++ "</big></b>"
-	showHostname colors x	= formatHostname $ case pangoPretty colors x of
-					"" -> "<i>Invalid name</i>"
-					a  -> a
+	showHostname _ (TI _ "")	= "<i>Invalid name</i>"
+	showHostname colors x		= pangoPretty colors x
 	maybeQ			= maybe "?" show
 
 runTremulous :: Config -> GameServer -> IO (Maybe ProcessHandle)
@@ -241,7 +237,7 @@ runTremulous Config{..} GameServer{..} = do
 	(com, args) = case protocol of
 		70 -> (tremGppPath, ["+connect", show address])
 		_  -> (tremPath, ["-connect", show address, "+connect", show address])
-		
+
 	ldir = case takeDirectory com of
 		"" -> Nothing
 		x  -> Just x
