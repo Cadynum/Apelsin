@@ -6,6 +6,7 @@ import System.FilePath
 import System.Directory
 import System.IO
 import System.Process
+import Control.Concurrent
 import Control.Exception
 
 #ifdef CABAL_PATH
@@ -64,7 +65,10 @@ defaultBrowser	x	= return $ proc "xdg-open" [x]
 openInBrowser :: String -> IO ()
 openInBrowser x = handle (\(_ :: IOError) -> return ()) $ do
 	p <- defaultBrowser x
-	createProcess p {close_fds = True}
+	(_,_,_,hdl) <- createProcess p {close_fds = True}
+	-- The following hack is needed to avoid ghost processes because of:
+	-- http://hackage.haskell.org/trac/ghc/ticket/2123
+	forkIO $ waitForProcess hdl >> return ()
 	return ()
 
 spacing, spacingHalf, spacingBig :: Integral i => i
