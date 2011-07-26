@@ -24,6 +24,7 @@ import FilterBar
 import InfoBox
 import GtkUtils
 import TremFormatting
+import Monad2
 
 
 newClanList :: Bundle -> [Clan] -> SetCurrent -> IO (VBox, ClanPolledHook, Entry)

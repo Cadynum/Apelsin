@@ -2,12 +2,6 @@ module GtkUtils where
 import Graphics.UI.Gtk
 import Control.Monad 
 
-whenJust :: Monad m => Maybe a -> (a -> m ()) -> m ()
-whenJust x f = case x of
-	Nothing	-> return ()
-	Just a	-> f a 
-	
-			
 scrollIt, scrollItV :: WidgetClass widget => widget -> PolicyType -> PolicyType -> IO ScrolledWindow
 scrollIt widget pol1 pol2 = do
 	scroll <- scrolledWindowNew Nothing Nothing

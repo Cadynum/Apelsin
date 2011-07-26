@@ -63,9 +63,8 @@ defaultBrowser	x	= return $ proc "xdg-open" [x]
 
 openInBrowser :: String -> IO ()
 openInBrowser x = handle (\(_ :: IOError) -> return ()) $ do
-	p <-defaultBrowser x
-	createProcess p
-		{close_fds = True, std_in = Inherit, std_out = Inherit, std_err = Inherit}
+	p <- defaultBrowser x
+	createProcess p {close_fds = True}
 	return ()
 
 spacing, spacingHalf, spacingBig :: Integral i => i

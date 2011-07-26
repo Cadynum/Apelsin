@@ -17,6 +17,7 @@ import Network.Tremulous.Util
 import Types
 import STM2
 import List2
+import Monad2
 import TremFormatting
 import GtkUtils
 import Constants
@@ -26,7 +27,7 @@ newServerInfo :: Bundle -> TMVar (PolledHook, ClanPolledHook) -> IO (VBox, Polle
 newServerInfo Bundle{..} mupdate = do
 	Config {colors} <- atomically $ readTMVar mconfig
 	current		<- atomically newEmptyTMVar
-	running		<- atomically newEmptyTMVar
+	running		<- newEmptyMVar
 	
 	-- Host name
 	hostnamex <- labelNew Nothing
@@ -108,28 +109,31 @@ newServerInfo Bundle{..} mupdate = do
 	boxPackStart rightpane serverbuttons PackNatural 2
 
 
-	let launchTremulous = withTMVar current $ \gs -> do
-		tst <- atomically $ tryTakeTMVar running
-		whenJust tst (ignoreIOException . terminateProcess)
+	let launchTremulous gs = whenM (isEmptyMVar running) $ do
+		putMVar running ()
 		config <- atomically $ readTMVar mconfig
-
+		
 		set join [ widgetSensitive := False ]
-
+		
 		pid <- maybeIO (runTremulous config gs)
 		case pid of
-			Nothing -> gtkError $ "Unable to run \"" ++ path ++ "\".\nHave you set your path correctly in Preferences?"
+			Nothing -> do
+				gtkError $ "Unable to run \"" ++ path ++ "\".\nHave you set your path correctly in Preferences?"
+				set join [ widgetSensitive := True ]
+				takeMVar running
 				where path = case protocol gs of
 						70 -> tremGppPath config
 						_  -> tremPath config
-			Just a -> (atomically . putTMVar running) a
+			Just a -> do
+				forkIO $ do
+					waitForProcess a
+					postGUISync $ set join [ widgetSensitive := True ]
+					takeMVar running
+				return ()
 		
-		forkIO $ do
-			threadDelay 1000000
-			postGUISync $ set join [ widgetSensitive := True ]
-			return ()
-		return ()
+	return ()
 
-	on join buttonActivated launchTremulous
+	on join buttonActivated $ withTMVar current launchTremulous
 
 	
 	let setF boolJoin gs@GameServer{..} = do
@@ -174,10 +178,11 @@ newServerInfo Bundle{..} mupdate = do
 		
 		atomically $ replaceTMVar current gs
 		
-		set join [ widgetSensitive := True ]
+		whenM (isEmptyMVar running) $
+			set join [ widgetSensitive := True ]
 		set refresh [ widgetSensitive := True ]
 
-		when boolJoin launchTremulous
+		when boolJoin (launchTremulous gs)
 		return ()
 
 	let updateF PollResult{..} = withTMVar current $ \GameServer{address} ->
@@ -230,8 +235,7 @@ newServerInfo Bundle{..} mupdate = do
 
 runTremulous :: Config -> GameServer -> IO (Maybe ProcessHandle)
 runTremulous Config{..} GameServer{..} = do
-	(_,_,_,p) <- createProcess ((proc com args) {cwd = ldir})
-		{close_fds = True, std_in = Inherit, std_out = Inherit, std_err = Inherit}
+	(_,_,_,p) <- createProcess (proc com args) {cwd = ldir, close_fds = True}
 	maybe (Just p) (const Nothing) <$> getProcessExitCode p
 	where
 	(com, args) = case protocol of
@@ -241,10 +245,6 @@ runTremulous Config{..} GameServer{..} = do
 	ldir = case takeDirectory com of
 		"" -> Nothing
 		x  -> Just x
-
-
-ignoreIOException :: IO () -> IO ()
-ignoreIOException = handle (\(_ :: IOError) -> return ())
 
 maybeIO :: IO (Maybe a) -> IO (Maybe a)
 maybeIO = handle (\(_ :: IOError) -> return Nothing)

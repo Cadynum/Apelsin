@@ -11,9 +11,9 @@ import Network.Socket
 import Network.Tremulous.Protocol
 import System.FilePath (joinPath)
 
+import Monad2
 import Types
 import Constants
-import GtkUtils
 import ServerInfo
 import ServerBrowser
 import FindPlayers

@@ -17,6 +17,7 @@ import Network.Tremulous.MicroTime
 import Types
 import Constants
 import STM2
+import Monad2
 
 import Config
 import About
@@ -28,11 +29,9 @@ getDNS host port = handle (\(_ :: IOException) -> return Nothing) $ do
 	return $ Just addr
 
 	
-whileTrue :: Monad m => m Bool -> m ()
-whileTrue f = f >>= \t -> when t (whileTrue f)
-
 newToolbar :: Bundle -> [ClanHook] -> [PolledHook] -> [ClanPolledHook] -> IO HBox
-newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do		
+newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
+	mrefresh	<- newEmptyMVar
 	pb		<- progressBarNew
 	set pb		[ widgetNoShowAll := True ]
 	
@@ -59,7 +58,8 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	boxPackStart pbrbox pb PackGrow 0
 	
 	
-	let serverRefresh = do
+	let serverRefresh = whenM (isEmptyMVar mrefresh) $ do
+		putMVar mrefresh ()
 		progressBarSetFraction pb 0
 		widgetShow pb
 		refresh `set` [ widgetSensitive := False ]
@@ -98,8 +98,9 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 			postGUISync $ do
 				mapM_ ($ result) polledHook
 				mapM_ (\f -> f clans result) bothHook
-				refresh `set` [ widgetSensitive := True ]
+				set refresh [ widgetSensitive := True ]
 				widgetHide pb
+			takeMVar mrefresh
 		return ()
 	on refresh buttonActivated serverRefresh
 
