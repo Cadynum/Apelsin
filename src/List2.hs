@@ -1,4 +1,4 @@
-module List2 (stripw, intmean, replace) where
+module List2 (stripw, intmean, replace, mread, split) where
 import Prelude hiding (foldr, foldl, foldr1, foldl1)
 import Data.Char
 import Data.Foldable
@@ -18,3 +18,14 @@ replace f y (x:xs)
 	| f x		= y : xs
 	| otherwise	= x : replace f y xs
 replace _ _ []		= []
+
+mread :: (Read a) => String -> Maybe a
+mread x = case reads x of
+	[(a, _)]	-> Just a
+	_		-> Nothing
+	
+split :: Eq a => (a -> Bool) -> [a] -> [[a]]
+split func s = case dropWhile func s of
+	[] -> []
+	s' -> w : split func s''
+		where (w, s'') = break func s'

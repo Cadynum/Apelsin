@@ -3,7 +3,6 @@ import Graphics.UI.Gtk
 
 import Data.IORef
 import Data.Ord
-import qualified Data.ByteString.Char8 as B
 import Network.Tremulous.Protocol
 import Network.Tremulous.Util
 
@@ -36,10 +35,10 @@ newFindPlayers Bundle{..} setServer = do
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
 		(item, GameServer{..}) <- treeModelGetRow raw iter
 		s <- readIORef current
-		return $ B.null s || smartFilter s [
-				  cleanedCase item
-				, proto2string protocol
-				, maybe "" cleanedCase gamemod
+		return $ smartFilter s
+				[ cleanedCase item
+				--, proto2string protocol
+				--, maybe "" cleanedCase gamemod
 				]
 		
 	let updateFilter PollResult{..} = do

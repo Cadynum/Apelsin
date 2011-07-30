@@ -12,6 +12,7 @@ import Network.Tremulous.Protocol
 import System.FilePath (joinPath)
 
 import Monad2
+import List2
 import Types
 import Constants
 import ServerInfo

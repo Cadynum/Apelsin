@@ -61,7 +61,7 @@ newClanList Bundle{..} cache setCurrent = do
 		(Clan{..}, _)	<- treeModelGetRow raw iter
 		s		<- readIORef current
 		let cmplist	= [ cleanedCase name, tagExprGet tagexpr ]
-		return $ B.null s || smartFilter s cmplist
+		return $ smartFilter s cmplist
 
 	on view cursorChanged $ do
 		(path, _)		<- treeViewGetCursor view

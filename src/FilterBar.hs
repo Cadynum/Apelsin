@@ -13,9 +13,9 @@ import Constants
 
 
 newFilterBar :: (TreeModelClass self, TreeModelFilterClass self) => self -> Label -> String
-	-> IO (HBox, IORef ByteString, Entry)
+	-> IO (HBox, IORef [Expr], Entry)
 newFilterBar filtered stat initial  = do
-	current <- newIORef ""
+	current <- newIORef []
 	
 	-- Filterbar
 	ent <- entryNew
@@ -30,9 +30,8 @@ newFilterBar filtered stat initial  = do
 	boxPackStart findbar ent PackGrow spacingHalf
 	
 	let f = do
-		rawstr <- entryGetText ent
-		let str = B.pack $ map toLower rawstr
-		writeIORef current str
+		str <- entryGetText ent
+		writeIORef current (stringToExpr str)
 		treeModelFilterRefilter filtered
 		n <- treeModelIterNChildren filtered Nothing
 		set stat [ labelText := show n ]
@@ -57,8 +56,12 @@ matchExpr :: Expr -> [ByteString] -> Bool
 matchExpr (Is xs)  = any (xs `B.isInfixOf`)
 matchExpr (Not xs) = all (not . (xs `B.isInfixOf`))
 
-smartFilter :: ByteString -> [ByteString] -> Bool
-smartFilter raw xs = all (`matchExpr` xs) search 
-	where
-	search	= map mkExpr (B.splitfilter ' ' raw)
+stringToExpr :: String -> [Expr]
+stringToExpr = map mkExpr . B.splitfilter ' ' . B.pack . map toLower
+
+{-# INLINE smartFilter #-}
+smartFilter :: [Expr]-> [ByteString] -> Bool
+smartFilter [] 	_	= True
+smartFilter expr xs	= all (`matchExpr` xs) expr
+
 	

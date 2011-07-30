@@ -2,7 +2,6 @@ module ServerBrowser where
 import Graphics.UI.Gtk
 import Control.Concurrent.STM
 import Data.IORef
-import qualified Data.ByteString.Char8 as B
 import Data.Ord
 import Network.Tremulous.Protocol
 import Text.Printf
@@ -50,9 +49,9 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 		GameServer{..}	<- treeModelGetRow raw iter
 		s		<- readIORef current
 		showEmpty	<- toggleButtonGetActive empty
-		return $ (showEmpty || not (null players)) && (B.null s ||
-			smartFilter s [
-				  cleanedCase hostname
+		return $ (showEmpty || not (null players)) &&
+			(smartFilter s
+				[ cleanedCase hostname
 				, cleanedCase mapname
 				, proto2string protocol
 				, maybe "" cleanedCase gamemod

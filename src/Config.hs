@@ -1,10 +1,11 @@
 module Config where
-
 import Data.Array
 import Control.Exception
 import Network.Tremulous.Protocol
 
+
 import Constants
+import List2
 import GtkUtils
 import TremFormatting
 
@@ -66,9 +67,3 @@ configFromFile = handle err $ do
 		Just a -> return a
 	where
 	err (_::IOError) = return defaultConfig
-
-mread :: (Read a) => String -> Maybe a
-mread x = case reads x of
-	[(a, _)]	-> Just a
-	_		-> Nothing
-
