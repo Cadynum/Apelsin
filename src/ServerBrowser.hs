@@ -21,7 +21,7 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	sorted		<- treeModelSortNewWithModel filtered	
 	view		<- treeViewNewWithModel sorted
 	
-	addColumnsFilterSort raw filtered sorted view 3 SortAscending
+	addColumnsFilterSort raw filtered sorted view browserSort (if browserOrder then SortDescending else SortAscending)
 		[ ("_Game"	, False	, RendText (simpleColumn showGame)
 		   	, Just (comparing (\x -> (protocol x, gamemod x))))
 		, ("_Name"	, True	, RendText (markupColumn colors hostname)

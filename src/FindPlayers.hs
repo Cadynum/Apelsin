@@ -14,6 +14,7 @@ import InfoBox
 import Constants
 import Config
 
+
 newFindPlayers :: Bundle -> SetCurrent -> IO (VBox, PolledHook, Entry)
 newFindPlayers Bundle{..} setServer = do
 	Config {..}	<- atomically $ readTMVar mconfig
@@ -22,11 +23,11 @@ newFindPlayers Bundle{..} setServer = do
 	sorted		<- treeModelSortNewWithModel filtered	
 	view		<- treeViewNewWithModel sorted
 	
-	addColumnsFilterSort raw filtered sorted view 0 SortAscending
+	addColumnsFilterSort raw filtered sorted view playersSort (if playersOrder then SortDescending else SortAscending)
 		[ ("Name"	, True	, RendText (simpleColumn colors fst)
 			, Just (comparing fst))
 		, ("Server"	, True	, RendText (simpleColumn colors (hostname . snd))
-			, Just (comparing (address .snd))) 
+			, Just (comparing (hostname .snd))) 
 		]
 
 	(infobox, statNow, statTot)	<- newInfobox "players"
@@ -37,8 +38,8 @@ newFindPlayers Bundle{..} setServer = do
 		s <- readIORef current
 		return $ smartFilter s
 				[ cleanedCase item
-				--, proto2string protocol
-				--, maybe "" cleanedCase gamemod
+				, proto2string protocol
+				, maybe "" cleanedCase gamemod
 				]
 		
 	let updateFilter PollResult{..} = do
@@ -67,4 +68,4 @@ newFindPlayers Bundle{..} setServer = do
 	return (box, updateFilter, ent)
 	where simpleColumn colors f item =
 		[ cellTextEllipsize := EllipsizeEnd
-		, cellTextMarkup := Just (pangoPretty colors (f item)) ]
+		, cellTextMarkup := Just ( pangoPretty colors (f item)) ]

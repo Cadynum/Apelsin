@@ -24,6 +24,10 @@ data Config = Config {
 	, filterBrowser
 	, filterPlayers	:: !String
 	, filterEmpty	:: !Bool
+	, browserSort	:: !Int
+	, playersSort	:: !Int
+	, browserOrder
+	, playersOrder	:: !Bool
 	, delays	:: !Delay
 	, colors	:: !ColorTheme
 	} deriving (Show, Read)
@@ -41,6 +45,10 @@ defaultConfig = Config {
 	, filterBrowser	= ""
 	, filterPlayers	= ""
 	, filterEmpty	= True
+	, browserSort	= 3
+	, playersSort	= 0
+	, browserOrder	= True
+	, playersOrder	= True
 	, delays	= defaultDelay
 	, colors	= makeColorsFromList $
 		TFNone "#000000" : map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"] ++ [TFNone "#000000"]

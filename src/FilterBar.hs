@@ -47,11 +47,11 @@ newFilterBar filtered stat initial  = do
 data Expr = Is !ByteString | Not !ByteString
 
 mkExpr :: ByteString -> Expr
-mkExpr ss = case (B.head ss, B.tail ss) of
-	('-', xs) | B.length xs > 0	-> Not (B.tail ss)
-                  | otherwise		-> Is xs                 
-	_				-> Is ss
-
+mkExpr ss = case B.uncons ss of
+	Just ('-', xs)	| B.length xs > 0	-> Not (B.tail ss)
+			| otherwise		-> Is xs            
+	_					-> Is ss
+	
 matchExpr :: Expr -> [ByteString] -> Bool
 matchExpr (Is xs)  = any (xs `B.isInfixOf`)
 matchExpr (Not xs) = all (not . (xs `B.isInfixOf`))
@@ -59,7 +59,6 @@ matchExpr (Not xs) = all (not . (xs `B.isInfixOf`))
 stringToExpr :: String -> [Expr]
 stringToExpr = map mkExpr . B.splitfilter ' ' . B.pack . map toLower
 
-{-# INLINE smartFilter #-}
 smartFilter :: [Expr]-> [ByteString] -> Bool
 smartFilter [] 	_	= True
 smartFilter expr xs	= all (`matchExpr` xs) expr
