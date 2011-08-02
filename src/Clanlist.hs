@@ -60,7 +60,7 @@ newClanList Bundle{..} cache setCurrent = do
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
 		(Clan{..}, _)	<- treeModelGetRow raw iter
 		s		<- readIORef current
-		let cmplist	= [ cleanedCase name, tagExprGet tagexpr ]
+		let cmplist	= [ cleanedCase name, cleanedCase (tagExprGet tagexpr) ]
 		return $ smartFilter s cmplist
 
 	on view cursorChanged $ do
