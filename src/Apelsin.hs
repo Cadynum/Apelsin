@@ -3,7 +3,6 @@ import System.Glib.GError
 
 import Control.Applicative
 import Control.Monad.IO.Class
-import Control.Exception
 import Control.Monad
 import Data.Char (toLower)
 import qualified Data.Set as S
@@ -11,6 +10,7 @@ import Network.Socket
 import Network.Tremulous.Protocol
 import System.FilePath (joinPath)
 
+import Exception2
 import Monad2
 import List2
 import Types
@@ -24,6 +24,7 @@ import ClanFetcher
 import Preferences
 import Config
 import Toolbar
+import IndividualServerSettings as ISS
 
 main :: IO ()
 main = withSocketsDo $ do
@@ -31,13 +32,18 @@ main = withSocketsDo $ do
 	win		<- windowNew
 	config		<- configFromFile
 	cacheclans	<- clanListFromCache
+	settings	<- ISS.fromFile
+	print settings
+	
 	bundle	<-	(do
 			mpolled		<- atomically $ newTMVar (PollResult [] 0 0 S.empty)
 			mconfig		<- atomically $ newTMVar config
 			mclans		<- atomically $ newTMVar cacheclans
 			browserStore	<- listStoreNew []
+			msettings	<- atomically $ newTMVar settings
 			return Bundle {parent = win, ..}
 			)
+
 	mupdate <- atomically newEmptyTMVar
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle mupdate
 	(browser, browserUpdate, ent0)		<- newServerBrowser bundle currentSet
@@ -99,7 +105,7 @@ main = withSocketsDo $ do
 	widgetShowAll leftView
 
 	-- Restore the window size and pane position
-	when (autoGeometry config) $ handle ignoreIOException $ do
+	when (autoGeometry config) $ ignoreIOException $ do
 		file	<- inCacheDir "windowsize"
 		fx	<- readFile file
 		whenJust (mread fx) $ \(winw::Int, winh, ppos::Int) -> do
@@ -133,9 +139,3 @@ main = withSocketsDo $ do
 			
 	widgetGrabFocus ent0
 	mainGUI
-
-
-ignoreIOException :: IOException -> IO ()
-ignoreIOException _ = return ()
-
-

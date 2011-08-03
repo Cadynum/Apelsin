@@ -4,7 +4,6 @@ import Graphics.UI.Gtk
 import Prelude hiding (catch)
 import Control.Applicative
 import Control.Monad hiding (join)
-import Control.Exception
 import Data.Ord
 import Data.List (sortBy, findIndex)
 import System.Process
@@ -15,6 +14,7 @@ import Network.Tremulous.Polling
 import Network.Tremulous.Util
 
 import Types
+import Exception2
 import STM2
 import List2
 import Monad2
@@ -22,6 +22,8 @@ import TremFormatting
 import GtkUtils
 import Constants
 import Config
+import IndividualServerSettings
+import SettingsDialog
 
 newServerInfo :: Bundle -> TMVar (PolledHook, ClanPolledHook) -> IO (VBox, PolledHook, SetCurrent)
 newServerInfo Bundle{..} mupdate = do
@@ -41,7 +43,7 @@ newServerInfo Bundle{..} mupdate = do
 	labelSetLineWrapMode hostnamex WrapPartialWords
 	
 	-- Pretty CVar table
-	tbl <- tableNew 5 2 True
+	tbl <- tableNew 0 0 True
 	set tbl [ tableRowSpacing := spacing
 		, tableColumnSpacing := spacingBig ]
 	let easyAttach pos lbl  = do
@@ -57,6 +59,8 @@ newServerInfo Bundle{..} mupdate = do
 	info <- mkTable ["IP:Port", "Game (mod)", "Map", "Timelimit (SD)"
 			, "Slots (+private)", "Ping (server average)"]
 	set (head info) [ labelSelectable := True ]
+
+	bools <- labelNew Nothing
 	
 	-- Players
 	allplayers	<- vBoxNew False spacing
@@ -87,22 +91,24 @@ newServerInfo Bundle{..} mupdate = do
 	boxPackStart allplayers sscroll PackNatural 0
 
 	-- Action buttons
-	join	<- buttonNewWithMnemonic "_Join Server"
-	refresh	<- buttonNewWithMnemonic "Refresh _current"
-	set join 	[ buttonImage :=> imageNewFromStock stockConnect IconSizeButton
-			, widgetSensitive := False ]
-	set refresh	[ buttonImage :=> imageNewFromStock stockRefresh IconSizeButton
-			, widgetSensitive := False ]
-	
 	serverbuttons <- hBoxNew False 0
-	boxPackStart serverbuttons join PackRepel 0
-	boxPackStart serverbuttons refresh PackRepel 0
+	let action lbl icon = do
+		b <- buttonNewWithMnemonic lbl
+		set b	[ buttonImage :=> imageNewFromStock icon IconSizeButton
+			, widgetSensitive := False ]
+		boxPackStart serverbuttons b PackRepel 0
+		return b
+		
+	st 	<- action "_Settings" stockProperties
+	refresh	<- action "_Refresh" stockRefresh
+	join	<- action"_Connect" stockConnect
 	
 	-- Packing
 	rightpane <- vBoxNew False spacing
 	set rightpane  [ containerBorderWidth := spacing ]
 	boxPackStart rightpane hostnamex PackNatural 1
 	boxPackStart rightpane tbl PackNatural 0
+	boxPackStart rightpane bools PackNatural 0
 	boxPackStart rightpane allplayers PackGrow 0
 	boxPackStart rightpane uscroll PackGrow 0
 	boxPackStart rightpane serverbuttons PackNatural spacingHalf
@@ -110,11 +116,12 @@ newServerInfo Bundle{..} mupdate = do
 
 	let launchTremulous gs = whenM (isEmptyMVar running) $ do
 		putMVar running ()
-		config <- atomically $ readTMVar mconfig
+		config	<- atomically $ readTMVar mconfig
+		ss	<- atomically $ readTMVar msettings
 		
 		set join [ widgetSensitive := False ]
 		
-		pid <- maybeIO (runTremulous config gs)
+		pid <- maybeIO $ runTremulous config gs (getSettings (address gs) ss)
 		case pid of
 			Nothing -> do
 				gtkError $ "Unable to run \"" ++ path ++ "\".\nHave you set your path correctly in Preferences?"
@@ -134,8 +141,27 @@ newServerInfo Bundle{..} mupdate = do
 
 	on join buttonActivated $ withTMVar current launchTremulous
 
+	let updateSettings joining = do
+		gs@GameServer{..}	<- atomically $readTMVar current
+		ss			<- atomically $ readTMVar msettings
+		let cur = getSettings address ss
+		if not joining || null (serverPass cur) then do
+			new <- newSettingsDialog parent colors protected gs cur
+			case new of
+				Nothing -> return False
+				Just n -> do
+					let ss' = putSettings address n ss
+					atomically $ swapTMVar msettings ss'
+					unlessM (toFile ss') $
+						gtkWarn "Unable to save server specific settings"
+					return True
+		else return False
+	
+	on st buttonActivated (updateSettings False >> return ())
+
 	
 	let setF boolJoin gs@GameServer{..} = do
+		labelSetMarkup hostnamex $ showHostname colors hostname
 		zipWithM_ labelSetMarkup info
 			[ show address
 			, (proto2string protocol ++ (case gamemod of
@@ -147,7 +173,8 @@ newServerInfo Bundle{..} mupdate = do
 			, show gameping ++
 				" (" ++ (show . intmean . filter validping . map ping) players ++ ")"
 			]
-		hostnamex `labelSetMarkup` showHostname colors hostname
+		labelSetMarkup bools $	unwords	[ if unlagged then "unlagged" else ""
+						, if protected then "password" else "" ]
 		
 		listStoreClear amodel
 		listStoreClear hmodel
@@ -175,12 +202,17 @@ newServerInfo Bundle{..} mupdate = do
 			widgetHide allplayers
 
 		atomically $ replaceTMVar current gs
-
+		
 		whenM (isEmptyMVar running) $
 			set join [ widgetSensitive := True ]
 		set refresh [ widgetSensitive := True ]
+		set st [ widgetSensitive := True ]
 
-		when boolJoin (launchTremulous gs)
+		
+		when boolJoin $ if protected
+				then whenM (updateSettings True) (launchTremulous gs)
+				else launchTremulous gs
+			
 		return ()
 
 	let updateF PollResult{..} = withTMVar current $ \GameServer{address} ->
@@ -229,18 +261,29 @@ newServerInfo Bundle{..} mupdate = do
 	showHostname colors x		= pangoPretty colors x
 	maybeQ			= maybe "?" show
 
-runTremulous :: Config -> GameServer -> IO (Maybe ProcessHandle)
-runTremulous Config{..} GameServer{..} = do
+runTremulous :: Config -> GameServer -> ServerArg-> IO (Maybe ProcessHandle)
+runTremulous Config{..} GameServer{..} ServerArg{..} = do
 	(_,_,_,p) <- createProcess (proc com args) {cwd = ldir, close_fds = True}
 	maybe (Just p) (const Nothing) <$> getProcessExitCode p
 	where
 	(com, args) = case protocol of
-		70 -> (tremGppPath, ["+connect", show address])
-		_  -> (tremPath, ["-connect", show address, "+connect", show address])
+		70 -> (tremGppPath, argsR False)
+		_  -> (tremPath, argsR True)
 
+	argsR c = concatMap (uncurry (arg c))
+			[ ("connect", show address)
+			, ("password", serverPass)
+			, ("rconPassword", serverRcon)
+			, ("name", serverName)
+			] 
+	
 	ldir = case takeDirectory com of
 		"" -> Nothing
 		x  -> Just x
 
-maybeIO :: IO (Maybe a) -> IO (Maybe a)
-maybeIO = handle (\(_ :: IOError) -> return Nothing)
+-- Tremulous 1.1 unpatched uses -arg while everything else uses +arg
+arg :: Bool -> String -> String -> [String]
+arg compat a xs = case xs of
+	""            -> []
+	s | compat    -> ['+':a, s, '-':a, s]
+	  | otherwise -> ['+':a, s]

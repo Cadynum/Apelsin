@@ -15,9 +15,10 @@ import Network.HTTP
 import Network.Stream
 import Network.URI
 import Network.Tremulous.NameInsensitive
-import TremFormatting
 
+import TremFormatting
 import Constants
+import Monad2
 
 data TagExpr
 	= TagPrefix !TI
@@ -121,7 +122,3 @@ get url = case parseURI url of
 			_					-> Nothing
 	-- It doesn't catch everything apparently
 	where ex = handle (\(_ :: IOException) -> return (Left ErrorReset))
-
-getDNS :: String -> String -> IO (Maybe SockAddr)
-getDNS host port = handle (\(_ :: IOException) -> return Nothing) $
-	fmap addrAddress . listToMaybe <$> getAddrInfo Nothing (Just host) (Just port)

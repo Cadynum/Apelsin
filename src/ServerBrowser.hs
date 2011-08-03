@@ -21,7 +21,7 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	sorted		<- treeModelSortNewWithModel filtered	
 	view		<- treeViewNewWithModel sorted
 	
-	addColumnsFilterSort raw filtered sorted view browserSort (if browserOrder then SortDescending else SortAscending)
+	addColumnsFilterSort raw filtered sorted view browserSort browserOrder
 		[ ("_Game"	, False	, RendText (simpleColumn showGame)
 		   	, Just (comparing (\x -> (protocol x, gamemod x))))
 		, ("_Name"	, True	, RendText (markupColumn colors hostname)
@@ -34,7 +34,7 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 			, Just (comparing nplayers))
 		]
 	(infobox, statNow, statTot, statRequested) <- newInfoboxBrowser
-	
+
 	(filterbar, current, ent) <- newFilterBar filtered statNow filterBrowser
 	empty <- checkButtonNewWithMnemonic "_empty"
 	set empty [ toggleButtonActive := filterEmpty ]

@@ -39,7 +39,7 @@ newFilterBar filtered stat initial  = do
 	on ent editableChanged f
 
 	on ent entryIconPress $
-		const $ liftIO $editableDeleteText ent 0 (-1)
+		const $ liftIO $ editableDeleteText ent 0 (-1)
 	
 	return (findbar, current, ent)
 

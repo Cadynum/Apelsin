@@ -25,7 +25,7 @@ mread x = case reads x of
 	_		-> Nothing
 	
 split :: Eq a => (a -> Bool) -> [a] -> [[a]]
-split func s = case dropWhile func s of
+split func s = case drop 1 s of
 	[] -> []
-	s' -> w : split func s''
+	(s') -> w : split func s''
 		where (w, s'') = break func s'

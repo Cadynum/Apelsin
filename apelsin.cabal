@@ -33,8 +33,8 @@ Flag relativePath
 Executable apelsin
   Default-Language:     Haskell2010
   Default-Extensions:   BangPatterns NamedFieldPuns RecordWildCards
-                        ScopedTypeVariables OverloadedStrings
-  Other-Extensions:     CPP
+                        ScopedTypeVariables OverloadedStrings TupleSections
+  Other-Extensions:     CPP StandaloneDeriving
   Build-Depends:        base>=4.3&&<5, array, mtl, stm, containers, transformers,
                         bytestring, directory, filepath, HTTP, network,
                         tremulous-query>=1.0.3, gtk, glib, process

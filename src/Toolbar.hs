@@ -2,13 +2,11 @@ module Toolbar(newToolbar, getDNS) where
 import Graphics.UI.Gtk
 
 import Control.Applicative
-import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Maybe
 import Data.Char (toLower)
 
-import Network.Socket 
 import Network.Tremulous.Protocol
 import Network.Tremulous.Polling
 import Network.Tremulous.MicroTime
@@ -22,12 +20,6 @@ import Config
 import About
 import ClanFetcher
 
-getDNS :: String -> String -> IO (Maybe SockAddr)
-getDNS host port = handle (\(_ :: IOException) -> return Nothing) $ do
-	AddrInfo _ _ _ _ addr _ <- Prelude.head `liftM` getAddrInfo Nothing (Just host) (Just port)
-	return $ Just addr
-
-	
 newToolbar :: Bundle -> [ClanHook] -> [PolledHook] -> [ClanPolledHook] -> IO HBox
 newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	pb		<- progressBarNew

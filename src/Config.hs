@@ -1,14 +1,16 @@
+{-# LANGUAGE StandaloneDeriving #-}
 module Config where
+import Graphics.UI.Gtk (SortType(..))
 import Data.Array
 import Control.Exception
 import Network.Tremulous.Protocol
-
 
 import Constants
 import List2
 import GtkUtils
 import TremFormatting
 
+deriving instance Read SortType
 
 type ColorTheme = Array Int TremFmt
 
@@ -27,7 +29,7 @@ data Config = Config {
 	, browserSort	:: !Int
 	, playersSort	:: !Int
 	, browserOrder
-	, playersOrder	:: !Bool
+	, playersOrder	:: !SortType
 	, delays	:: !Delay
 	, colors	:: !ColorTheme
 	} deriving (Show, Read)
@@ -47,8 +49,8 @@ defaultConfig = Config {
 	, filterEmpty	= True
 	, browserSort	= 3
 	, playersSort	= 0
-	, browserOrder	= True
-	, playersOrder	= True
+	, browserOrder	= SortAscending
+	, playersOrder	= SortAscending
 	, delays	= defaultDelay
 	, colors	= makeColorsFromList $
 		TFNone "#000000" : map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"] ++ [TFNone "#000000"]

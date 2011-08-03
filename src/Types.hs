@@ -3,10 +3,11 @@ module Types (
 	, Bundle(..), ClanHook, PolledHook, ClanPolledHook, SetCurrent
 ) where
 import Graphics.UI.Gtk
-import Config
-import ClanFetcher
 import Control.Concurrent.STM
 import Network.Tremulous.Protocol
+import Config
+import ClanFetcher
+import IndividualServerSettings
 
 data Bundle = Bundle {
 	  mpolled	:: !(TMVar PollResult)
@@ -14,6 +15,7 @@ data Bundle = Bundle {
 	, mclans	:: !(TMVar [Clan])
 	, parent	:: !Window
 	, browserStore	:: !(ListStore GameServer)
+	, msettings	:: !(TMVar ServerSettings)
 	}
 
 type ClanHook		= [Clan] -> IO ()

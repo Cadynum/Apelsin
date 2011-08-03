@@ -23,7 +23,7 @@ newFindPlayers Bundle{..} setServer = do
 	sorted		<- treeModelSortNewWithModel filtered	
 	view		<- treeViewNewWithModel sorted
 	
-	addColumnsFilterSort raw filtered sorted view playersSort (if playersOrder then SortDescending else SortAscending)
+	addColumnsFilterSort raw filtered sorted view playersSort playersOrder
 		[ ("Name"	, True	, RendText (simpleColumn colors fst)
 			, Just (comparing fst))
 		, ("Server"	, True	, RendText (simpleColumn colors (hostname . snd))
@@ -68,4 +68,4 @@ newFindPlayers Bundle{..} setServer = do
 	return (box, updateFilter, ent)
 	where simpleColumn colors f item =
 		[ cellTextEllipsize := EllipsizeEnd
-		, cellTextMarkup := Just ( pangoPretty colors (f item)) ]
+		, cellTextMarkup := Just $ pangoPretty colors (f item) ]

@@ -80,8 +80,8 @@ newPreferences Bundle{..} = do
 		filterEmpty	<- get filterEmpty' toggleButtonActive
 		browserSort	<- get browserSort' comboBoxActive
 		playersSort	<- get playersSort' comboBoxActive
-		browserOrder	<- get browserOrder' toggleButtonActive
-		playersOrder	<- get playersOrder' toggleButtonActive
+		browserOrder	<- conv <$> get browserOrder' toggleButtonActive
+		playersOrder	<- conv <$> get playersOrder' toggleButtonActive
 		tremPath	<- get tremPath' entryText
 		tremGppPath	<- get tremGppPath' entryText
 		autoMaster	<- get startupMaster toggleButtonActive
@@ -125,8 +125,8 @@ newPreferences Bundle{..} = do
 		set filterEmpty'	[ toggleButtonActive := filterEmpty]
 		set browserSort'	[ comboBoxActive := browserSort]
 		set playersSort'	[ comboBoxActive := playersSort]
-		set browserOrder'	[ toggleButtonActive := browserOrder ]
-		set playersOrder'	[ toggleButtonActive := playersOrder ]
+		set browserOrder'	[ toggleButtonActive := conv browserOrder ]
+		set playersOrder'	[ toggleButtonActive := conv playersOrder ]
 		set tremPath'		[ entryText := tremPath ]
 		set tremGppPath'	[ entryText := tremGppPath ]
 		set startupMaster	[ toggleButtonActive := autoMaster ]
@@ -151,6 +151,9 @@ newPreferences Bundle{..} = do
 		
 	scrollItV box PolicyNever PolicyAutomatic
 
+conv :: (Enum a, Enum b) => a -> b
+conv = toEnum . fromEnum
+
 configTable :: [(String, [String])] -> IO (Table, [(Entry, ComboBox, ToggleButton)], CheckButton)
 configTable ys = do
 	tbl <- paddedTableNew
@@ -163,10 +166,13 @@ configTable ys = do
 		boxPackStart b ent PackGrow 0
 		when (pos == 0) $ 
 			boxPackStart b empty PackNatural 0
+			
 		c <- comboBoxNewText
 		zipWithM (comboBoxInsertText c) [0..] sorts
-
 		d <- arrowButton
+		cB <- hBoxNew False 0
+		boxPackStart cB c PackGrow 0
+		boxPackStart cB d PackNatural 0
 		
 		set c [widgetTooltipText := Just "Sort by"]
 		set d [widgetTooltipText := Just "Sorting order"]				
@@ -174,8 +180,7 @@ configTable ys = do
 		miscSetAlignment a 0 0.5
 		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] 0 0
 		tableAttach tbl b 1 2 pos (pos+1) [Expand, Fill] [] 0 0
-		tableAttach tbl c 2 3 pos (pos+1) [Fill] [] 0 0
-		tableAttach tbl d 3 4 pos (pos+1) [Fill] [] 0 0
+		tableAttach tbl cB 2 3 pos (pos+1) [Fill] [] 0 0
 						
 		return (ent, c, d)
 	
