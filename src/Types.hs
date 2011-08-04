@@ -1,10 +1,12 @@
 module Types (
 	module Control.Concurrent.STM
-	, Bundle(..), ClanHook, PolledHook, ClanPolledHook, SetCurrent
+	, Bundle(..), ClanHook, PolledHook, ClanPolledHook, SetCurrent, BrowserStore, PlayerStore
 ) where
 import Graphics.UI.Gtk
+
 import Control.Concurrent.STM
 import Network.Tremulous.Protocol
+
 import Config
 import ClanFetcher
 import IndividualServerSettings
@@ -14,7 +16,8 @@ data Bundle = Bundle {
 	, mconfig	:: !(TMVar Config)
 	, mclans	:: !(TMVar [Clan])
 	, parent	:: !Window
-	, browserStore	:: !(ListStore GameServer)
+	, browserStore	:: !BrowserStore
+	, playerStore	:: !PlayerStore
 	, msettings	:: !(TMVar ServerSettings)
 	}
 
@@ -22,3 +25,5 @@ type ClanHook		= [Clan] -> IO ()
 type PolledHook		= PollResult -> IO ()
 type ClanPolledHook	= [Clan] -> PollResult -> IO ()
 type SetCurrent		= Bool -> GameServer -> IO ()
+type PlayerStore	= ListStore (TI, GameServer)
+type BrowserStore	= ListStore GameServer

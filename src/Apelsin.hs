@@ -33,22 +33,22 @@ main = withSocketsDo $ do
 	config		<- configFromFile
 	cacheclans	<- clanListFromCache
 	settings	<- ISS.fromFile
-	print settings
 	
 	bundle	<-	(do
 			mpolled		<- atomically $ newTMVar (PollResult [] 0 0 S.empty)
 			mconfig		<- atomically $ newTMVar config
 			mclans		<- atomically $ newTMVar cacheclans
 			browserStore	<- listStoreNew []
+			playerStore	<- listStoreNew []
 			msettings	<- atomically $ newTMVar settings
 			return Bundle {parent = win, ..}
 			)
 
 	mupdate <- atomically newEmptyTMVar
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle mupdate
-	(browser, browserUpdate, ent0)		<- newServerBrowser bundle currentSet
-	(findPlayers, findUpdate, ent1)		<- newFindPlayers bundle currentSet
-	(clanlist, clanlistUpdate, ent3)	<- newClanList bundle cacheclans currentSet
+	(browser, browserUpdate)		<- newServerBrowser bundle currentSet
+	(findPlayers, findUpdate)		<- newFindPlayers bundle currentSet
+	(clanlist, clanlistUpdate)		<- newClanList bundle cacheclans currentSet
 	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet
 
 	preferences				<- newPreferences bundle
@@ -126,16 +126,5 @@ main = withSocketsDo $ do
 				, page <= 5
 				-> do	liftIO (set book [ notebookPage := page - 1])
 					return True
-			[Control]
-				| k == "l" || k == "f"
-				-> do	page <- liftIO (get book notebookPage)
-					case page of
-						0 -> liftIO $ widgetGrabFocus ent0
-						1 -> liftIO $ widgetGrabFocus ent1
-						3 -> liftIO $ widgetGrabFocus ent3
-						_ -> return ()
-					return True
 			_ -> return False
-			
-	widgetGrabFocus ent0
 	mainGUI

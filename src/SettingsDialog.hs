@@ -35,10 +35,11 @@ newSettingsDialog win colors requirepw GameServer{..} ServerArg{..} = do
 		, tableColumnSpacing	:= spacing
 		]
 		
-	let easyAttach pos (lbl, tip)  = do
+	let easyAttach pos lbl tip def = do
 		a <- labelNewWithMnemonic lbl
 		b <- entryNew
-		entrySetActivatesDefault b True
+		set b	[ entryActivatesDefault := True
+			, entryText		:= def ]
 		when (pos == 1 && requirepw) $ do
 			labelSetAttributes a [AttrWeight 0 (-1) WeightBold]
 			
@@ -49,17 +50,11 @@ newSettingsDialog win colors requirepw GameServer{..} ServerArg{..} = do
 		tableAttach tbl b 1 2 pos (pos+1) [Expand, Fill] [] 0 0
 		return b
 
-	[name, pass, rcon] <- zipWithM easyAttach [0..]
-		[ ("Override _name:", "Set a custom name that will only be used on this server")
-		, ("_Password:", "Server password")
-		, ("_Rcon:", "Rcon password")
-		]
-	set pass [ entryText := serverPass ]
-	set rcon [ entryText := serverRcon ]
-	set name [ entryText := serverName ]
+	name	<- easyAttach 0 "Override _name:"
+		"Set a custom name that will only be used on this server" serverName
+	pass	<- easyAttach 1 "_Password:" "Server password" serverPass
+	rcon	<- easyAttach 2 "_Rcon:" "Rcon password" serverRcon
 
-	 
-	
 	box <- vBoxNew False spacing
 	set box [ containerBorderWidth := spacing ]
 	boxPackStart box srv PackNatural 0

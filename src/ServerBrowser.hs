@@ -14,7 +14,7 @@ import TremFormatting
 import Constants
 import Config
 
-newServerBrowser :: Bundle -> SetCurrent -> IO (VBox, PolledHook,Entry)
+newServerBrowser :: Bundle -> SetCurrent -> IO (VBox, PolledHook)
 newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	Config {..}	<- atomically $ readTMVar mconfig
 	filtered	<- treeModelFilterNew raw []
@@ -35,7 +35,7 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 		]
 	(infobox, statNow, statTot, statRequested) <- newInfoboxBrowser
 
-	(filterbar, current, ent) <- newFilterBar filtered statNow filterBrowser
+	(filterbar, current) <- newFilterBar parent filtered statNow filterBrowser
 	empty <- checkButtonNewWithMnemonic "_empty"
 	set empty [ toggleButtonActive := filterEmpty ]
 	boxPackStart filterbar empty PackNatural spacingHalf
@@ -83,7 +83,7 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	boxPackStart box scrollview PackGrow 0
 	boxPackStart box infobox PackNatural 0
 	
-	return (box, updateF, ent)
+	return (box, updateF)
 	where
 	showGame GameServer{..} = proto2string protocol ++ maybe "" (("-"++) . htmlEscape . unpackorig) gamemod
 	showPlayers GameServer{..} = printf "%d / %2d" nplayers slots
@@ -92,3 +92,11 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 		, cellTextMarkup := Just (pangoPretty colors (f item)) ]
 	intColumn f item = [ cellText := f item , cellXAlign := 1 ]
 	simpleColumn f item = [ cellText := f item ]
+
+browserUpdateOne :: BrowserStore -> GameServer -> IO ()
+browserUpdateOne raw gs = treeModelForeach raw $ \iter -> do
+	let i = listStoreIterToIndex iter
+	e <- listStoreGetValue raw i
+	if address e == address gs
+		then listStoreSetValue raw i gs >> return True
+		else return False

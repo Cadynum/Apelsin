@@ -3,7 +3,7 @@ import Graphics.UI.Gtk
 
 
 newInfobox :: String -> IO (VBox, Label, Label)
-newInfobox what= do
+newInfobox what = do
 	lst <- mapM (labelNew . Just)
 		["Showing", "0", " out of", "0", ' ' : what]
 		

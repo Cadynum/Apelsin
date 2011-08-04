@@ -5,7 +5,7 @@ import Prelude hiding (catch)
 import Control.Applicative
 import Control.Monad hiding (join)
 import Data.Ord
-import Data.List (sortBy, findIndex)
+import Data.List (sortBy)
 import System.Process
 import System.FilePath
 
@@ -24,6 +24,8 @@ import Constants
 import Config
 import IndividualServerSettings
 import SettingsDialog
+import FindPlayers
+import ServerBrowser
 
 newServerInfo :: Bundle -> TMVar (PolledHook, ClanPolledHook) -> IO (VBox, PolledHook, SetCurrent)
 newServerInfo Bundle{..} mupdate = do
@@ -91,17 +93,18 @@ newServerInfo Bundle{..} mupdate = do
 	boxPackStart allplayers sscroll PackNatural 0
 
 	-- Action buttons
-	serverbuttons <- hBoxNew False 0
+	serverbuttons <- hButtonBoxNew
+	buttonBoxSetLayout serverbuttons ButtonboxSpread
 	let action lbl icon = do
 		b <- buttonNewWithMnemonic lbl
 		set b	[ buttonImage :=> imageNewFromStock icon IconSizeButton
 			, widgetSensitive := False ]
-		boxPackStart serverbuttons b PackRepel 0
+		boxPackStartDefaults serverbuttons b
 		return b
 		
 	st 	<- action "_Settings" stockProperties
 	refresh	<- action "_Refresh" stockRefresh
-	join	<- action"_Connect" stockConnect
+	join	<- action"_Join" stockConnect
 	
 	-- Packing
 	rightpane <- vBoxNew False spacing
@@ -142,7 +145,7 @@ newServerInfo Bundle{..} mupdate = do
 	on join buttonActivated $ withTMVar current launchTremulous
 
 	let updateSettings joining = do
-		gs@GameServer{..}	<- atomically $readTMVar current
+		gs@GameServer{..}	<- atomically $ readTMVar current
 		ss			<- atomically $ readTMVar msettings
 		let cur = getSettings address ss
 		if not joining || null (serverPass cur) then do
@@ -235,19 +238,16 @@ newServerInfo Bundle{..} mupdate = do
 						}
 					putTMVar mpolled pr'
 					return pr'
-						
-				mm <- findIndex (\old -> address old == address new) <$>
-					listStoreToList browserStore
 				(fa, fb)	<- atomically (readTMVar mupdate)
 				clans		<- atomically (readTMVar mclans)
 				postGUISync $ do
-					fa pr
 					fb clans pr
 					setF False new
-					-- This generates a gtk assertion fail. Howerver it
-					-- seems innocent
-					whenJust mm $ \i -> 
-						listStoreSetValue browserStore i new	
+					browserUpdateOne browserStore new
+					playerUpdateOne playerStore new
+
+					
+							
 			postGUISync $
 				set refresh [ widgetSensitive := True ]
 				

@@ -68,7 +68,9 @@ newPreferences Bundle{..} = do
 	-- Apply
 	apply	<- buttonNewFromStock stockApply
 	cancel	<- buttonNewFromStock stockCancel
-	bbox	<- hBoxNew False spacing
+	bbox	<- hButtonBoxNew
+	buttonBoxSetLayout bbox ButtonboxEnd
+	boxSetSpacing bbox spacing
 	boxPackStartDefaults bbox cancel
 	boxPackStartDefaults bbox apply
 	balign	<- alignmentNew 1 1 0 0

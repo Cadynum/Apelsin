@@ -20,7 +20,7 @@ import GtkUtils
 import Monad2
 
 
-newClanList :: Bundle -> [Clan] -> SetCurrent -> IO (VBox, ClanPolledHook, Entry)
+newClanList :: Bundle -> [Clan] -> SetCurrent -> IO (VBox, ClanPolledHook)
 newClanList Bundle{..} cache setCurrent = do
 	raw			<- listStoreNew []
 	filtered		<- treeModelFilterNew raw []
@@ -30,7 +30,7 @@ newClanList Bundle{..} cache setCurrent = do
 
 	(infobox, statNow, statTot) <- newInfobox "clans"
 
-	(filterbar, current, ent) <- newFilterBar filtered statNow ""
+	(filterbar, current) <- newFilterBar parent filtered statNow ""
 
 	let updateF newraw P.PollResult{..} = do
 		let new = (`map` newraw) $ \c -> case clanserver c of
@@ -84,7 +84,7 @@ newClanList Bundle{..} cache setCurrent = do
 	
 	updateF cache =<< atomically (readTMVar mpolled)
 
-	return (box, updateF, ent)
+	return (box, updateF)
 	where
 	showURL x = fromMaybe x (stripPrefix "http://" x)
 	markupColumn f (item, _) = [ cellTextMarkup := Just (f item) ]

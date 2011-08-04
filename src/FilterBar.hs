@@ -4,7 +4,7 @@ import Graphics.UI.Gtk
 import Data.IORef
 import qualified Data.ByteString.Char8 as B
 import Data.ByteString.Char8 (ByteString)
-import Data.Char
+import Data.Char hiding (Control)
 import Control.Monad.IO.Class
 import Network.Tremulous.ByteStringUtils as B
 
@@ -12,9 +12,9 @@ import GtkExts
 import Constants
 
 
-newFilterBar :: (TreeModelClass self, TreeModelFilterClass self) => self -> Label -> String
-	-> IO (HBox, IORef [Expr], Entry)
-newFilterBar filtered stat initial  = do
+newFilterBar :: (TreeModelClass self, TreeModelFilterClass self) => Window -> self -> Label -> String
+	-> IO (HBox, IORef [Expr])
+newFilterBar win filtered stat initial  = do
 	current <- newIORef []
 	
 	-- Filterbar
@@ -40,8 +40,16 @@ newFilterBar filtered stat initial  = do
 
 	on ent entryIconPress $
 		const $ liftIO $ editableDeleteText ent 0 (-1)
-	
-	return (findbar, current, ent)
+
+	on win keyPressEvent $ do
+		s	<- eventModifier
+		k	<- map toLower `fmap` eventKeyName
+		b 	<- liftIO $ widgetGetMapped ent
+		if (s == [Control] && b && (k == "f" || k == "l"))
+			then liftIO (widgetGrabFocus ent) >> return True
+			else return False
+
+	return (findbar, current)
 
 	
 data Expr = Is !ByteString | Not !ByteString
