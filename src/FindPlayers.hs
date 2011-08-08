@@ -5,9 +5,11 @@ import Data.IORef
 import Data.Ord
 import Network.Tremulous.Protocol
 import Network.Tremulous.Util
+import qualified Network.Tremulous.StrictMaybe as SM
 
 import Types
 import GtkUtils
+import GtkExts
 import TremFormatting
 import FilterBar
 import InfoBox
@@ -17,21 +19,18 @@ import Config
 
 newFindPlayers :: Bundle -> SetCurrent -> IO (VBox, PolledHook)
 newFindPlayers Bundle{..} setServer = do
-	Config {..}	<- atomically $ readTMVar mconfig
-	let raw		= playerStore
-	filtered	<- treeModelFilterNew raw []
-	sorted		<- treeModelSortNewWithModel filtered	
-	view		<- treeViewNewWithModel sorted
+	Config {..} <- atomically $ readTMVar mconfig
+	gen@(GenFilterSort raw filtered sorted view) <- newGenFilterSort playerStore
 	
-	addColumnsFilterSort raw filtered sorted view playersSort playersOrder
-		[ ("Name"	, True	, RendText (simpleColumn colors fst)
-			, Just (comparing fst))
-		, ("Server"	, True	, RendText (simpleColumn colors (hostname . snd))
-			, Just (comparing (hostname .snd))) 
-		]
+	addColumnFS gen "_Name" True (Just (comparing fst))
+		cellRendererTextNew (simpleColumn colors fst)
+	addColumnFS gen "_Server" True (Just (comparing (hostname . snd)))
+		cellRendererTextNew (simpleColumn colors (hostname . snd))
 
+	treeSortableSetSortColumnId sorted playersSort playersOrder
+	
 	(infobox, statNow, statTot)	<- newInfobox "players"
-	(filterbar, current)	<- newFilterBar parent filtered statNow filterPlayers
+	(filterbar, current)		<- newFilterBar parent filtered statNow filterPlayers
 	
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
 		(item, GameServer{..}) <- treeModelGetRow raw iter
@@ -39,23 +38,22 @@ newFindPlayers Bundle{..} setServer = do
 		return $ smartFilter s
 				[ cleanedCase item
 				, proto2string protocol
-				, maybe "" cleanedCase gamemod
+				, SM.maybe "" cleanedCase gamemod
 				]
 		
 	let updateFilter PollResult{..} = do
 		listStoreClear raw
 		mapM_ (listStoreAppend raw) (makePlayerNameList polled)
-		treeModelFilterRefilter filtered
 		labelSetText statTot . show =<< treeModelIterNChildren raw Nothing
 		labelSetText statNow . show =<< treeModelIterNChildren filtered Nothing
 
 	on view cursorChanged $ do
 		(path, _) <- treeViewGetCursor view
-		setServer False . snd =<< getElementFS raw sorted filtered path
+		setServer False . snd =<< getElementPath gen path
 
 	on view rowActivated $ \path _ -> do
-		setServer True . snd =<< getElementFS raw sorted filtered path
-	
+		setServer True . snd =<< getElementPath gen path
+
 	scroll <- scrollIt view PolicyAutomatic PolicyAlways
 	
 	box <- vBoxNew False 0
@@ -64,9 +62,9 @@ newFindPlayers Bundle{..} setServer = do
 	boxPackStart box infobox PackNatural 0
 	
 	return (box, updateFilter)
-	where simpleColumn colors f item =
-		[ cellTextEllipsize := EllipsizeEnd
-		, cellTextMarkup := Just $ pangoPretty colors (f item) ]
+	where simpleColumn colors f rend item = do
+		set rend [cellTextEllipsize := EllipsizeEnd]
+		cellSetMarkup rend $ pangoPrettyBS colors (f item)
 
 
 playerUpdateOne :: PlayerStore -> GameServer -> IO ()

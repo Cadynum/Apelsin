@@ -24,33 +24,33 @@ newToolbar :: Bundle -> [ClanHook] -> [PolledHook] -> [ClanPolledHook] -> IO HBo
 newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	pb		<- progressBarNew
 	set pb		[ widgetNoShowAll := True ]
-	
+
 	refresh		<- mkToolButton "Refresh all" stockRefresh "Ctrl+R or F5"
-	clansync	<- mkToolButton "Sync clans" stockSave "Ctrl+S or F6"		
+	clansync	<- mkToolButton "Sync clans" stockSave "Ctrl+S or F6"
 	about		<- mkToolButton "About" stockAbout "F7"
-		
+
 	doSync		<- mLock clansync (newClanSync bundle clanHook bothHook)
 	doRefresh	<- mLock refresh (newRefresh bundle polledHook bothHook pb)
-	
+
 	on about buttonActivated (newAbout parent)
 	on clansync buttonActivated doSync
-	on refresh buttonActivated doRefresh	
+	on refresh buttonActivated doRefresh
 
 	toolbar	<- hBoxNew False spacing
 	boxPackStartDefaults toolbar refresh
 	boxPackStartDefaults toolbar clansync
 	boxPackStartDefaults toolbar about
-	
+
 	align <- alignmentNew 0 0 0 0
 	set align [ containerChild := toolbar ]
-				
+
 	pbrbox <- hBoxNew False spacing
 	set pbrbox [ containerBorderWidth := spacing ]
 	boxPackStart pbrbox align PackNatural 0
 	boxPackStart pbrbox pb PackGrow 0
 
-	
-	
+
+
 
 	on parent keyPressEvent $  do
 		kmod	<- eventModifier
@@ -66,15 +66,15 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 
 	withTMVar mconfig $ \Config{..} -> do
 		when autoMaster doRefresh
-		when autoClan doSync				
-	
+		when autoClan doSync
+
 	return pbrbox
 
 mkToolButton :: String -> StockId -> String -> IO Button
 mkToolButton lbl icon tip = do
 	button <- buttonNewWithLabel lbl
 	set button	[ buttonImage		:=> imageNewFromStock icon IconSizeButton
-			, buttonRelief		:= ReliefNone 
+			, buttonRelief		:= ReliefNone
 			, buttonFocusOnClick	:= False
 			, widgetTooltipText	:= Just tip ]
 	return button
@@ -108,13 +108,13 @@ newClanSync Bundle{..} clanHook bothHook unlock = do
 					mapM_ (\f -> f a result) bothHook
 		unlock
 	return ()
-	
+
 newRefresh :: Bundle -> [PolledHook] -> [ClanPolledHook] -> ProgressBar -> IO () -> IO ()
 newRefresh Bundle{..} polledHook bothHook pb unlock = do
 	progressBarSetFraction pb 0
 	widgetShow pb
 	Config {masterServers, delays=delays@Delay{..}} <- atomically $ readTMVar mconfig
-	
+
 	start <- getMicroTime
 
 	-- This is a stupid guess based on that about 110 servers will respond and the master
@@ -123,7 +123,7 @@ newRefresh Bundle{..} polledHook bothHook pb unlock = do
 	let serversGuess = if serversResponded == 0 then 110 else serversResponded
 	let tremTime = (packetDuplication + 1) * packetTimeout
 		+ serversGuess * throughputDelay + 200 * 1000
-	
+
 	forkIO $ do
 		hosts <- catMaybes <$> mapM
 			(\(host, port, proto) -> fmap (`MasterServer` proto) <$> getDNS host (show port))
@@ -139,7 +139,7 @@ newRefresh Bundle{..} polledHook bothHook pb unlock = do
 					postGUISync $ progressBarSetFraction pb
 						(fromIntegral diff / fromIntegral tremTime)
 					return True
-			
+
 		result <- pollMasters delays hosts
 
 		atomically $ replaceTMVar mpolled result

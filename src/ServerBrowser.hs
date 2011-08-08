@@ -4,10 +4,13 @@ import Control.Concurrent.STM
 import Data.IORef
 import Data.Ord
 import Network.Tremulous.Protocol
+import qualified Network.Tremulous.StrictMaybe as SM
 import Text.Printf
+import qualified Data.ByteString.Char8 as B
 
 import Types
 import GtkUtils
+import GtkExts
 import FilterBar
 import InfoBox
 import TremFormatting
@@ -15,24 +18,24 @@ import Constants
 import Config
 
 newServerBrowser :: Bundle -> SetCurrent -> IO (VBox, PolledHook)
-newServerBrowser Bundle{browserStore=raw, ..} setServer = do
+newServerBrowser Bundle{..} setServer = do
 	Config {..}	<- atomically $ readTMVar mconfig
-	filtered	<- treeModelFilterNew raw []
-	sorted		<- treeModelSortNewWithModel filtered	
-	view		<- treeViewNewWithModel sorted
+	gen@(GenFilterSort raw filtered sorted view) <- newGenFilterSort browserStore
+
+	addColumnFS gen "_Game" False (Just (comparing (\x -> (protocol x, gamemod x))))
+		cellRendererTextNew (simpleColumn showGame)
+	addColumnFS gen "_Name" True (Just (comparing hostname))
+		cellRendererTextNew (hostnameColumn colors)
+	addColumnFS gen "_Map" False (Just (comparing mapname))
+		cellRendererTextNew (simpleColumn $ B.take 16 . original . mapname)
+	addColumnFS gen "P_ing" False (Just (comparing gameping))
+		cellRendererTextNew (intColumn (show . gameping))
+	addColumnFS gen "_Players" False (Just (comparing nplayers))
+		cellRendererTextNew (intColumn showPlayers)
 	
-	addColumnsFilterSort raw filtered sorted view browserSort browserOrder
-		[ ("_Game"	, False	, RendText (simpleColumn showGame)
-		   	, Just (comparing (\x -> (protocol x, gamemod x))))
-		, ("_Name"	, True	, RendText (markupColumn colors hostname)
-			, Just (comparing hostname))
-		, ("_Map"	, False	, RendText (simpleColumn (take 16 . unpackorig . mapname))
-			, Just (comparing mapname))
-		, ("P_ing"	, False	, RendText (intColumn (show . gameping))
-			, Just (comparing gameping))
-		, ("_Players"	, False	, RendText (intColumn (showPlayers))
-			, Just (comparing nplayers))
-		]
+
+	treeSortableSetSortColumnId sorted browserSort browserOrder
+	
 	(infobox, statNow, statTot, statRequested) <- newInfoboxBrowser
 
 	(filterbar, current) <- newFilterBar parent filtered statNow filterBrowser
@@ -41,8 +44,7 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	boxPackStart filterbar empty PackNatural spacingHalf
 	on empty toggled $ do
 		treeModelFilterRefilter filtered
-		n <- treeModelIterNChildren filtered Nothing
-		set statNow [ labelText := show n ]
+		labelSetText statNow . show =<< treeModelIterNChildren filtered Nothing
 
 
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
@@ -54,15 +56,15 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 				[ cleanedCase hostname
 				, cleanedCase mapname
 				, proto2string protocol
-				, maybe "" cleanedCase gamemod
+				, SM.maybe "" cleanedCase gamemod
 				])
 			
 	on view cursorChanged $ do
 		(path, _) <- treeViewGetCursor view
-		setServer False =<< getElementFS raw sorted filtered path
+		setServer False =<< getElementPath gen path
 
 	on view rowActivated $ \path _ ->
-		setServer True =<< getElementFS raw sorted filtered path
+		setServer True =<< getElementPath gen path
 		
 	scrollview <- scrolledWindowNew Nothing Nothing
 	scrolledWindowSetPolicy scrollview PolicyNever PolicyAlways
@@ -72,11 +74,9 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 		listStoreClear raw
 		treeViewColumnsAutosize view
 		mapM_ (listStoreAppend raw) polled
-		treeModelFilterRefilter filtered
-		set statTot		[ labelText := show serversResponded ]
-		set statRequested	[ labelText := show (serversRequested-serversResponded) ]
-		n <- treeModelIterNChildren filtered Nothing
-		set statNow 		[ labelText := show n ]
+		labelSetText statTot       $ show serversResponded
+		labelSetText statRequested $ show (serversRequested - serversResponded)
+		labelSetText statNow . show =<< treeModelIterNChildren filtered Nothing
 		
 	box <- vBoxNew False 0
 	boxPackStart box filterbar PackNatural spacing
@@ -85,13 +85,13 @@ newServerBrowser Bundle{browserStore=raw, ..} setServer = do
 	
 	return (box, updateF)
 	where
-	showGame GameServer{..} = proto2string protocol ++ maybe "" (("-"++) . htmlEscape . unpackorig) gamemod
+	showGame GameServer{..} = B.concat (proto2string protocol : SM.maybe [] ((\x -> ["-",x]) . original) gamemod)
 	showPlayers GameServer{..} = printf "%d / %2d" nplayers slots
-	markupColumn colors f item =
-		[ cellTextEllipsize := EllipsizeEnd
-		, cellTextMarkup := Just (pangoPretty colors (f item)) ]
-	intColumn f item = [ cellText := f item , cellXAlign := 1 ]
-	simpleColumn f item = [ cellText := f item ]
+	hostnameColumn colors rend item = do
+		set rend [cellTextEllipsize := EllipsizeEnd]
+		cellSetMarkup rend (pangoPrettyBS colors (hostname item))
+	intColumn f rend item = set rend [ cellText := f item , cellXAlign := 1 ]
+	simpleColumn f rend item = cellSetText rend (f item)
 
 browserUpdateOne :: BrowserStore -> GameServer -> IO ()
 browserUpdateOne raw gs = treeModelForeach raw $ \iter -> do

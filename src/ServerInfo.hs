@@ -5,11 +5,13 @@ import Prelude hiding (catch)
 import Control.Applicative
 import Control.Monad hiding (join)
 import Data.Ord
+import Data.ByteString.Char8 (unpack)
 import Data.List (sortBy)
 import System.Process
 import System.FilePath
 
 import Network.Tremulous.Protocol
+import qualified Network.Tremulous.StrictMaybe as SM
 import Network.Tremulous.Polling
 import Network.Tremulous.Util
 
@@ -20,6 +22,7 @@ import List2
 import Monad2
 import TremFormatting
 import GtkUtils
+import GtkExts
 import Constants
 import Config
 import IndividualServerSettings
@@ -32,7 +35,7 @@ newServerInfo Bundle{..} mupdate = do
 	Config {colors} <- atomically $ readTMVar mconfig
 	current		<- atomically newEmptyTMVar
 	running		<- newEmptyMVar
-	
+
 	-- Host name
 	hostnamex <- labelNew (Just "Server")
 	set hostnamex [
@@ -43,7 +46,7 @@ newServerInfo Bundle{..} mupdate = do
 		, labelAttributes 	:= [AttrWeight 0 (-1) WeightBold, AttrScale 0 (-1) 1.2]
 		]
 	labelSetLineWrapMode hostnamex WrapPartialWords
-	
+
 	-- Pretty CVar table
 	tbl <- tableNew 0 0 True
 	set tbl [ tableRowSpacing := spacing
@@ -56,30 +59,25 @@ newServerInfo Bundle{..} mupdate = do
 		tableAttachDefaults tbl a 0 1 pos (pos+1)
 		tableAttachDefaults tbl b 1 2 pos (pos+1)
 		return b
-		
+
 	let mkTable = zipWithM easyAttach [0..]
 	info <- mkTable ["IP:Port", "Game (mod)", "Map", "Timelimit (SD)"
 			, "Slots (+private)", "Ping (server average)"]
 	set (head info) [ labelSelectable := True ]
 
 	bools <- labelNew Nothing
-	
+
 	-- Players
 	allplayers	<- vBoxNew False spacing
 	alienshumans	<- hBoxNew True spacing
-	
-	let playerView x = simpleListView
-		[ (x		, True	, pangoPretty colors . name)
-		, ("Score"	, False	, show . kills)
-		, ("Ping"	, False	, show . ping) ]
-	(amodel, aview) <- playerView "Aliens"
-	(hmodel, hview) <- playerView "Humans"
-	(smodel, sview) <- simpleListView [("Spectators", True, pangoPretty colors . name)
-					, ("Ping", False, show . ping)]
-	-- For servers not giving the P CVar
-	(umodel, uview) <- playerView "Players"
-	
-	
+
+	GenSimple amodel aview <- playerView colors "Aliens" True
+	GenSimple hmodel hview <- playerView colors "Humans" True
+	GenSimple smodel sview <- playerView colors "Spectators" False
+	-- For servers not giving the P CVar:
+	GenSimple umodel uview <- playerView colors "Players" True
+
+
 	ascroll <- scrollIt aview PolicyNever PolicyAutomatic
 	hscroll <- scrollIt hview PolicyNever PolicyAutomatic
 	uscroll	<- scrollIt uview PolicyNever PolicyAutomatic
@@ -101,11 +99,11 @@ newServerInfo Bundle{..} mupdate = do
 			, widgetSensitive := False ]
 		boxPackStartDefaults serverbuttons b
 		return b
-		
+
 	st 	<- action "_Settings" stockProperties
 	refresh	<- action "_Refresh" stockRefresh
 	join	<- action"_Join" stockConnect
-	
+
 	-- Packing
 	rightpane <- vBoxNew False spacing
 	set rightpane  [ containerBorderWidth := spacing ]
@@ -121,9 +119,9 @@ newServerInfo Bundle{..} mupdate = do
 		putMVar running ()
 		config	<- atomically $ readTMVar mconfig
 		ss	<- atomically $ readTMVar msettings
-		
+
 		set join [ widgetSensitive := False ]
-		
+
 		pid <- maybeIO $ runTremulous config gs (getSettings (address gs) ss)
 		case pid of
 			Nothing -> do
@@ -139,10 +137,8 @@ newServerInfo Bundle{..} mupdate = do
 					postGUISync $ set join [ widgetSensitive := True ]
 					takeMVar running
 				return ()
-		
-	return ()
 
-	on join buttonActivated $ withTMVar current launchTremulous
+
 
 	let updateSettings joining = do
 		gs@GameServer{..}	<- atomically $ readTMVar current
@@ -159,18 +155,24 @@ newServerInfo Bundle{..} mupdate = do
 						gtkWarn "Unable to save server specific settings"
 					return True
 		else return False
-	
+
+	let launchWithSettings gs
+		| protected gs	= whenM (updateSettings True) (launchTremulous gs)
+		| otherwise	= launchTremulous gs
+
+
+	on join buttonActivated $ withTMVar current launchWithSettings
 	on st buttonActivated (updateSettings False >> return ())
 
-	
+
 	let setF boolJoin gs@GameServer{..} = do
 		labelSetMarkup hostnamex $ showHostname colors hostname
 		zipWithM_ labelSetMarkup info
 			[ show address
 			, (proto2string protocol ++ (case gamemod of
-					Nothing	-> ""
-					Just z	-> " (" ++ unpackorig z ++ ")"))
-			, unpackorig mapname
+					SM.Nothing	-> ""
+					SM.Just z	-> " (" ++ (unpack . original) z ++ ")"))
+			, (unpack . original) mapname
 			, maybeQ timelimit ++ " (" ++ maybeQ suddendeath ++ ")"
 			, show slots ++ " (+" ++ show privslots ++ ")"
 			, show gameping ++
@@ -178,12 +180,12 @@ newServerInfo Bundle{..} mupdate = do
 			]
 		labelSetMarkup bools $	unwords	[ if unlagged then "unlagged" else ""
 						, if protected then "password" else "" ]
-		
+
 		listStoreClear amodel
 		listStoreClear hmodel
 		listStoreClear smodel
 		listStoreClear umodel
-		
+
 		let	sortedPlayers		= scoreSort players
 			(s', a', h', u')	= partitionTeams sortedPlayers
 		if null u' then do
@@ -205,40 +207,35 @@ newServerInfo Bundle{..} mupdate = do
 			widgetHide allplayers
 
 		atomically $ replaceTMVar current gs
-		
+
 		whenM (isEmptyMVar running) $
 			set join [ widgetSensitive := True ]
 		set refresh [ widgetSensitive := True ]
 		set st [ widgetSensitive := True ]
 
-		
-		when boolJoin $ if protected
-				then whenM (updateSettings True) (launchTremulous gs)
-				else launchTremulous gs
-			
-		return ()
+		when boolJoin (launchWithSettings gs)
 
 	let updateF PollResult{..} = withTMVar current $ \GameServer{address} ->
 			whenJust (serverByAddress address polled) (setF False)
-			
-	
+
+
 	on refresh buttonActivated $ withTMVar current $ \x -> do
 		set refresh [ widgetSensitive := False ]
 		Config {delays} <- atomically $ readTMVar mconfig
 		forkIO $ do
 			result <- pollOne delays (address x)
-			
-			whenJust result $ \new -> do
+
+			SM.whenJust result $ \new -> do
 				pr <- atomically $ do
 					pr@PollResult{polled} <- takeTMVar mpolled
-					let pr' = pr 
+					let pr' = pr
 						{ polled = replace
 							(\old -> address old == address new)
 							new polled
 						}
 					putTMVar mpolled pr'
 					return pr'
-				(fa, fb)	<- atomically (readTMVar mupdate)
+				(_, fb)	<- atomically (readTMVar mupdate)
 				clans		<- atomically (readTMVar mclans)
 				postGUISync $ do
 					fb clans pr
@@ -246,11 +243,11 @@ newServerInfo Bundle{..} mupdate = do
 					browserUpdateOne browserStore new
 					playerUpdateOne playerStore new
 
-					
-							
+
+
 			postGUISync $
 				set refresh [ widgetSensitive := True ]
-				
+
 		return ()
 
 	return (rightpane, updateF, setF)
@@ -259,7 +256,8 @@ newServerInfo Bundle{..} mupdate = do
 	scoreSort		= sortBy (flip (comparing kills))
 	showHostname _ (TI _ "")	= "<i>Invalid name</i>"
 	showHostname colors x		= pangoPretty colors x
-	maybeQ			= maybe "?" show
+	maybeQ			= SM.maybe "?" show
+
 
 runTremulous :: Config -> GameServer -> ServerArg-> IO (Maybe ProcessHandle)
 runTremulous Config{..} GameServer{..} ServerArg{..} = do
@@ -275,8 +273,8 @@ runTremulous Config{..} GameServer{..} ServerArg{..} = do
 			, ("password", serverPass)
 			, ("rconPassword", serverRcon)
 			, ("name", serverName)
-			] 
-	
+			]
+
 	ldir = case takeDirectory com of
 		"" -> Nothing
 		x  -> Just x
@@ -287,3 +285,21 @@ arg compat a xs = case xs of
 	""            -> []
 	s | compat    -> ['+':a, s, '-':a, s]
 	  | otherwise -> ['+':a, s]
+
+playerView :: ColorArray -> String -> Bool -> IO (GenSimple ListStore Player)
+playerView colors teamName showScore = do
+	gen@(GenSimple _ view) <- newGenSimple =<< listStoreNew []
+	select <- treeViewGetSelection view
+	treeSelectionSetMode select SelectionNone
+	addColumn gen teamName True $ \rend item -> do
+		cellSetMarkup rend $ pangoPrettyBS colors $ name item
+		set rend [cellTextEllipsize := EllipsizeEnd]
+	when showScore $ do
+		addColumn gen "Score" False $ \rend item -> do
+			set rend 	[ cellText	:= show $ kills item
+					, cellXAlign	:= 1 ]
+		return ()
+	addColumn gen "Ping" False $ \rend item -> do
+			set rend 	[ cellText	:= show $ ping item
+					, cellXAlign	:= 1 ]
+	return gen

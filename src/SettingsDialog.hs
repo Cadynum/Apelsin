@@ -29,20 +29,21 @@ newSettingsDialog win colors requirepw GameServer{..} ServerArg{..} = do
 	labelSetLineWrapMode srv WrapPartialWords
 
 	ip <- labelNew $ Just $ show address
-	
+
 	tbl <- tableNew 0 0 False
 	set tbl	[ tableRowSpacing	:= spacingHalf
 		, tableColumnSpacing	:= spacing
 		]
-		
+
 	let easyAttach pos lbl tip def = do
 		a <- labelNewWithMnemonic lbl
 		b <- entryNew
 		set b	[ entryActivatesDefault := True
-			, entryText		:= def ]
+			, entryText		:= def
+			, entryWidthChars	:= 30 ]
 		when (pos == 1 && requirepw) $ do
 			labelSetAttributes a [AttrWeight 0 (-1) WeightBold]
-			
+
 		set a	[ labelMnemonicWidget	:= b
 			, widgetTooltipText	:= Just tip ]
 		miscSetAlignment a 0 0.5
@@ -64,12 +65,12 @@ newSettingsDialog win colors requirepw GameServer{..} ServerArg{..} = do
 		labelSetAttributes l [AttrWeight 0 (-1) WeightBold]
 		boxPackStart box l PackNatural 0
 	boxPackStart box tbl PackNatural 0
-	
+
 	dbox <- dialogGetUpper dia
 	boxPackStart dbox box PackNatural 0
 	widgetShowAll dbox
 	when requirepw (widgetGrabFocus pass)
-	
+
 	answer <- dialogRun dia
 	case answer of
 		ResponseOk 	-> Just <$> (ServerArg
@@ -78,4 +79,4 @@ newSettingsDialog win colors requirepw GameServer{..} ServerArg{..} = do
 						<*> get name entryText)
 					<* widgetDestroy dia
 		_		-> widgetDestroy dia >> return Nothing
-	
+

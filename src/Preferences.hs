@@ -1,5 +1,7 @@
 module Preferences where
-import Graphics.UI.Gtk
+import Graphics.UI.Gtk hiding (frameNew)
+import GtkExts (frameNew)
+
 import Control.Monad
 import Control.Applicative hiding (empty)
 import Control.Concurrent.STM
@@ -229,7 +231,7 @@ mkInternals = do
 
 framed :: ContainerClass w => String -> w -> IO Frame
 framed title box = do
-	frame	<- newLabeledFrame title
+	frame	<- frameNew (Just title)
 	set box [ containerBorderWidth := spacing ]
 	set frame [ containerChild := box ]
 	return frame

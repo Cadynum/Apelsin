@@ -7,25 +7,27 @@ import Data.List (sortBy)
 import Network.Tremulous.NameInsensitive
 import qualified Network.Tremulous.Protocol as P
 import Network.Tremulous.Util
+import qualified Data.ByteString.Char8 as B
 
 import ClanFetcher
 import Types
 import Config
 import GtkUtils
+import GtkExts
 import TremFormatting
 
 newOnlineClans :: Bundle-> SetCurrent -> IO (ScrolledWindow, ClanPolledHook)
 newOnlineClans Bundle{..} setServer = do
 	Config {colors} <- atomically $ readTMVar mconfig
 
-	raw	<- treeStoreNew []
-	view	<- treeViewNewWithModel raw
+	gen@(GenSimple raw view) <- newGenSimple =<< treeStoreNew []
 
-	treeViewExpandAll view
-	addColumns raw view [
-		  ("Name"	, 0	, True	, True	, True	, showName colors)
-		, ("Server"	, 0	, True	, True	, True	, showServer colors)
-		]
+	addColumn gen "Name" True $ \rend item -> do
+		cellSetMarkup rend (showName colors item)
+		set rend [cellTextEllipsize := EllipsizeEnd]
+	addColumn gen "Server" True $ \rend item -> do
+		cellSetMarkup rend (showServer colors item)
+		set rend [cellTextEllipsize := EllipsizeEnd]
 
 	let updateF clans P.PollResult{..} = do
 		let players = buildTree $ sortByPlayers $
@@ -37,13 +39,13 @@ newOnlineClans Bundle{..} setServer = do
 
 	on view cursorChanged $ do
 		(path, _)	<- treeViewGetCursor view
-		item		<- getElement raw path
+		item		<- getElementPath gen path
 		case item of
 			Left _ -> return ()
 			Right (_, gs) -> setServer False gs
 
 	on view rowActivated $ \path _ -> do
-		item		<- getElement raw path
+		item		<- getElementPath gen path
 		case item of
 			Left _ -> return ()
 			Right (_, gs) -> setServer True gs
@@ -53,12 +55,12 @@ newOnlineClans Bundle{..} setServer = do
 	return (scroll, updateF)
 	where
 	showName colors c =  case c of
-		Left Clan{..}		-> "<b>" ++ htmlEscape (unpackorig name) ++ "</b>"
-		Right (name, _)		-> pangoPretty colors name
+		Left Clan{..}		-> B.concat ["<b>", htmlEscapeBS $ original name, "</b>"]
+		Right (name, _)		-> pangoPrettyBS colors name
 
 	showServer colors c =  case c of
 		Left _ -> ""
-		Right (_, P.GameServer{hostname}) -> pangoPretty colors hostname
+		Right (_, P.GameServer{hostname}) -> pangoPrettyBS colors hostname
 
 
 type PlayerList = [(TI, P.GameServer)]

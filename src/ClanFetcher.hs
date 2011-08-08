@@ -1,4 +1,4 @@
-module ClanFetcher( 
+module ClanFetcher(
 	Clan(..), TagExpr, matchTagExpr, prettyTagExpr, tagExprGet, getClanList, clanListFromCache
 ) where
 
@@ -64,18 +64,18 @@ matchTagExpr expr raw = case expr of
 	TagContained (TI _ xs) (TI _ ys)-> xs `B.isPrefixOf` str && ys `B.isSuffixOf` str
 	where str = cleanedCase raw
 
-prettyTagExpr :: TagExpr -> String
+prettyTagExpr :: TagExpr -> B.ByteString
 prettyTagExpr expr = case expr of
-	TagPrefix bs	-> esc bs ++ wild
-	TagSuffix bs	-> wild ++ esc bs
-	TagInfix bs	-> wild ++ esc bs ++ wild
-	TagContained a b-> esc a ++ wild ++ esc b
+	TagPrefix bs	-> esc bs `B.append` wild
+	TagSuffix bs	-> wild `B.append` esc bs
+	TagInfix bs	-> B.concat [wild, esc bs, wild]
+	TagContained a b-> B.concat [esc a, wild, esc b]
 	where	wild = "<span color=\"#BBB\">*</span>"
-		esc  = htmlEscape . B.unpack . original
+		esc  = htmlEscapeBS . original
 
 
 rawToClan :: L.ByteString -> IO (Maybe [Clan])
-rawToClan = fmap sequence . mapM (f . B.split '\t' . lazyToStrict) . P.filter (not . L.null) . L.split '\n' where 
+rawToClan = fmap sequence . mapM (f . B.split '\t' . lazyToStrict) . P.filter (not . L.null) . L.split '\n' where
 	f [_, rname, _, website, irc, rexpr, rserver]
 		| Just tagexpr <- mkTagExpr rexpr
 		= do
@@ -84,7 +84,7 @@ rawToClan = fmap sequence . mapM (f . B.split '\t' . lazyToStrict) . P.filter (n
 			clanserver <- if B.null ip || B.null port
 				then return Nothing
 				else getDNS (B.unpack ip) (B.unpack port)
-			return $ Just Clan { name = mk rname, .. }
+			return $ Just Clan { name = mkAlphaNum rname, .. }
 	f _	= return Nothing
 
 getClanList :: String -> IO (Maybe [Clan])
@@ -98,17 +98,17 @@ getClanList url = do
 			when (isJust clans) $
 				L.writeFile file raw
 			return clans
-			
+
 
 clanListFromCache :: IO [Clan]
 clanListFromCache = handle err $ do
 	file <- inCacheDir "clans"
 	fromMaybe [] <$> (rawToClan =<< L.readFile file)
 	where
-	err (_ :: IOException) = return [] 
-	
+	err (_ :: IOException) = return []
 
-lazyToStrict :: L.ByteString -> B.ByteString		
+
+lazyToStrict :: L.ByteString -> B.ByteString
 lazyToStrict = B.concat . toChunks
 
 

@@ -23,7 +23,7 @@ mread :: (Read a) => String -> Maybe a
 mread x = case reads x of
 	[(a, _)]	-> Just a
 	_		-> Nothing
-	
+
 split :: Eq a => (a -> Bool) -> [a] -> [[a]]
 split func s = case drop 1 s of
 	[] -> []

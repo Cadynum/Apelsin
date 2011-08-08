@@ -5,7 +5,6 @@ import Control.Applicative
 import Control.Monad.IO.Class
 import Control.Monad
 import Data.Char (toLower)
-import qualified Data.Set as S
 import Network.Socket
 import Network.Tremulous.Protocol
 import System.FilePath (joinPath)
@@ -33,9 +32,9 @@ main = withSocketsDo $ do
 	config		<- configFromFile
 	cacheclans	<- clanListFromCache
 	settings	<- ISS.fromFile
-	
+
 	bundle	<-	(do
-			mpolled		<- atomically $ newTMVar (PollResult [] 0 0 S.empty)
+			mpolled		<- atomically $ newTMVar (PollResult [] 0 0)
 			mconfig		<- atomically $ newTMVar config
 			mclans		<- atomically $ newTMVar cacheclans
 			browserStore	<- listStoreNew []
@@ -70,7 +69,7 @@ main = withSocketsDo $ do
 	leftView <- vBoxNew False 0
 	boxPackStart leftView toolbar PackNatural 0
 	boxPackStart leftView book PackGrow 0
-	
+
 
 	pane <- hPanedNew
 	panedPack1 pane leftView True False
@@ -94,7 +93,7 @@ main = withSocketsDo $ do
 			["16", "32", "48", "64"]
 		icons <- mapM pixbufNewFromFile list
 		set win [ windowIconList := icons]
-	
+
 	-- Without allowshrink the window may change size back and forth when selecting new servers
 	set win [ containerChild	:= pane
 		, windowTitle		:= fullProgramName

@@ -9,6 +9,7 @@ import Data.IORef
 import Network.Tremulous.NameInsensitive
 import Network.Tremulous.ByteStringUtils
 import qualified Network.Tremulous.Protocol as P
+import qualified Network.Tremulous.StrictMaybe as SM
 import Network.Tremulous.Util
 
 import Types
@@ -17,15 +18,14 @@ import Constants
 import FilterBar
 import InfoBox
 import GtkUtils
+import GtkExts
 import Monad2
 
 
 newClanList :: Bundle -> [Clan] -> SetCurrent -> IO (VBox, ClanPolledHook)
 newClanList Bundle{..} cache setCurrent = do
-	raw			<- listStoreNew []
-	filtered		<- treeModelFilterNew raw []
-	sorted			<- treeModelSortNewWithModel filtered
-	view			<- treeViewNewWithModel sorted
+	gen@(GenFilterSort raw filtered sorted view) 
+		<- newGenFilterSort =<< listStoreNew []
 	scrollview		<- scrollIt view PolicyAutomatic PolicyAlways
 
 	(infobox, statNow, statTot) <- newInfobox "clans"
@@ -39,40 +39,39 @@ newClanList Bundle{..} cache setCurrent = do
 		listStoreClear raw
 		treeViewColumnsAutosize view
 		mapM_ (listStoreAppend raw) new
-		treeModelFilterRefilter filtered
-		set statTot [ labelText := show (length new) ]
-		n <- treeModelIterNChildren filtered Nothing
-		set statNow [ labelText := show n ]
+		labelSetText statTot . show =<< treeModelIterNChildren raw Nothing
+		labelSetText statNow . show =<< treeModelIterNChildren filtered Nothing
 
-	addColumnsFilterSort raw filtered sorted view 1 SortAscending 
-		[ (""		, False	, RendPixbuf haveServer
-			, Just (comparing (isJust . clanserver . fst)))
-		, ("_Name"	, False	, RendText (simpleColumn (unpackorig . name))
-			, Just (comparing (name . fst)))
-		, ("_Tag"	, False	, RendText (markupColumn (prettyTagExpr . tagexpr))
-			, Just (comparing (tagexpr . fst)))
-		, ("Website"	, False	, RendText (simpleColumn (B.unpack . showURL . website))
-			, Nothing)
-		, ("IRC"	, False , RendText (simpleColumn (B.unpack . irc))
-			, Nothing)
-		]
+	addColumnFS gen "" False (Just $ comparing $ isJust . clanserver . fst)
+		cellRendererPixbufNew haveServer
+	addColumnFS gen "_Name" False (Just $ comparing $ name . fst)
+		cellRendererTextNew (simpleColumn (original . name))
+	addColumnFS gen "_Tag" False (Just $ comparing $ tagexpr . fst)
+		cellRendererTextNew (markupColumn (prettyTagExpr . tagexpr))
+	addColumnFS gen "Website" False Nothing
+		cellRendererTextNew (simpleColumn (showURL . website))
+	addColumnFS gen "IRC" False Nothing
+		cellRendererTextNew (simpleColumn irc)
+
+	treeSortableSetSortColumnId sorted 1 SortAscending
+		
 
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
 		(Clan{..}, _)	<- treeModelGetRow raw iter
 		s		<- readIORef current
-		let cmplist	= [ cleanedCase name, cleanedCase (tagExprGet tagexpr) ]
-		return $ smartFilter s cmplist
+		return $ smartFilter s	[ cleanedCase name
+					, cleanedCase (tagExprGet tagexpr) ]
 
 	on view cursorChanged $ do
 		(path, _)		<- treeViewGetCursor view
-		(Clan{..}, active)	<- getElementFS raw sorted filtered path
+		(Clan{..}, active)	<- getElementPath gen path
 		
 		when active $ whenJust clanserver $ \server -> do
 			P.PollResult{..} <- atomically $ readTMVar mpolled
 			whenJust (serverByAddress server polled) (setCurrent False)
 
 	on view rowActivated $ \path _ -> do
-		(Clan{..}, _) <- getElementFS raw sorted filtered path
+		(Clan{..}, _) <- getElementPath gen path
 		unless (B.null website) $
 			openInBrowser (B.unpack website)
 
@@ -86,9 +85,9 @@ newClanList Bundle{..} cache setCurrent = do
 
 	return (box, updateF)
 	where
-	showURL x = fromMaybe x (stripPrefix "http://" x)
-	markupColumn f (item, _) = [ cellTextMarkup := Just (f item) ]
-	simpleColumn f (item, _) = [ cellText := f item ]
-	haveServer (Clan{..}, active) = case clanserver of
+	showURL x = SM.fromMaybe x (stripPrefix "http://" x)
+	markupColumn f rend (item, _) = cellSetMarkup rend (f item)
+	simpleColumn f rend (item, _) = cellSetText rend (f item)
+	haveServer rend (Clan{..}, active) = set rend $case clanserver of
 		Just _	-> [cellPixbufStockId := stockNetwork, cellSensitive := active]
 		Nothing	-> [cellPixbufStockId := ""]
