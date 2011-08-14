@@ -5,7 +5,7 @@ import Data.IORef
 import qualified Data.ByteString.Char8 as B
 import Data.ByteString.Char8 (ByteString)
 import Data.Char hiding (Control)
-import Control.Monad
+import Control.Applicative
 import Control.Monad.IO.Class
 import Network.Tremulous.ByteStringUtils as B
 
@@ -43,11 +43,11 @@ newFilterBar win filtered stat initial  = do
 
 	on win keyPressEvent $ do
 		s	<- eventModifier
-		k	<- map toLower `fmap` eventKeyName
+		k	<- fromIntegral . keyvalToLower <$> eventKeyVal
 		b 	<- liftIO $ widgetGetMapped ent
-		let p	= s == [Control] && b && (k == "f" || k == "l")
-		when p (liftIO (widgetGrabFocus ent))
-		return p
+		if b && s == [Control] && (k == ord 'f' || k == ord 'l')
+			then liftIO (widgetGrabFocus ent) >> return True
+			else return False
 
 	-- Focus on start
 	on ent showSignal $ widgetGrabFocus ent

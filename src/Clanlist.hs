@@ -24,7 +24,7 @@ import Monad2
 
 newClanList :: Bundle -> [Clan] -> SetCurrent -> IO (VBox, ClanPolledHook)
 newClanList Bundle{..} cache setCurrent = do
-	gen@(GenFilterSort raw filtered sorted view) 
+	gen@(GenFilterSort raw filtered sorted view)
 		<- newGenFilterSort =<< listStoreNew []
 	scrollview		<- scrollIt view PolicyAutomatic PolicyAlways
 
@@ -43,18 +43,19 @@ newClanList Bundle{..} cache setCurrent = do
 		labelSetText statNow . show =<< treeModelIterNChildren filtered Nothing
 
 	addColumnFS gen "" False (Just $ comparing $ isJust . clanserver . fst)
-		cellRendererPixbufNew haveServer
+		cellRendererPixbufNew [] haveServer
 	addColumnFS gen "_Name" False (Just $ comparing $ name . fst)
-		cellRendererTextNew (simpleColumn (original . name))
+		cellRendererTextNew [] (simpleColumn (original . name))
 	addColumnFS gen "_Tag" False (Just $ comparing $ tagexpr . fst)
-		cellRendererTextNew (markupColumn (prettyTagExpr . tagexpr))
+		cellRendererTextNew [] (markupColumn (prettyTagExpr . tagexpr))
 	addColumnFS gen "Website" False Nothing
-		cellRendererTextNew (simpleColumn (showURL . website))
+		cellRendererTextNew webMarkup $ \rend (Clan{..},_) -> do
+			cellSetText rend (showURL website)
 	addColumnFS gen "IRC" False Nothing
-		cellRendererTextNew (simpleColumn irc)
+		cellRendererTextNew [] (simpleColumn irc)
 
 	treeSortableSetSortColumnId sorted 1 SortAscending
-		
+
 
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
 		(Clan{..}, _)	<- treeModelGetRow raw iter
@@ -63,29 +64,39 @@ newClanList Bundle{..} cache setCurrent = do
 					, cleanedCase (tagExprGet tagexpr) ]
 
 	on view cursorChanged $ do
-		(path, _)		<- treeViewGetCursor view
+		(path, col)		<- treeViewGetCursor view
 		(Clan{..}, active)	<- getElementPath gen path
-		
+		title			<- maybe (return Nothing) treeViewColumnGetTitle col
+
+		when (title == Just "Website" && (not . B.null) website) $
+			openInBrowser (B.unpack website)
+
 		when active $ whenJust clanserver $ \server -> do
 			P.PollResult{..} <- atomically $ readTMVar mpolled
 			whenJust (serverByAddress server polled) (setCurrent False)
 
-	on view rowActivated $ \path _ -> do
-		(Clan{..}, _) <- getElementPath gen path
-		unless (B.null website) $
-			openInBrowser (B.unpack website)
+	on view rowActivated $ \path col -> do
+		(Clan{..}, active) <- getElementPath gen path
+		title <- treeViewColumnGetTitle  col
+		case title of
+			Just "Website" -> return ()
+			_ -> when active $ whenJust clanserver $ \server -> do
+				P.PollResult{..} <- atomically $ readTMVar mpolled
+				whenJust (serverByAddress server polled) (setCurrent True)
 
 	box <- vBoxNew False 0
 	boxPackStart box filterbar PackNatural spacing
 	boxPackStart box scrollview PackGrow 0
 	boxPackStart box infobox PackNatural 0
 
-	
+
 	updateF cache =<< atomically (readTMVar mpolled)
 
 	return (box, updateF)
 	where
 	showURL x = SM.fromMaybe x (stripPrefix "http://" x)
+	webMarkup =	[ cellTextUnderline       := UnderlineSingle
+			, cellTextForegroundColor := Color 0 0 maxBound ]
 	markupColumn f rend (item, _) = cellSetMarkup rend (f item)
 	simpleColumn f rend (item, _) = cellSetText rend (f item)
 	haveServer rend (Clan{..}, active) = set rend $case clanserver of

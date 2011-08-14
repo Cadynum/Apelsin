@@ -22,12 +22,10 @@ newOnlineClans Bundle{..} setServer = do
 
 	gen@(GenSimple raw view) <- newGenSimple =<< treeStoreNew []
 
-	addColumn gen "Name" True $ \rend item -> do
-		cellSetMarkup rend (showName colors item)
-		set rend [cellTextEllipsize := EllipsizeEnd]
-	addColumn gen "Server" True $ \rend item -> do
-		cellSetMarkup rend (showServer colors item)
-		set rend [cellTextEllipsize := EllipsizeEnd]
+	addColumn gen "Name" True [cellTextEllipsize := EllipsizeEnd] $ \rend ->
+		cellSetMarkup rend . showName colors
+	addColumn gen "Server" True [cellTextEllipsize := EllipsizeEnd] $ \rend ->
+		cellSetMarkup rend . showServer colors
 
 	let updateF clans P.PollResult{..} = do
 		let players = buildTree $ sortByPlayers $

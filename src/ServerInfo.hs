@@ -90,6 +90,28 @@ newServerInfo Bundle{..} mupdate = do
 	boxPackStart allplayers alienshumans PackGrow 0
 	boxPackStart allplayers sscroll PackNatural 0
 
+	Requisition _ natural	<- widgetSizeRequest sscroll
+	on allplayers sizeAllocate $ \(Rectangle _ _ _ h') -> do
+		let h = h' - spacing
+		Requisition _ sReq	<- widgetSizeRequest sview
+		Requisition _ aReq	<- widgetSizeRequest aview
+		Requisition _ hReq	<- widgetSizeRequest hview
+		let setS play spec = do
+			widgetSetSizeRequest ascroll (-1) play
+			widgetSetSizeRequest hscroll (-1) play
+			widgetSetSizeRequest sscroll (-1) spec
+		let pReq = max hReq aReq
+
+		if natural * 2 > h then
+			let half = max 0 (h`div`2) in setS half half
+		else if (max sReq natural) + pReq + spacing <= h then
+			setS (-1) (max sReq natural)
+		else do
+			let ratio	= fromIntegral pReq / (fromIntegral sReq + fromIntegral pReq) :: Double
+			    pNew	= max natural (round (ratio * fromIntegral h))
+			    sNew	= max natural (h - pNew)
+			setS pNew sNew
+
 	-- Action buttons
 	serverbuttons <- hButtonBoxNew
 	buttonBoxSetLayout serverbuttons ButtonboxSpread
@@ -102,7 +124,7 @@ newServerInfo Bundle{..} mupdate = do
 
 	st 	<- action "_Settings" stockProperties
 	refresh	<- action "_Refresh" stockRefresh
-	join	<- action"_Join" stockConnect
+	join	<- action "_Join" stockConnect
 
 	-- Packing
 	rightpane <- vBoxNew False spacing
@@ -195,8 +217,6 @@ newServerInfo Bundle{..} mupdate = do
 			treeViewColumnsAutosize aview
 			treeViewColumnsAutosize hview
 			treeViewColumnsAutosize sview
-			Requisition _ sReq	<- widgetSizeRequest sview
-			set sscroll [ widgetHeightRequest := min 300 sReq ]
 			widgetShow allplayers
 			widgetHide uscroll
 		else do
@@ -291,15 +311,12 @@ playerView colors teamName showScore = do
 	gen@(GenSimple _ view) <- newGenSimple =<< listStoreNew []
 	select <- treeViewGetSelection view
 	treeSelectionSetMode select SelectionNone
-	addColumn gen teamName True $ \rend item -> do
-		cellSetMarkup rend $ pangoPrettyBS colors $ name item
-		set rend [cellTextEllipsize := EllipsizeEnd]
+	addColumn gen teamName True [cellTextEllipsize := EllipsizeEnd] $ \rend ->
+		cellSetMarkup rend . pangoPrettyBS colors . name
 	when showScore $ do
-		addColumn gen "Score" False $ \rend item -> do
-			set rend 	[ cellText	:= show $ kills item
-					, cellXAlign	:= 1 ]
+		addColumn gen "Score" False [cellXAlign := 1] $ \rend item -> do
+			set rend  [cellText := show $ kills item]
 		return ()
-	addColumn gen "Ping" False $ \rend item -> do
-			set rend 	[ cellText	:= show $ ping item
-					, cellXAlign	:= 1 ]
+	addColumn gen "Ping" False [cellXAlign := 1] $ \rend item ->
+			set rend [ cellText := show $ ping item]
 	return gen

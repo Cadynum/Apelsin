@@ -11,7 +11,7 @@ scrollIt widget pol1 pol2 = do
 	scrolledWindowSetPolicy scroll pol1 pol2
 	containerAdd scroll widget
 	return scroll
-	
+
 scrollItV widget pol1 pol2 = do
 	scroll <- scrolledWindowNew Nothing Nothing
 	scrolledWindowSetPolicy scroll pol1 pol2
@@ -50,7 +50,7 @@ data GenCellRend i	= RendText2 ByteString (i -> [AttrOp CellRendererText])
 			| RendMarkup ByteString (i -> [AttrOp CellRendererText])
 			| RendPixbuf2 (i -> [AttrOp CellRendererPixbuf])
 
-data GenSimple store a where 
+data GenSimple store a where
 	GenSimple	:: (TypedTreeModelClass store, TreeModelClass (store a))
 			=> !(store a)
 			-> !TreeView
@@ -65,14 +65,14 @@ data GenFilterSort store a where
 			-> !TreeView
 			-> GenFilterSort store a
 
-newGenSimple :: (TypedTreeModelClass store, TreeModelClass (store a)) 
+newGenSimple :: (TypedTreeModelClass store, TreeModelClass (store a))
              => store a
              -> IO (GenSimple store a)
 newGenSimple store = do
 	view	<- treeViewNewWithModel store
 	return (GenSimple store view)
 
-newGenFilterSort :: (TypedTreeModelClass store, TreeModelClass (store a)) 
+newGenFilterSort :: (TypedTreeModelClass store, TreeModelClass (store a))
              => store a
              -> IO (GenFilterSort store a)
 newGenFilterSort  store = do
@@ -82,28 +82,35 @@ newGenFilterSort  store = do
 	treeSortableSetDefaultSortFunc sorted Nothing
 	return (GenFilterSort store filtered sorted view)
 
-addColumn :: GenSimple a e -> String -> Bool -> (CellRendererText -> e -> IO ()) -> IO Int
-addColumn gen@(GenSimple store view) title expand f = do
+addColumn :: GenSimple a e -> String -> Bool -> [AttrOp CellRendererText] -> (CellRendererText -> e -> IO ()) -> IO Int
+addColumn gen@(GenSimple store view) title expand rendOpts f = do
 	col <- treeViewColumnNew
 	set col	[ treeViewColumnTitle := title
 		, treeViewColumnExpand := expand ]
 	rend <- cellRendererTextNew
+	set rend rendOpts
+	set rend [cellTextEllipsize := EllipsizeEnd]
 	cellLayoutPackStart col rend True
 	cellLayoutSetAttributeFunc col rend store $ \iter -> do
 		item <- getElementIter gen iter
 		f rend item
 	treeViewAppendColumn view col
 
-addColumnFS :: CellRendererClass rend => GenFilterSort a e 
-	-> String -> Bool
+addColumnFS :: CellRendererClass rend
+	=> GenFilterSort a e
+	-> String
+	-> Bool
 	-> Maybe (e -> e -> Ordering)
-	-> IO rend -> (rend -> e -> IO ())
+	-> IO rend
+	-> [AttrOp rend]
+	-> (rend -> e -> IO ())
 	-> IO ()
-addColumnFS gen@(GenFilterSort store filtered sorted view) title expand sortf mkRend f = do
+addColumnFS gen@(GenFilterSort store filtered sorted view) title expand sortf mkRend rendOpts f = do
 	col <- treeViewColumnNew
 	set col	[ treeViewColumnTitle := title
 		, treeViewColumnExpand := expand ]
 	rend <- mkRend
+	set rend rendOpts
 	cellLayoutPackStart col rend True
 	cellLayoutSetAttributeFunc col rend sorted $ \iter -> do
 		item <- getElementIter gen iter
@@ -120,10 +127,10 @@ addColumnFS gen@(GenFilterSort store filtered sorted view) title expand sortf mk
 
 
 getIterUnsafe :: TreeModelClass self => self -> TreePath -> IO TreeIter
-getIterUnsafe model path = 
+getIterUnsafe model path =
 	fromMaybe (error "getElement: Imposssible error") <$> treeModelGetIter model path
 
-	
+
 gtkPopup :: MessageType -> String -> IO ()
 gtkPopup what str = do
 	a <- messageDialogNew Nothing [DialogDestroyWithParent, DialogModal]

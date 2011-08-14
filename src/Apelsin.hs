@@ -1,10 +1,9 @@
 import Graphics.UI.Gtk
 import System.Glib.GError
 
-import Control.Applicative
 import Control.Monad.IO.Class
 import Control.Monad
-import Data.Char (toLower)
+import Data.Char (ord)
 import Network.Socket
 import Network.Tremulous.Protocol
 import System.FilePath (joinPath)
@@ -17,6 +16,7 @@ import Constants
 import ServerInfo
 import ServerBrowser
 import FindPlayers
+import Favorites
 import Clanlist
 import OnlineClans
 import ClanFetcher
@@ -47,6 +47,7 @@ main = withSocketsDo $ do
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle mupdate
 	(browser, browserUpdate)		<- newServerBrowser bundle currentSet
 	(findPlayers, findUpdate)		<- newFindPlayers bundle currentSet
+	favorites				<- newFavorites bundle currentSet
 	(clanlist, clanlistUpdate)		<- newClanList bundle cacheclans currentSet
 	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet
 
@@ -63,6 +64,7 @@ main = withSocketsDo $ do
 	book <- notebookNew
 	notebookAppendPage book browser		"Browser"
 	notebookAppendPage book findPlayers	"Find players"
+	notebookAppendPage book favorites	"Favorites"
 	notebookAppendPage book onlineclans	"Online clans"
 	notebookAppendPage book clanlist	"Clan list"
 	notebookAppendPage book preferences	"Preferences"
@@ -116,14 +118,11 @@ main = withSocketsDo $ do
 				, widgetWidthRequest	:= max (minw+panebuf) winw ]
 	widgetShowAll win
 
-	on win keyPressEvent $  do
+	on win keyPressEvent $ do
 		kmod	<- eventModifier
-		k	<- map toLower <$> eventKeyName
-		case kmod of
-			[Alt]	| Just page <- mread k
-				, page >= 1
-				, page <= 5
-				-> do	liftIO (set book [ notebookPage := page - 1])
-					return True
-			_ -> return False
+		k	<- eventKeyVal
+		let page = fromIntegral k - ord '0' - 1
+		if kmod == [Alt] && page >= 0 && page <= 5
+			then liftIO (notebookSetCurrentPage book page) >> return True
+			else return False
 	mainGUI

@@ -18,20 +18,13 @@ import Config
 
 
 newFindPlayers :: Bundle -> SetCurrent -> IO (VBox, PolledHook)
-newFindPlayers Bundle{..} setServer = do
+newFindPlayers bundle@Bundle{..} setServer = do
 	Config {..} <- atomically $ readTMVar mconfig
-	gen@(GenFilterSort raw filtered sorted view) <- newGenFilterSort playerStore
-	
-	addColumnFS gen "_Name" True (Just (comparing fst))
-		cellRendererTextNew (simpleColumn colors fst)
-	addColumnFS gen "_Server" True (Just (comparing (hostname . snd)))
-		cellRendererTextNew (simpleColumn colors (hostname . snd))
+	(GenFilterSort raw filtered _ view) <- playerLikeList bundle setServer
 
-	treeSortableSetSortColumnId sorted playersSort playersOrder
-	
 	(infobox, statNow, statTot)	<- newInfobox "players"
 	(filterbar, current)		<- newFilterBar parent filtered statNow filterPlayers
-	
+
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
 		(item, GameServer{..}) <- treeModelGetRow raw iter
 		s <- readIORef current
@@ -40,31 +33,47 @@ newFindPlayers Bundle{..} setServer = do
 				, proto2string protocol
 				, SM.maybe "" cleanedCase gamemod
 				]
-		
+
 	let updateFilter PollResult{..} = do
 		listStoreClear raw
 		mapM_ (listStoreAppend raw) (makePlayerNameList polled)
 		labelSetText statTot . show =<< treeModelIterNChildren raw Nothing
 		labelSetText statNow . show =<< treeModelIterNChildren filtered Nothing
 
-	on view cursorChanged $ do
-		(path, _) <- treeViewGetCursor view
-		setServer False . snd =<< getElementPath gen path
-
-	on view rowActivated $ \path _ -> do
-		setServer True . snd =<< getElementPath gen path
-
 	scroll <- scrollIt view PolicyAutomatic PolicyAlways
-	
+
 	box <- vBoxNew False 0
 	boxPackStart box filterbar PackNatural spacing
 	boxPackStart box scroll PackGrow 0
 	boxPackStart box infobox PackNatural 0
-	
+
 	return (box, updateFilter)
-	where simpleColumn colors f rend item = do
-		set rend [cellTextEllipsize := EllipsizeEnd]
-		cellSetMarkup rend $ pangoPrettyBS colors (f item)
+
+playerLikeList :: Bundle -> SetCurrent -> IO (GenFilterSort ListStore (TI, GameServer))
+playerLikeList Bundle{..} setCurrent= do
+	Config {..} <- atomically $ readTMVar mconfig
+	gen@(GenFilterSort _ _ sorted view) <- newGenFilterSort playerStore
+
+	addColumnFS gen "_Name" True (Just (comparing fst))
+		cellRendererTextNew
+		[cellTextEllipsize := EllipsizeEnd]
+		(\rend -> cellSetMarkup rend . pangoPrettyBS colors . fst)
+
+	addColumnFS gen "_Server" True (Just (comparing (hostname . snd)))
+		cellRendererTextNew
+		[cellTextEllipsize := EllipsizeEnd]
+		(\rend -> cellSetMarkup rend . pangoPrettyBS colors . hostname . snd)
+
+	treeSortableSetSortColumnId sorted playersSort playersOrder
+
+	on view cursorChanged $ do
+		(path, _) <- treeViewGetCursor view
+		setCurrent False . snd =<< getElementPath gen path
+
+	on view rowActivated $ \path _ -> do
+		setCurrent True . snd =<< getElementPath gen path
+
+	return gen
 
 
 playerUpdateOne :: PlayerStore -> GameServer -> IO ()
@@ -79,4 +88,4 @@ playerUpdateOne raw gs = do
 	foldPlayers (n:ns) []     = listStoreAppend raw n     >> foldPlayers ns []
 	foldPlayers []     []     = return ()
 
-	
+

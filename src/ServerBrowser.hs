@@ -22,20 +22,34 @@ newServerBrowser Bundle{..} setServer = do
 	Config {..}	<- atomically $ readTMVar mconfig
 	gen@(GenFilterSort raw filtered sorted view) <- newGenFilterSort browserStore
 
-	addColumnFS gen "_Game" False (Just (comparing (\x -> (protocol x, gamemod x))))
-		cellRendererTextNew (simpleColumn showGame)
+	addColumnFS gen "_Game" False
+		(Just (comparing (\x -> (protocol x, gamemod x))))
+		cellRendererTextNew
+		[]
+		(\rend -> cellSetText rend . showGame)
+
 	addColumnFS gen "_Name" True (Just (comparing hostname))
-		cellRendererTextNew (hostnameColumn colors)
+		cellRendererTextNew
+		[cellTextEllipsize := EllipsizeEnd]
+		(\rend -> cellSetMarkup rend . pangoPrettyBS colors . hostname)
+
 	addColumnFS gen "_Map" False (Just (comparing mapname))
-		cellRendererTextNew (simpleColumn $ B.take 16 . original . mapname)
+		cellRendererTextNew []
+		(\rend -> cellSetText rend . B.take 16 . original . mapname)
+
 	addColumnFS gen "P_ing" False (Just (comparing gameping))
-		cellRendererTextNew (intColumn (show . gameping))
+		cellRendererTextNew
+		[cellXAlign := 1]
+		(\rend x -> set rend [cellText := show $ gameping x])
+
 	addColumnFS gen "_Players" False (Just (comparing nplayers))
-		cellRendererTextNew (intColumn showPlayers)
-	
+		cellRendererTextNew
+		[cellXAlign := 1]
+		(\rend x -> set rend [cellText := showPlayers x])
+
 
 	treeSortableSetSortColumnId sorted browserSort browserOrder
-	
+
 	(infobox, statNow, statTot, statRequested) <- newInfoboxBrowser
 
 	(filterbar, current) <- newFilterBar parent filtered statNow filterBrowser
@@ -58,18 +72,18 @@ newServerBrowser Bundle{..} setServer = do
 				, proto2string protocol
 				, SM.maybe "" cleanedCase gamemod
 				])
-			
+
 	on view cursorChanged $ do
 		(path, _) <- treeViewGetCursor view
 		setServer False =<< getElementPath gen path
 
 	on view rowActivated $ \path _ ->
 		setServer True =<< getElementPath gen path
-		
+
 	scrollview <- scrolledWindowNew Nothing Nothing
 	scrolledWindowSetPolicy scrollview PolicyNever PolicyAlways
 	containerAdd scrollview view
-	
+
 	let updateF PollResult{..} = do
 		listStoreClear raw
 		treeViewColumnsAutosize view
@@ -77,21 +91,16 @@ newServerBrowser Bundle{..} setServer = do
 		labelSetText statTot       $ show serversResponded
 		labelSetText statRequested $ show (serversRequested - serversResponded)
 		labelSetText statNow . show =<< treeModelIterNChildren filtered Nothing
-		
+
 	box <- vBoxNew False 0
 	boxPackStart box filterbar PackNatural spacing
 	boxPackStart box scrollview PackGrow 0
 	boxPackStart box infobox PackNatural 0
-	
+
 	return (box, updateF)
 	where
 	showGame GameServer{..} = B.concat (proto2string protocol : SM.maybe [] ((\x -> ["-",x]) . original) gamemod)
 	showPlayers GameServer{..} = printf "%d / %2d" nplayers slots
-	hostnameColumn colors rend item = do
-		set rend [cellTextEllipsize := EllipsizeEnd]
-		cellSetMarkup rend (pangoPrettyBS colors (hostname item))
-	intColumn f rend item = set rend [ cellText := f item , cellXAlign := 1 ]
-	simpleColumn f rend item = cellSetText rend (f item)
 
 browserUpdateOne :: BrowserStore -> GameServer -> IO ()
 browserUpdateOne raw gs = treeModelForeach raw $ \iter -> do
