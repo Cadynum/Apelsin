@@ -41,11 +41,11 @@ newPreferences Bundle{..} = do
 	startupClan	<- checkButtonNewWithMnemonic "_Sync clan list"
 	startupGeometry	<- checkButtonNewWithMnemonic "Restore _window geometry from previous session"
 	startupBox <- vBoxNew False 0
-	boxPackStartDefaults startupBox startupMaster	
+	boxPackStartDefaults startupBox startupMaster
 	boxPackStartDefaults startupBox startupClan
 	boxPackStartDefaults startupBox startupGeometry
-	startup <- framed "On startup" startupBox 
-			
+	startup <- framed "On startup" startupBox
+
 
 	-- Colors
 	(colorTbl, colorList) <- numberedColors
@@ -64,7 +64,7 @@ newPreferences Bundle{..} = do
 	ibox <- vBoxNew False spacing
 	boxPackStart ibox itbl PackNatural 0
 	boxPackStart ibox ilbl PackNatural 0
-	
+
 	internals <- framed "Polling Internals" ibox
 
 	-- Apply
@@ -94,7 +94,7 @@ newPreferences Bundle{..} = do
 		packetTimeout	<- (*1000) <$> spinButtonGetValueAsInt itimeout
 		packetDuplication	<- spinButtonGetValueAsInt iresend
 		throughputDelay	<- (*1000) <$> spinButtonGetValueAsInt ibuf
-		
+
 		rawcolors	<- forM colorList $ \(colb, cb) -> do
 					bool <- get cb toggleButtonActive
 					(if bool then TFColor else TFNone)
@@ -108,7 +108,7 @@ newPreferences Bundle{..} = do
 		atomically $ putTMVar mconfig new
 		configToFile new
 		return ()
-	
+
 	-- Main box
 
 	box <- vBoxNew False spacing
@@ -139,7 +139,7 @@ newPreferences Bundle{..} = do
 		set itimeout		[ spinButtonValue := fromIntegral (packetTimeout delays `div` 1000) ]
 		set iresend		[ spinButtonValue := fromIntegral (packetDuplication delays) ]
 		set ibuf		[ spinButtonValue := fromIntegral (throughputDelay delays `div` 1000) ]
-		
+
 		zipWithM_ f colorList (elems colors)
 		where	f (a, b) (TFColor c) = do
 				colorButtonSetColor a (hexToColor c)
@@ -149,10 +149,10 @@ newPreferences Bundle{..} = do
 				toggleButtonSetActive b False
 				-- Apparently this is needed too
 				toggleButtonToggled b
-				
+
 	on cancel buttonActivated updateF
 	updateF
-		
+
 	scrollItV box PolicyNever PolicyAutomatic
 
 conv :: (Enum a, Enum b) => a -> b
@@ -164,30 +164,30 @@ configTable ys = do
 	empty <- checkButtonNewWithMnemonic "_empty"
 	let easyAttach pos (lbl, sorts)  = do
 		a <- labelNewWithMnemonic lbl
-		
+
 		ent <- entryNew
 		b <- hBoxNew False spacingHalf
 		boxPackStart b ent PackGrow 0
-		when (pos == 0) $ 
+		when (pos == 0) $
 			boxPackStart b empty PackNatural 0
-			
+
 		c <- comboBoxNewText
 		zipWithM (comboBoxInsertText c) [0..] sorts
 		d <- arrowButton
 		cB <- hBoxNew False 0
 		boxPackStart cB c PackGrow 0
 		boxPackStart cB d PackNatural 0
-		
+
 		set c [widgetTooltipText := Just "Sort by"]
-		set d [widgetTooltipText := Just "Sorting order"]				
+		set d [widgetTooltipText := Just "Sorting order"]
 		set a [ labelMnemonicWidget := b ]
 		miscSetAlignment a 0 0.5
 		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] 0 0
 		tableAttach tbl b 1 2 pos (pos+1) [Expand, Fill] [] 0 0
 		tableAttach tbl cB 2 3 pos (pos+1) [Fill] [] 0 0
-						
+
 		return (ent, c, d)
-	
+
 	rt <- zipWithM easyAttach [0..] ys
 	return (tbl, rt, empty)
 
@@ -221,8 +221,8 @@ mkInternals = do
 		tableAttach tbl b 1 2 pos (pos+1) [Fill] [] 0 0
 		tableAttach tbl c 2 3 pos (pos+1) [Fill] [] 0 0
 		return b
-		
-	let mkTable = zipWithM easyAttach [0..] 
+
+	let mkTable = zipWithM easyAttach [0..]
 	rt <- mkTable	[ ("Respo_nse Timeout:", "ms", "How long Apelsin should wait before sending a new request to a server possibly not responding")
 			, ("Maximum packet _duplication:", "times", "Maximum number of extra requests to send beoynd the initial one if a server does not respond" )
 			, ("Throughput _limit:", "ms", "Should be set as low as possible as long as pings from \"Refresh all servers\" remains the same as \"Refresh current\"") ]
@@ -235,7 +235,7 @@ framed title box = do
 	set box [ containerBorderWidth := spacing ]
 	set frame [ containerChild := box ]
 	return frame
-	
+
 numberedColors :: IO (Table, [(ColorButton, CheckButton)])
 numberedColors = do
 	tbl <- paddedTableNew
@@ -243,9 +243,8 @@ numberedColors = do
 		a <- labelNew (Just lbl)
 		b <- colorButtonNew
 		c <- checkButtonNew
-		on c toggled $ do
-			bool <- get c toggleButtonActive
-			set b [ widgetSensitive := bool ]
+		on c toggled $
+			widgetSetSensitive b =<< toggleButtonGetActive c
 		miscSetAlignment a 0.5 0
 		tableAttach tbl a pos (pos+1) 0 1 [Fill] [] 0 0
 		tableAttach tbl b pos (pos+1) 1 2 [Fill] [] 0 0
@@ -266,8 +265,8 @@ pathSelectionEntryNew parent = do
 
 	boxPackStart box ent PackGrow 0
 	boxPackStart box button PackNatural 0
-	
-		
+
+
 	on button buttonActivated $ do
 		fc	<- fileChooserDialogNew (Just "Select path") (Just parent) FileChooserActionOpen
 			[ (stockCancel, ResponseCancel)
@@ -283,8 +282,8 @@ pathSelectionEntryNew parent = do
 						set ent [ entryText := path ]
 			_-> return ()
 		widgetDestroy fc
-		
-	
+
+
 	return (box, ent)
 
 paddedTableNew :: IO Table

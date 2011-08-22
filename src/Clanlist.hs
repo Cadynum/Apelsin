@@ -99,6 +99,6 @@ newClanList Bundle{..} cache setCurrent = do
 			, cellTextForegroundColor := Color 0 0 maxBound ]
 	markupColumn f rend (item, _) = cellSetMarkup rend (f item)
 	simpleColumn f rend (item, _) = cellSetText rend (f item)
-	haveServer rend (Clan{..}, active) = set rend $case clanserver of
+	haveServer rend (Clan{..}, active) = set rend $ case clanserver of
 		Just _	-> [cellPixbufStockId := stockNetwork, cellSensitive := active]
 		Nothing	-> [cellPixbufStockId := ""]

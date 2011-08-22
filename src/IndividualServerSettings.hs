@@ -2,25 +2,28 @@ module IndividualServerSettings (
 	ServerArg(..), ServerSettings
 	, getSettings, putSettings, fromFile, toFile
 ) where
-import Control.Applicative
+import Foreign
+import Control.DeepSeq
 import Network.Socket
+import Data.List
 import Data.Maybe
 import Data.Map (Map)
-import Data.ByteString.Internal
-import qualified Data.ByteString.Char8 as B
 import qualified Data.Map as M
 import Network.Tremulous.SocketExtensions
-import Network.Tremulous.ByteStringUtils
 
 import Constants
 import Exception2
+import List2
 
 
 data ServerArg = ServerArg
 	{ serverPass
 	, serverRcon
 	, serverName :: !String
-	} deriving Show
+	}
+
+instance NFData ServerArg where
+	rnf (ServerArg a b c) = rnf a `seq` rnf b `seq` rnf c
 
 type ServerSettings = Map SockAddr ServerArg
 
@@ -31,21 +34,43 @@ getSettings :: SockAddr -> ServerSettings -> ServerArg
 getSettings = M.findWithDefault (ServerArg "" "" "")
 
 putSettings :: SockAddr -> ServerArg -> ServerSettings -> ServerSettings
-putSettings = M.insert 
+putSettings = M.insert
 
 fromFile :: IO ServerSettings
-fromFile = handleIOWith M.empty $ parse <$> (B.readFile =<< configFile)
+fromFile = handleIOWith M.empty $ do
+	cont <- readFile =<< configFile
+	return  $! strict (parse cont)
+	where strict a = deepseq a a
+
 
 toFile :: ServerSettings -> IO Bool
 toFile settings = tryIO $ do
 	fx <- configFile
-	B.writeFile fx $ B.unlines $ map f $ M.toList settings
-	where f (addr, ServerArg a b c) = B.intercalate "\t" [putIPv4 addr, B.pack a, B.pack b, B.pack c]
+	writeFile fx $ unlines $ map f $ M.toList settings
+	where f ((SockAddrInet (PortNum port) ip), ServerArg a b c) = intercalate "\t" [intToHex 8 (ntohl ip), intToHex 4 (ntohs port), a, b, c]
+	      f _ = ""
 
-parse :: ByteString -> ServerSettings
-parse = M.fromList . mapMaybe (f . B.split '\t') . splitlines
+parse :: String -> ServerSettings
+parse = M.fromList . mapMaybe (f . split (=='\t')) . lines
 	where
-	f (addr:pass:rcon:name:_)
-		| [i0, i1, i2, i3, p0, p1] <- map c2w (B.unpack addr)
-		= Just (getIPv4 i0 i1 i2 i3 p0 p1, ServerArg (B.unpack pass) (B.unpack rcon) (B.unpack name))
+	f (ip:port:pass:rcon:name:_) = Just (addr, ServerArg pass rcon name)
+		where addr = SockAddrInet (PortNum (htons (hexToInt port))) (htonl (hexToInt ip))
 	f _  = Nothing
+
+
+intToHex :: (Integral i, Bits i) => Int -> i -> String
+intToHex = go [] where
+	go b 0 _   = b
+	go b n int = go (toDigit (int .&. 0xF) : b) (n-1) (int `shiftR` 4)
+	toDigit i | i <= 9    = conv (i + 0x30)
+	          | otherwise = conv (i + 0x61-0xa)
+	conv = toEnum . fromIntegral
+
+hexToInt :: (Integral i, Bits i) => String -> i
+hexToInt = go 0 where
+	go b []     = b
+	go b (x:xs) = go ((b `shiftL` 4) .|. toInt x) xs
+	toInt c | c' <= 0x39 = c' - 0x30
+	        | otherwise  = c' - (0x61-0xa)
+	        where c' = conv c
+	conv = fromIntegral . fromEnum

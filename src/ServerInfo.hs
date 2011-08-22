@@ -64,7 +64,7 @@ newServerInfo Bundle{..} mupdate = do
 	info <- mkTable ["IP:Port", "Game (mod)", "Map", "Timelimit (SD)"
 			, "Slots (+private)", "Ping (server average)"]
 	set (head info) [ labelSelectable := True ]
-
+	versionLabel <- labelNew Nothing
 	bools <- labelNew Nothing
 
 	-- Players
@@ -131,6 +131,7 @@ newServerInfo Bundle{..} mupdate = do
 	set rightpane  [ containerBorderWidth := spacing ]
 	boxPackStart rightpane hostnamex PackNatural 1
 	boxPackStart rightpane tbl PackNatural 0
+	boxPackStart rightpane versionLabel PackNatural 0
 	boxPackStart rightpane bools PackNatural 0
 	boxPackStart rightpane allplayers PackGrow 0
 	boxPackStart rightpane uscroll PackGrow 0
@@ -194,13 +195,15 @@ newServerInfo Bundle{..} mupdate = do
 			, (proto2string protocol ++ (case gamemod of
 					SM.Nothing	-> ""
 					SM.Just z	-> " (" ++ (unpack . original) z ++ ")"))
-			, (unpack . original) mapname
+			, maybeS mapname
 			, maybeQ timelimit ++ " (" ++ maybeQ suddendeath ++ ")"
-			, show slots ++ " (+" ++ show privslots ++ ")"
+			, show slots ++ " (+" ++ maybeQ privslots ++ ")"
 			, show gameping ++
 				" (" ++ (show . intmean . filter validping . map ping) players ++ ")"
+			, maybeS version
 			]
-		labelSetMarkup bools $	unwords	[ if unlagged then "unlagged" else ""
+		labelSetText versionLabel (maybeS version)
+		labelSetText bools $	unwords	[ if unlagged then "unlagged" else ""
 						, if protected then "password" else "" ]
 
 		listStoreClear amodel
@@ -277,6 +280,7 @@ newServerInfo Bundle{..} mupdate = do
 	showHostname _ (TI _ "")	= "<i>Invalid name</i>"
 	showHostname colors x		= pangoPretty colors x
 	maybeQ			= SM.maybe "?" show
+	maybeS			= SM.maybe "" (unpack . original)
 
 
 runTremulous :: Config -> GameServer -> ServerArg-> IO (Maybe ProcessHandle)
@@ -284,11 +288,11 @@ runTremulous Config{..} GameServer{..} ServerArg{..} = do
 	(_,_,_,p) <- createProcess (proc com args) {cwd = ldir, close_fds = True}
 	maybe (Just p) (const Nothing) <$> getProcessExitCode p
 	where
-	(com, args) = case protocol of
-		70 -> (tremGppPath, argsR False)
-		_  -> (tremPath, argsR True)
+	com = case protocol of
+		70 -> tremGppPath
+		_  -> tremPath
 
-	argsR c = concatMap (uncurry (arg c))
+	args = concatMap (uncurry arg)
 			[ ("connect", show address)
 			, ("password", serverPass)
 			, ("rconPassword", serverRcon)
@@ -299,12 +303,9 @@ runTremulous Config{..} GameServer{..} ServerArg{..} = do
 		"" -> Nothing
 		x  -> Just x
 
--- Tremulous 1.1 unpatched uses -arg while everything else uses +arg
-arg :: Bool -> String -> String -> [String]
-arg compat a xs = case xs of
-	""            -> []
-	s | compat    -> ['+':a, s, '-':a, s]
-	  | otherwise -> ['+':a, s]
+arg :: String -> String -> [String]
+arg _ "" = []
+arg a s  = ['+':a, s]
 
 playerView :: ColorArray -> String -> Bool -> IO (GenSimple ListStore Player)
 playerView colors teamName showScore = do

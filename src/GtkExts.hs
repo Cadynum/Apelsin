@@ -26,7 +26,7 @@ entrySetIconFromStock entry iconPos stockId =
 	arg2		= (fromIntegral . fromEnum) iconPos
 
 foreign import ccall unsafe "gtk_entry_set_icon_from_stock"
-	gtk_entry_set_icon_from_stock :: Ptr Entry -> CInt -> Ptr CChar -> IO ()
+	gtk_entry_set_icon_from_stock :: Ptr Entry -> CInt -> CString -> IO ()
 
 
 frameNew :: Maybe String -> IO Frame
@@ -35,27 +35,24 @@ frameNew label =
 	makeNewObject mkFrame (gtk_frame_new labelPtr)
 
 foreign import ccall unsafe "gtk_frame_new"
-	gtk_frame_new :: Ptr CChar -> IO (Ptr Frame)
+	gtk_frame_new :: CString -> IO (Ptr Frame)
 
 
-cellSetText :: CellRendererTextClass obj => obj -> ByteString -> IO ()
-cellSetText rend text =
-	withForeignPtr w $ \wPtr ->
+cellSetText :: CellRendererText -> ByteString -> IO ()
+cellSetText (CellRendererText obj) text =
+	withForeignPtr obj $ \wPtr ->
 	useAsCString text $ \textPtr ->
 	g_object_set wPtr prop_text textPtr nullPtr
-	where CellRenderer w = toCellRenderer rend
 
-cellSetMarkup :: CellRendererTextClass obj => obj -> ByteString -> IO ()
-cellSetMarkup rend text =
-	withForeignPtr w $ \wPtr ->
+cellSetMarkup :: CellRendererText -> ByteString -> IO ()
+cellSetMarkup (CellRendererText obj) text =
+	withForeignPtr obj $ \wPtr ->
 	useAsCString text $ \textPtr ->
 	g_object_set wPtr prop_markup textPtr nullPtr
-	where CellRenderer w = toCellRenderer rend
 
 prop_text, prop_markup :: CString
 prop_text = unsafePerformIO $ newCString "text"
 prop_markup = unsafePerformIO $ newCString "markup"
 
 foreign import ccall unsafe "g_object_set"
-	g_object_set :: Ptr CellRenderer -> CString -> CString -> Ptr () -> IO ()
-
+	g_object_set :: Ptr CellRendererText -> CString -> CString -> Ptr () -> IO ()

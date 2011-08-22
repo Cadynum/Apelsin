@@ -3,7 +3,7 @@ import Graphics.UI.Gtk
 import Control.Applicative
 import Data.Maybe
 import Monad2
-import Data.ByteString.Char8(ByteString)
+import Data.ByteString (ByteString)
 
 scrollIt, scrollItV :: WidgetClass widget => widget -> PolicyType -> PolicyType -> IO ScrolledWindow
 scrollIt widget pol1 pol2 = do

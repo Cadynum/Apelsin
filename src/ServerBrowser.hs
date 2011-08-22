@@ -35,7 +35,7 @@ newServerBrowser Bundle{..} setServer = do
 
 	addColumnFS gen "_Map" False (Just (comparing mapname))
 		cellRendererTextNew []
-		(\rend -> cellSetText rend . B.take 16 . original . mapname)
+		(\rend -> cellSetText rend . SM.maybe "" (B.take 16 . original) . mapname)
 
 	addColumnFS gen "P_ing" False (Just (comparing gameping))
 		cellRendererTextNew
@@ -68,7 +68,8 @@ newServerBrowser Bundle{..} setServer = do
 		return $ (showEmpty || not (null players)) &&
 			(smartFilter s
 				[ cleanedCase hostname
-				, cleanedCase mapname
+				, SM.maybe "" cleanedCase mapname
+				, SM.maybe "" cleanedCase version
 				, proto2string protocol
 				, SM.maybe "" cleanedCase gamemod
 				])

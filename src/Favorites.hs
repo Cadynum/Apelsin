@@ -3,39 +3,43 @@ import Graphics.UI.Gtk
 
 import Data.IORef
 import Network.Tremulous.Protocol
-import Data.ByteString (ByteString)
-import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString as B
 
 import Types
 import GtkUtils
+import ClanFetcher
 import FindPlayers (playerLikeList)
 import Constants
 import Config
-
-type ClanID = Int
-data Favorite = Favorite
-	{ favoritePlayers	:: ![ByteString]
-	, favoriteClans		:: ![ClanID]
-	, favoriteServers	:: ![Int]
-	}
 
 
 favlist = ["gt", "meisseli", ".gm"]
 
 newFavorites:: Bundle -> SetCurrent -> IO VBox
 newFavorites bundle@Bundle{..} setCurrent = do
-	Config {..} <- atomically $ readTMVar mconfig
+	favPlayers	<- newIORef (map mk favlist)
+	favClans	<- newIORef [1]
+	favServers	<- newIORef []
+
+
+	playersLabel <- labelNew (Just "Players")
+	labelSetAttributes playersLabel [AttrWeight 0 (-1) WeightBold]
+	set playersLabel [miscXalign := 0, miscXpad := spacingHalf]
+
 	gen@(GenFilterSort raw filtered sorted view) <- playerLikeList bundle setCurrent
-
-	treeModelFilterSetVisibleFunc filtered $ \iter -> do
-		(item, GameServer{..}) <- treeModelGetRow raw iter
-		--s <- readIORef current
-		return $ any (`B.isInfixOf` cleanedCase item) favlist
-
-
 	scroll <- scrollIt view PolicyAutomatic PolicyAutomatic
 
+	clansx <- atomically $ readTMVar mclans
+	treeModelFilterSetVisibleFunc filtered $ \iter -> do
+		(item, GameServer{..}) <- treeModelGetRow raw iter
+		favP <- readIORef favPlayers
+		favC <- readIORef favClans
+		return $ any (\x -> cleanedCase x `B.isInfixOf` cleanedCase item) favP
+		      || any (matchClanByID clansx item) favC
+
+
 	box <- vBoxNew False 0
+	boxPackStart box playersLabel PackNatural spacingBig
 	boxPackStart box scroll PackGrow 0
 
 	return box

@@ -1,5 +1,6 @@
 module ClanFetcher(
-	Clan(..), TagExpr, matchTagExpr, prettyTagExpr, tagExprGet, getClanList, clanListFromCache
+	Clan(..), TagExpr, ClanID, matchTagExpr, prettyTagExpr, tagExprGet, getClanList, clanListFromCache
+	, matchClanByID
 ) where
 
 import Prelude as P
@@ -8,6 +9,7 @@ import Control.Exception
 import Control.Monad
 import Data.ByteString.Char8 as B
 import Data.ByteString.Lazy.Char8 as L
+import Data.List as List
 import Data.Maybe
 import Data.Ord
 import Network.Socket
@@ -37,13 +39,20 @@ tagExprGet x = case x of
 	TagInfix v		-> v
 	TagContained v _	-> v
 
+type ClanID = Int
 data Clan = Clan
-	{ name		:: !TI
+	{ clanID	:: !ClanID
+	, name		:: !TI
 	, website
 	, irc		:: !B.ByteString
 	, tagexpr	:: !TagExpr
 	, clanserver	:: !(Maybe SockAddr)
 	}
+
+matchClanByID :: [Clan] -> TI -> ClanID -> Bool
+matchClanByID clans raw cid = case List.find (\x -> clanID x == cid) clans of
+	Just a -> matchTagExpr (tagexpr a) raw
+	Nothing -> False
 
 mkTagExpr :: B.ByteString -> Maybe TagExpr
 mkTagExpr str
@@ -76,9 +85,9 @@ prettyTagExpr expr = case expr of
 
 rawToClan :: L.ByteString -> IO (Maybe [Clan])
 rawToClan = fmap sequence . mapM (f . B.split '\t' . lazyToStrict) . P.filter (not . L.null) . L.split '\n' where
-	f [_, rname, _, website, irc, rexpr, rserver]
+	f [rclanID, rname, _, website, irc, rexpr, rserver]
 		| Just tagexpr <- mkTagExpr rexpr
-		= do
+		, Just (clanID,_) <- B.readInt rclanID = do
 			let	(ip, port1)	= B.break (==':') rserver
 				port		= B.drop 1 port1
 			clanserver <- if B.null ip || B.null port
