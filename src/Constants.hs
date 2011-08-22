@@ -10,7 +10,7 @@ import Control.Concurrent
 import Control.Exception
 
 #ifdef CABAL_PATH
-import Paths_apelsin
+import Paths_apelsin hiding (getDataDir)
 #endif
 
 configName, programName, fullProgramName :: IsString s => s
@@ -31,7 +31,7 @@ inConfDir x = do
 	return (dir </> x)
 
 
-getDataDir :: IO FilePath 
+getDataDir :: IO FilePath
 #ifdef CABAL_PATH
 getDataDir = dropTrailingPathSeparator `fmap` getDataFileName ""
 #else
