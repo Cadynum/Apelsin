@@ -24,9 +24,11 @@ mread x = case reads x of
 	[(a, _)]	-> Just a
 	_		-> Nothing
 
-split :: Eq a => (a -> Bool) -> [a] -> [[a]]
+split :: Eq a => a -> [a] -> [[a]]
 split _ [] = []
-split f s  = let (w, s') = break f s in
-	case s' of
-		_:s'' -> w : split f s''
-		[]     -> [w]
+split d s  = case break (== d) s of
+	(w, s') -> w : case s' of
+		[_]   -> [[]]
+		_:s'' -> split d s''
+
+		[]    -> []

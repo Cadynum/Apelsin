@@ -3,6 +3,7 @@ import Graphics.UI.Gtk
 import Control.Concurrent.STM
 import Data.IORef
 import Data.Ord
+import Data.Monoid
 import Network.Tremulous.Protocol
 import qualified Network.Tremulous.StrictMaybe as SM
 import Text.Printf
@@ -23,26 +24,30 @@ newServerBrowser Bundle{..} setServer = do
 	gen@(GenFilterSort raw filtered sorted view) <- newGenFilterSort browserStore
 
 	addColumnFS gen "_Game" False
-		(Just (comparing (\x -> (protocol x, gamemod x))))
+		(Just (comparing protocol `mappend` comparing gamemod `mappend` comparing gameping))
 		cellRendererTextNew
 		[]
 		(\rend -> cellSetText rend . showGame)
 
-	addColumnFS gen "_Name" True (Just (comparing hostname))
+	addColumnFS gen "_Name" True
+		(Just (comparing hostname `mappend` comparing gameping))
 		cellRendererTextNew
 		[cellTextEllipsize := EllipsizeEnd]
 		(\rend -> cellSetMarkup rend . pangoPrettyBS colors . hostname)
 
-	addColumnFS gen "_Map" False (Just (comparing mapname))
+	addColumnFS gen "_Map" False
+		(Just (comparing mapname `mappend` comparing gameping))
 		cellRendererTextNew []
 		(\rend -> cellSetText rend . SM.maybe "" (B.take 16 . original) . mapname)
 
-	addColumnFS gen "P_ing" False (Just (comparing gameping))
+	addColumnFS gen "P_ing" False
+		(Just (comparing gameping `mappend` comparing hostname))
 		cellRendererTextNew
 		[cellXAlign := 1]
 		(\rend x -> set rend [cellText := show $ gameping x])
 
-	addColumnFS gen "_Players" False (Just (comparing nplayers))
+	addColumnFS gen "_Players" False
+		(Just (comparing nplayers `mappend` flip (comparing gameping)))
 		cellRendererTextNew
 		[cellXAlign := 1]
 		(\rend x -> set rend [cellText := showPlayers x])

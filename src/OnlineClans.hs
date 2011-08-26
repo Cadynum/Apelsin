@@ -1,6 +1,7 @@
 module OnlineClans (newOnlineClans) where
 import Graphics.UI.Gtk
 
+import Data.Monoid
 import Data.Ord
 import Data.Tree
 import Data.List (sortBy)
@@ -78,4 +79,4 @@ buildTree = filter notEmpty . foldr f [] where
 	notEmpty _		= True
 
 sortByPlayers :: [(Clan, [b])] -> [(Clan, [b])]
-sortByPlayers = sortBy $ flip $ comparing $ \(a, b) -> (-length b, name a)
+sortByPlayers = sortBy $ comparing (length . snd) `mappend` flip (comparing (name . fst))

@@ -51,7 +51,7 @@ toFile settings = tryIO $ do
 	      f _ = ""
 
 parse :: String -> ServerSettings
-parse = M.fromList . mapMaybe (f . split (=='\t')) . lines
+parse = M.fromList . mapMaybe (f . split '\t') . lines
 	where
 	f (ip:port:pass:rcon:name:_) = Just (addr, ServerArg pass rcon name)
 		where addr = SockAddrInet (PortNum (htons (hexToInt port))) (htonl (hexToInt ip))
