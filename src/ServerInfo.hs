@@ -148,7 +148,7 @@ newServerInfo Bundle{..} mupdate = do
 		pid <- maybeIO $ runTremulous config gs (getSettings (address gs) ss)
 		case pid of
 			Nothing -> do
-				gtkError $ "Unable to run \"" ++ path ++ "\".\nHave you set your path correctly in Preferences?"
+				gtkError parent $ "Unable to run \"" ++ path ++ "\".\nHave you set your path correctly in Preferences?"
 				set join [ widgetSensitive := True ]
 				takeMVar running
 				where path = case protocol gs of
@@ -175,7 +175,7 @@ newServerInfo Bundle{..} mupdate = do
 					let ss' = putSettings address n ss
 					atomically $ swapTMVar msettings ss'
 					unlessM (toFile ss') $
-						gtkWarn "Unable to save server specific settings"
+						gtkWarn parent "Unable to save server specific settings"
 					return True
 		else return False
 

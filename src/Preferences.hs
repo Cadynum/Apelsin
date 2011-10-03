@@ -105,7 +105,7 @@ newPreferences Bundle{..} = do
 				, delays = Delay{..}, filterEmpty, browserSort, playersSort
 				, browserOrder, playersOrder}
 		atomically $ putTMVar mconfig new
-		configToFile new
+		configToFile parent new
 		return ()
 
 	-- Main box

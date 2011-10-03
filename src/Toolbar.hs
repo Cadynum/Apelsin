@@ -98,7 +98,7 @@ newClanSync Bundle{..} clanHook bothHook unlock = do
 	forkIO $ do
 		new <- getClanList clanSyncURL
 		case new of
-			Nothing	-> postGUISync $ gtkError "Unable to download clanlist"
+			Nothing	-> postGUISync $ gtkError parent "Unable to download clanlist"
 			Just a	-> do
 				result <- atomically $ do
 					swapTMVar mclans a

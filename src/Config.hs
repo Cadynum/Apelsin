@@ -1,11 +1,12 @@
-{-# LANGUAGE StandaloneDeriving #-}
-module Config where
-import Graphics.UI.Gtk (SortType(..))
+module Config (Config(..), ColorTheme, configFromFile, configToFile, makeColorsFromList) where
+import Graphics.UI.Gtk (SortType(..), Window)
 import Data.Array
+import Data.Char
 import Control.Exception
 import Control.Applicative
 import Network.Tremulous.Protocol
-import Network.Tremulous.TupleReader
+import Control.Monad.State.Strict
+import Network.Tremulous.TupleReader (lookupDelete)
 import Network.Tremulous.StrictMaybe as SM
 
 import Constants
@@ -13,9 +14,10 @@ import List2
 import GtkUtils
 import TremFormatting
 
-deriving instance Read SortType
-
 type ColorTheme = Array Int TremFmt
+
+data SortingOrderPretty = Ascending | Descending
+	deriving (Show, Read, Enum)
 
 data Config = Config
 	{ masterServers :: ![(String, Int, Int)]
@@ -34,80 +36,113 @@ data Config = Config
 	, playersOrder	:: !SortType
 	, delays	:: !Delay
 	, colors	:: !ColorTheme
-	} deriving (Show, Read)
-
-defaultConfig :: Config
-defaultConfig = Config {
-	  masterServers = [("master.tremulous.net", 30710, 69), ("master.tremulous.net", 30700, 70)]
-	, clanSyncURL	= "http://ddos-tremulous.eu/cw/api/clanlist"
-	, tremPath	= defaultTremulousPath
-	, tremGppPath	= defaultTremulousGPPPath
-	, autoMaster	= True
-	, autoClan	= True
-	, autoGeometry	= True
-	, filterBrowser	= ""
-	, filterPlayers	= ""
-	, filterEmpty	= True
-	, browserSort	= 3
-	, playersSort	= 0
-	, browserOrder	= SortAscending
-	, playersOrder	= SortAscending
-	, delays	= defaultDelay
-	, colors	= makeColorsFromList $
-		TFNone "#000000" : map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"] ++ [TFNone "#000000"]
 	}
-{-
-newParse :: [(String, String)] -> SM.Maybe Config
-newParse = tupleReader $ do
-	masterServers	<- get "masterservers"	[("master.tremulous.net", 30710, 69), ("master.tremulous.net", 30700, 70)]
-	clanSyncURL	<- get "clanlisturl"	"http://ddos-tremulous.eu/cw/api/clanlist"
-	tremPath	<- get "tremulous1.1"	defaultTremulousPath
-	tremGppPath	<- get "tremulousgpp"	defaultTremulousGPPPath
-	autoMaster	<- get "automaster"	True
-	autoClan	<- get "autoclan"	True
-	autoGeometry	<- get "savegeometry"	True
-	filterBrowser	<- get "browserfilter"	""
-	filterPlayers	<- get "playersfilter"	""
-	filterEmpty	<- get "showempty"	True
-	browserSort	<- get "browsersort"	3
-	playersSort	<- get "playerssort"	0
-	browserOrder	<- get "browserorder"	SortAscending
-	playersOrder	<- get "playersorder"	SortAscending
-	delays		<- get "delays"		defaultDelay
-	colors		<- makeColorsFromList <$> get "colors" (TFNone "#000000" : map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"] ++ [TFNone "#000000"])
-	return Config{..}
 
 
-get a b = fromMaybe b <$> optionWith mread2 a
+newSave :: Config -> String
+newSave Config{delays=Delay{..}, ..} = unlines $
+	[ f masterServers	mastersText
+	, f clanSyncURL		clanText
+	, f tremPath		t11Text
+	, f tremGppPath		t12Text
+	, f autoMaster		autoMasterText
+	, f autoClan		autoClanText
+	, f autoGeometry	geometryText
+	, f filterBrowser	browserfilterText
+	, f filterPlayers	playerfilterText
+	, f filterEmpty		showEmptyText
+	, f browserSort		browserSortText
+	, f playersSort		playerSortText
+	, f (conv browserOrder)	browserOrderText
+	, f (conv playersOrder)	playerOrderText
+	, f packetTimeout	packetTimeoutText
+	, f packetDuplication	packetDuplicationText
+	, f throughputDelay	throughputDelayText
+	] ++
+	zipWith (\a b -> f b (colorText ++ [a])) ['0'..'7'] (elems colors)
+	where
+	conv :: SortType -> SortingOrderPretty
+	conv = toEnum . fromEnum
+	f :: Show v => v -> String -> String
+	f v k = k ++ " " ++ show v
 
--}
+newParse :: [(String, String)] -> Config
+newParse = evalState $ do
+	masterServers	<- f mastersText		[("master.tremulous.net", 30710, 69), ("master.tremulous.net", 30700, 70)]
+	clanSyncURL	<- f clanText			"http://ddos-tremulous.eu/cw/api/clanlist"
+	tremPath	<- f t11Text			defaultTremulousPath
+	tremGppPath	<- f t12Text			defaultTremulousGPPPath
+	autoMaster	<- f autoMasterText		True
+	autoClan	<- f autoClanText		True
+	autoGeometry	<- f geometryText		True
+	filterBrowser	<- f browserfilterText	""
+	filterPlayers	<- f playerfilterText		""
+	filterEmpty	<- f showEmptyText		True
+	browserSort	<- f browserSortText		3
+	playersSort	<- f playerSortText		0
+	browserOrder	<- toEnum . fromEnum <$> f browserOrderText	Ascending
+	playersOrder	<- toEnum . fromEnum <$> f playerOrderText	Ascending
+	packetTimeout	<- f packetTimeoutText	(packetTimeout defaultDelay)
+	packetDuplication<- f packetDuplicationText	(packetDuplication defaultDelay)
+	throughputDelay	<- f throughputDelayText	(throughputDelay defaultDelay)
+	colors		<- makeColorsFromList <$> zipWithM (\a b -> f (colorText ++ [a]) b) ['0'..'7'] defaultColors
+	return Config{delays = Delay{..}, ..}
+	where
+	f :: Read b  => String -> b -> State [(String, String)] b
+	f key d = do
+		s <- get
+		let (e, s') = lookupDelete key s
+		put s'
+		return $ SM.fromMaybe d $ smread =<< e
+	defaultColors = TFNone "#000000" : map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"] ++ [TFNone "#000000"]
 
-mread2 :: (Read a) => String -> SM.Maybe a
-mread2 x = case reads x of
+smread :: (Read a) => String -> SM.Maybe a
+smread x = case reads x of
 	[(a, _)]	-> SM.Just a
 	_		-> SM.Nothing
 
+parse :: String -> Config
+parse = newParse . map (breakDrop isSpace) . lines
 
+mastersText, clanText, t11Text, t12Text, autoMasterText, autoClanText, geometryText
+	, browserfilterText, playerfilterText, showEmptyText, browserSortText, playerSortText
+	, browserOrderText, playerOrderText, packetTimeoutText
+	, packetDuplicationText, throughputDelayText, colorText :: String
+mastersText		= "masters"
+clanText		= "clanlistUrl"
+t11Text			= "tremulous1.1"
+t12Text			= "tremulousGPP"
+autoMasterText		= "auto<aster"
+autoClanText		= "autoClan"
+geometryText		= "saveGeometry"
+browserfilterText	= "browserFilter"
+playerfilterText	= "playersFilter"
+showEmptyText		= "showEmpty"
+browserSortText		= "browserSortBy"
+playerSortText		= "playerSortBy"
+browserOrderText	= "browserSortingOrder"
+playerOrderText		= "playerSortingOrder"
+packetTimeoutText	= "packetTimeout"
+packetDuplicationText	= "packetDuplication"
+throughputDelayText	= "thoughputDelay"
+colorText		= "color"
 
 makeColorsFromList :: [e] -> Array Int e
 makeColorsFromList = listArray (0,7)
 
-configToFile :: Config -> IO ()
-configToFile config = handle err $ do
-	file	<- inConfDir "config"
-	writeFile file (show config)
+configToFile :: Window -> Config -> IO ()
+configToFile win config = do
+	file <- inConfDir "config"
+	handle err $ do
+	writeFile file (newSave config)
 	where
-	err (_::IOError) = gtkWarn "Error saving config file"
+	err (e::IOError) = gtkWarn win $ "Unable to save settings:\n" ++ show e
 
 
 configFromFile :: IO Config
 configFromFile = handle err $ do
 	file	<- inConfDir "config"
 	cont	<- readFile file
-	case mread cont of
-		Prelude.Nothing -> do
-			gtkWarn $ "Errors in " ++ file ++ "!\nUsing default"
-			return defaultConfig
-		Prelude.Just a -> return a
+	return $ parse cont
 	where
-	err (_::IOError) = return defaultConfig
+	err (_::IOError) = return $ parse ""

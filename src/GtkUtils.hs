@@ -131,15 +131,20 @@ getIterUnsafe model path =
 	fromMaybe (error "getElement: Imposssible error") <$> treeModelGetIter model path
 
 
-gtkPopup :: MessageType -> String -> IO ()
-gtkPopup what str = do
+gtkPopup :: MessageType -> Window -> String -> IO ()
+gtkPopup what win str = do
 	a <- messageDialogNew Nothing [DialogDestroyWithParent, DialogModal]
 		what ButtonsOk str
-	set a [ windowWindowPosition := WinPosCenter]
+	windowSetPosition a WinPosCenterOnParent
+	windowSetTransientFor a win
+	case what of
+		MessageError	-> windowSetTitle a "Error"
+		MessageWarning	-> windowSetTitle a "Warning"
+		_		-> return ()
 	dialogRun a
 	widgetDestroy a
 
-gtkWarn, gtkError :: String -> IO ()
+gtkWarn, gtkError :: Window -> String  -> IO ()
 gtkWarn = gtkPopup MessageWarning
 gtkError = gtkPopup MessageError
 

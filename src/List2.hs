@@ -1,4 +1,4 @@
-module List2 (stripw, intmean, replace, mread, split) where
+module List2 (stripw, intmean, replace, mread, split, breakDrop) where
 import Prelude hiding (foldr, foldl, foldr1, foldl1)
 import Data.Char
 import Data.Foldable
@@ -32,3 +32,7 @@ split d s  = case break (== d) s of
 		_:s'' -> split d s''
 
 		[]    -> []
+
+breakDrop :: (a -> Bool) -> [a] -> ([a], [a])
+breakDrop f xs = let (a, b) = break f xs
+	in (a, dropWhile f b)
