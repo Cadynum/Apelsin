@@ -137,10 +137,6 @@ gtkPopup what win str = do
 		what ButtonsOk str
 	windowSetPosition a WinPosCenterOnParent
 	windowSetTransientFor a win
-	case what of
-		MessageError	-> windowSetTitle a "Error"
-		MessageWarning	-> windowSetTitle a "Warning"
-		_		-> return ()
 	dialogRun a
 	widgetDestroy a
 

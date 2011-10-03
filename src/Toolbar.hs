@@ -32,25 +32,22 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	doSync		<- mLock clansync (newClanSync bundle clanHook bothHook)
 	doRefresh	<- mLock refresh (newRefresh bundle polledHook bothHook pb)
 
-	on about buttonActivated (newAbout parent)
-	on clansync buttonActivated doSync
-	on refresh buttonActivated doRefresh
+	onToolButtonClicked about (newAbout parent)
+	onToolButtonClicked clansync doSync
+	onToolButtonClicked refresh doRefresh
 
-	toolbar	<- hBoxNew False spacing
-	boxPackStartDefaults toolbar refresh
-	boxPackStartDefaults toolbar clansync
-	boxPackStartDefaults toolbar about
-
-	align <- alignmentNew 0 0 0 0
-	set align [ containerChild := toolbar ]
+	toolbar	<- toolbarNew
+	toolbarSetStyle toolbar ToolbarBothHoriz
+	toolbarSetShowArrow toolbar False
+	toolbarSetIconSize toolbar IconSizeButton
+	toolbarInsert toolbar refresh (-1)
+	toolbarInsert toolbar clansync (-1)
+	toolbarInsert toolbar about (-1)
 
 	pbrbox <- hBoxNew False spacing
 	set pbrbox [ containerBorderWidth := spacing ]
-	boxPackStart pbrbox align PackNatural 0
+	boxPackStart pbrbox toolbar PackNatural 0
 	boxPackStart pbrbox pb PackGrow 0
-
-
-
 
 	on parent keyPressEvent $  do
 		kmod	<- eventModifier
@@ -70,13 +67,12 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 
 	return pbrbox
 
-mkToolButton :: String -> StockId -> String -> IO Button
+mkToolButton :: String -> StockId -> String -> IO ToolButton
 mkToolButton lbl icon tip = do
-	button <- buttonNewWithLabel lbl
-	set button	[ buttonImage		:=> imageNewFromStock icon IconSizeButton
-			, buttonRelief		:= ReliefNone
-			, buttonFocusOnClick	:= False
-			, widgetTooltipText	:= Just tip ]
+	img <- imageNewFromStock icon IconSizeButton
+	button <- toolButtonNew (Just img) (Just lbl)
+	set button	[ widgetTooltipText	:= Just tip
+			, toolItemIsImportant	:= True ]
 	return button
 
 mLock :: WidgetClass w => w -> (IO () -> IO ()) -> IO (IO ())
