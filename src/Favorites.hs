@@ -19,7 +19,6 @@ newFavorites:: Bundle -> SetCurrent -> IO VBox
 newFavorites bundle@Bundle{..} setCurrent = do
 	favPlayers	<- newIORef (map mk favlist)
 	favClans	<- newIORef [1]
-	favServers	<- newIORef []
 
 
 	playersLabel <- labelNew (Just "Players")

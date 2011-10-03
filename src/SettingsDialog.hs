@@ -56,16 +56,20 @@ newSettingsDialog win colors requirepw GameServer{..} ServerArg{..} = do
 	pass	<- easyAttach 1 "_Password:" "Server password" serverPass
 	rcon	<- easyAttach 2 "_Rcon:" "Rcon password" serverRcon
 
+	fav	<- checkButtonNewWithMnemonic "_Favorite server"
+	toggleButtonSetActive fav serverFavorite
+
 	box <- vBoxNew False spacing
 	set box [ containerBorderWidth := spacing ]
 	boxPackStart box srv PackNatural 0
 	boxPackStart box ip PackNatural 0
+
 	when requirepw $ do
 		l <- labelNew (Just "This server requires a password!")
 		labelSetAttributes l [AttrWeight 0 (-1) WeightBold]
 		boxPackStart box l PackNatural 0
 	boxPackStart box tbl PackNatural 0
-
+	boxPackStart box fav PackNatural 0
 	dbox <- dialogGetUpper dia
 	boxPackStart dbox box PackNatural 0
 	widgetShowAll dbox
@@ -76,7 +80,8 @@ newSettingsDialog win colors requirepw GameServer{..} ServerArg{..} = do
 		ResponseOk 	-> Just <$> (ServerArg
 						<$> get pass entryText
 						<*> get rcon entryText
-						<*> get name entryText)
+						<*> get name entryText
+						<*> toggleButtonGetActive fav )
 					<* widgetDestroy dia
 		_		-> widgetDestroy dia >> return Nothing
 

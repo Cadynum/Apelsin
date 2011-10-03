@@ -71,8 +71,9 @@ openInBrowser x = handle (\(_ :: IOError) -> return ()) $ do
 	forkIO $ waitForProcess hdl >> return ()
 	return ()
 
-spacing, spacingHalf, spacingBig :: Integral i => i
+spacing, spacingHalf, spacingBig, spacingHuge :: Integral i => i
 spacingHalf	= 2
 spacing		= 4
 spacingBig	= 8
+spacingHuge	= 12
 

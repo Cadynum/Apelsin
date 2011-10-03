@@ -3,7 +3,10 @@ module Config where
 import Graphics.UI.Gtk (SortType(..))
 import Data.Array
 import Control.Exception
+import Control.Applicative
 import Network.Tremulous.Protocol
+import Network.Tremulous.TupleReader
+import Network.Tremulous.StrictMaybe as SM
 
 import Constants
 import List2
@@ -14,9 +17,8 @@ deriving instance Read SortType
 
 type ColorTheme = Array Int TremFmt
 
-data Config = Config {
-	  configVersion	:: !Int
-	, masterServers :: ![(String, Int, Int)]
+data Config = Config
+	{ masterServers :: ![(String, Int, Int)]
 	, clanSyncURL	:: !String
 	, tremPath
 	, tremGppPath	:: !String
@@ -36,8 +38,7 @@ data Config = Config {
 
 defaultConfig :: Config
 defaultConfig = Config {
-	  configVersion	= 1
-	, masterServers = [("master.tremulous.net", 30710, 69), ("master.tremulous.net", 30700, 70)]
+	  masterServers = [("master.tremulous.net", 30710, 69), ("master.tremulous.net", 30700, 70)]
 	, clanSyncURL	= "http://ddos-tremulous.eu/cw/api/clanlist"
 	, tremPath	= defaultTremulousPath
 	, tremGppPath	= defaultTremulousGPPPath
@@ -54,7 +55,40 @@ defaultConfig = Config {
 	, delays	= defaultDelay
 	, colors	= makeColorsFromList $
 		TFNone "#000000" : map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"] ++ [TFNone "#000000"]
-	} 
+	}
+{-
+newParse :: [(String, String)] -> SM.Maybe Config
+newParse = tupleReader $ do
+	masterServers	<- get "masterservers"	[("master.tremulous.net", 30710, 69), ("master.tremulous.net", 30700, 70)]
+	clanSyncURL	<- get "clanlisturl"	"http://ddos-tremulous.eu/cw/api/clanlist"
+	tremPath	<- get "tremulous1.1"	defaultTremulousPath
+	tremGppPath	<- get "tremulousgpp"	defaultTremulousGPPPath
+	autoMaster	<- get "automaster"	True
+	autoClan	<- get "autoclan"	True
+	autoGeometry	<- get "savegeometry"	True
+	filterBrowser	<- get "browserfilter"	""
+	filterPlayers	<- get "playersfilter"	""
+	filterEmpty	<- get "showempty"	True
+	browserSort	<- get "browsersort"	3
+	playersSort	<- get "playerssort"	0
+	browserOrder	<- get "browserorder"	SortAscending
+	playersOrder	<- get "playersorder"	SortAscending
+	delays		<- get "delays"		defaultDelay
+	colors		<- makeColorsFromList <$> get "colors" (TFNone "#000000" : map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"] ++ [TFNone "#000000"])
+	return Config{..}
+
+
+get a b = fromMaybe b <$> optionWith mread2 a
+
+-}
+
+mread2 :: (Read a) => String -> SM.Maybe a
+mread2 x = case reads x of
+	[(a, _)]	-> SM.Just a
+	_		-> SM.Nothing
+
+
+
 makeColorsFromList :: [e] -> Array Int e
 makeColorsFromList = listArray (0,7)
 
@@ -71,9 +105,9 @@ configFromFile = handle err $ do
 	file	<- inConfDir "config"
 	cont	<- readFile file
 	case mread cont of
-		Nothing -> do
+		Prelude.Nothing -> do
 			gtkWarn $ "Errors in " ++ file ++ "!\nUsing default"
 			return defaultConfig
-		Just a -> return a
+		Prelude.Just a -> return a
 	where
 	err (_::IOError) = return defaultConfig

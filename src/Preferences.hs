@@ -1,6 +1,5 @@
 module Preferences where
-import Graphics.UI.Gtk hiding (frameNew)
-import GtkExts (frameNew)
+import Graphics.UI.Gtk
 
 import Control.Monad
 import Control.Applicative hiding (empty)
@@ -110,9 +109,8 @@ newPreferences Bundle{..} = do
 		return ()
 
 	-- Main box
-
-	box <- vBoxNew False spacing
-	set box [ containerBorderWidth := spacingBig ]
+	box <- vBoxNew False spacingHuge
+	containerSetBorderWidth box spacing
 	boxPackStart box filters PackNatural 0
 	boxPackStart box paths PackNatural 0
 	boxPackStart box startup PackNatural 0
@@ -229,12 +227,21 @@ mkInternals = do
 	return (tbl, rt)
 
 
-framed :: ContainerClass w => String -> w -> IO Frame
+framed :: ContainerClass w => String -> w -> IO VBox
 framed title box = do
-	frame	<- frameNew (Just title)
-	set box [ containerBorderWidth := spacing ]
-	set frame [ containerChild := box ]
-	return frame
+	l <- labelNew (Just title)
+	miscSetAlignment l 0 0
+	labelSetAttributes l [AttrWeight 0 (-1) WeightBold]
+
+	align <- alignmentNew 0.5 0.5 1 1
+	alignmentSetPadding align 0 0 spacingBig 0
+	containerAdd align box
+
+	vb <- vBoxNew False spacing
+	boxPackStart vb l PackNatural 0
+	boxPackStart vb align PackNatural 0
+
+	return vb
 
 numberedColors :: IO (Table, [(ColorButton, CheckButton)])
 numberedColors = do

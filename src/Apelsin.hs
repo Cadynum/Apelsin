@@ -16,7 +16,6 @@ import Constants
 import ServerInfo
 import ServerBrowser
 import FindPlayers
-import Favorites
 import Clanlist
 import OnlineClans
 import ClanFetcher
@@ -47,7 +46,6 @@ main = withSocketsDo $ do
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle mupdate
 	(browser, browserUpdate)		<- newServerBrowser bundle currentSet
 	(findPlayers, findUpdate)		<- newFindPlayers bundle currentSet
-	favorites				<- newFavorites bundle currentSet
 	(clanlist, clanlistUpdate)		<- newClanList bundle cacheclans currentSet
 	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet
 
@@ -64,7 +62,6 @@ main = withSocketsDo $ do
 	book <- notebookNew
 	notebookAppendPage book browser		"Browser"
 	notebookAppendPage book findPlayers	"Find players"
-	notebookAppendPage book favorites	"Favorites"
 	notebookAppendPage book onlineclans	"Online clans"
 	notebookAppendPage book clanlist	"Clan list"
 	notebookAppendPage book preferences	"Preferences"

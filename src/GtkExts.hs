@@ -1,7 +1,6 @@
 module GtkExts (
 	EntryIconPosition(..)
 	, entrySetIconFromStock
-	, frameNew
 	, cellSetText
 	, cellSetMarkup
 ) where
@@ -10,7 +9,6 @@ import System.Glib.UTFString
 import Graphics.UI.GtkInternals
 import Graphics.UI.Gtk.General.StockItems
 import Graphics.UI.Gtk.General.Enums
-import Graphics.UI.Gtk.Abstract.Object (makeNewObject)
 import Data.ByteString.Char8
 
 entrySetIconFromStock	:: EntryClass self => self
@@ -27,15 +25,6 @@ entrySetIconFromStock entry iconPos stockId =
 
 foreign import ccall unsafe "gtk_entry_set_icon_from_stock"
 	gtk_entry_set_icon_from_stock :: Ptr Entry -> CInt -> CString -> IO ()
-
-
-frameNew :: Maybe String -> IO Frame
-frameNew label =
-	maybeWith withUTFString label $ \labelPtr ->
-	makeNewObject mkFrame (gtk_frame_new labelPtr)
-
-foreign import ccall unsafe "gtk_frame_new"
-	gtk_frame_new :: CString -> IO (Ptr Frame)
 
 
 cellSetText :: CellRendererText -> ByteString -> IO ()
