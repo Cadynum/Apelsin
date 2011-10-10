@@ -6,6 +6,7 @@ import Control.Monad
 import Data.Char (ord)
 import Network.Socket
 import Network.Tremulous.Protocol
+import Control.Concurrent
 import System.FilePath (joinPath)
 
 import Exception2
@@ -36,11 +37,15 @@ main = withSocketsDo $ do
 			mpolled		<- atomically $ newTMVar (PollResult [] 0 0)
 			mconfig		<- atomically $ newTMVar config
 			mclans		<- atomically $ newTMVar cacheclans
+			mrefresh	<- newEmptyMVar
 			browserStore	<- listStoreNew []
 			playerStore	<- listStoreNew []
 			msettings	<- atomically $ newTMVar settings
 			return Bundle {parent = win, ..}
 			)
+	putMVar (mrefresh bundle) ()
+	forkIO $ threadDelay (1000*60*1000) >> takeMVar (mrefresh bundle)
+
 
 	mupdate <- atomically newEmptyTMVar
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle mupdate

@@ -36,6 +36,8 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	on clansync buttonActivated doSync
 	on refresh buttonActivated doRefresh
 
+	--autoRefresh mrefresh doRefresh
+
 	toolbar	<- hBoxNew False spacing
 	boxPackStartDefaults toolbar refresh
 	boxPackStartDefaults toolbar clansync
@@ -70,11 +72,17 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 
 	return pbrbox
 
+-- The reason a hbox is used is so the icons always gets displayed regardless of the gtk setting
 mkToolButton :: String -> StockId -> String -> IO Button
-mkToolButton lbl icon tip = do
-	button <- buttonNewWithLabel lbl
-	set button	[ buttonImage		:=> imageNewFromStock icon IconSizeButton
-			, buttonRelief		:= ReliefNone
+mkToolButton text icon tip = do
+	button <- buttonNew
+	img <- imageNewFromStock icon IconSizeButton
+	lbl <- labelNew (Just text)
+	box <- hBoxNew False 2
+	boxPackStart box img PackNatural 0
+	boxPackStart box lbl PackNatural 0
+	containerAdd button box
+	set button	[ buttonRelief		:= ReliefNone
 			, buttonFocusOnClick	:= False
 			, widgetTooltipText	:= Just tip ]
 	return button
@@ -151,3 +159,10 @@ newRefresh Bundle{..} polledHook bothHook pb unlock = do
 			widgetHide pb
 		unlock
 	return ()
+
+
+autoRefresh m action = forkIO $ forever $ do
+	r <- takeMVar m
+	when r action
+	putMVar m False
+	threadDelay $ 10000*1000

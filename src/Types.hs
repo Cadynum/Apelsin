@@ -5,6 +5,7 @@ module Types (
 import Graphics.UI.Gtk
 
 import Control.Concurrent.STM
+import Control.Concurrent
 import Network.Tremulous.Protocol
 
 import Config
@@ -15,6 +16,7 @@ data Bundle = Bundle {
 	  mpolled	:: !(TMVar PollResult)
 	, mconfig	:: !(TMVar Config)
 	, mclans	:: !(TMVar [Clan])
+	, mrefresh	:: !(MVar ())
 	, parent	:: !Window
 	, browserStore	:: !BrowserStore
 	, playerStore	:: !PlayerStore
