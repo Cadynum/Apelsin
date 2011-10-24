@@ -59,7 +59,8 @@ main = withSocketsDo $ do
 	forkIO $ do
 		cache <- clanListFromCache
 		atomically $ swapTMVar (mclans bundle) cache
-		clanlistUpdate cache =<< atomically (readTMVar (mpolled bundle))
+		postGUISync $
+			clanlistUpdate cache =<< atomically (readTMVar (mpolled bundle))
 
 
 	toolbar <- newToolbar bundle
