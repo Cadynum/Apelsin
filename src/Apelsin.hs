@@ -30,32 +30,37 @@ main = withSocketsDo $ do
 	unsafeInitGUIForThreadedRTS
 	win		<- windowNew
 	config		<- configFromFile
-	cacheclans	<- clanListFromCache
 	settings	<- ISS.fromFile
 
 	bundle	<-	(do
 			mpolled		<- atomically $ newTMVar (PollResult [] 0 0)
 			mconfig		<- atomically $ newTMVar config
-			mclans		<- atomically $ newTMVar cacheclans
+			mclans		<- atomically $ newTMVar []
 			mrefresh	<- newEmptyMVar
 			browserStore	<- listStoreNew []
 			playerStore	<- listStoreNew []
 			msettings	<- atomically $ newTMVar settings
 			return Bundle {parent = win, ..}
 			)
-	putMVar (mrefresh bundle) ()
-	forkIO $ threadDelay (1000*60*1000) >> takeMVar (mrefresh bundle)
+	--putMVar (mrefresh bundle) ()
+	--forkIO $ threadDelay (1000*60*1000) >> takeMVar (mrefresh bundle)
 
 
 	mupdate <- atomically newEmptyTMVar
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle mupdate
 	(browser, browserUpdate)		<- newServerBrowser bundle currentSet
 	(findPlayers, findUpdate)		<- newFindPlayers bundle currentSet
-	(clanlist, clanlistUpdate)		<- newClanList bundle cacheclans currentSet
+	(clanlist, clanlistUpdate)		<- newClanList bundle currentSet
 	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet
 
 	preferences				<- newPreferences bundle
 	atomically $ putTMVar mupdate (findUpdate, onlineclansUpdate)
+
+	forkIO $ do
+		cache <- clanListFromCache
+		atomically $ swapTMVar (mclans bundle) cache
+		clanlistUpdate cache =<< atomically (readTMVar (mpolled bundle))
+
 
 	toolbar <- newToolbar bundle
 		[]

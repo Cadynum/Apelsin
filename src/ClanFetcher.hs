@@ -102,7 +102,7 @@ getClanList url = do
 	case cont of
 		Nothing -> return Nothing
 		Just raw -> do
-			file	<- inCacheDir "clans"
+			file	<- cacheFile
 			clans	<- rawToClan raw
 			when (isJust clans) $
 				L.writeFile file raw
@@ -111,7 +111,7 @@ getClanList url = do
 
 clanListFromCache :: IO [Clan]
 clanListFromCache = handle err $ do
-	file <- inCacheDir "clans"
+	file <- cacheFile
 	fromMaybe [] <$> (rawToClan =<< L.readFile file)
 	where
 	err (_ :: IOException) = return []
@@ -119,6 +119,9 @@ clanListFromCache = handle err $ do
 
 lazyToStrict :: L.ByteString -> B.ByteString
 lazyToStrict = B.concat . toChunks
+
+cacheFile :: IO FilePath
+cacheFile = inCacheDir "clans"
 
 
 get :: HStream ty => String -> IO (Maybe ty)

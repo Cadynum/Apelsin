@@ -22,8 +22,8 @@ import GtkExts
 import Monad2
 
 
-newClanList :: Bundle -> [Clan] -> SetCurrent -> IO (VBox, ClanPolledHook)
-newClanList Bundle{..} cache setCurrent = do
+newClanList :: Bundle -> SetCurrent -> IO (VBox, ClanPolledHook)
+newClanList Bundle{..} setCurrent = do
 	gen@(GenFilterSort raw filtered sorted view)
 		<- newGenFilterSort =<< listStoreNew []
 	scrollview		<- scrollIt view PolicyAutomatic PolicyAlways
@@ -88,9 +88,6 @@ newClanList Bundle{..} cache setCurrent = do
 	boxPackStart box filterbar PackNatural spacing
 	boxPackStart box scrollview PackGrow 0
 	boxPackStart box infobox PackNatural 0
-
-
-	updateF cache =<< atomically (readTMVar mpolled)
 
 	return (box, updateF)
 	where

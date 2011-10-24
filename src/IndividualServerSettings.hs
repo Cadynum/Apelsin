@@ -2,7 +2,6 @@ module IndividualServerSettings (
 	ServerArg(..), ServerSettings
 	, getSettings, putSettings, fromFile, toFile
 ) where
-import Foreign
 import Control.DeepSeq
 import Network.Socket
 import Data.List
@@ -10,6 +9,7 @@ import Data.Maybe
 import Data.Map (Map)
 import qualified Data.Map as M
 import Network.Tremulous.SocketExtensions
+import NumberSerializer
 
 import Constants
 import Exception2
@@ -62,21 +62,3 @@ parse = M.fromList . mapMaybe (f . split '\t') . lines
 		where addr = SockAddrInet (PortNum (htons (hexToInt port))) (htonl (hexToInt ip))
 		      fav  = 'f' `elem` opts
 	f _  = Nothing
-
-
-intToHex :: (Integral i, Bits i) => Int -> i -> String
-intToHex = go [] where
-	go b 0 _   = b
-	go b n int = go (toDigit (int .&. 0xF) : b) (n-1) (int `shiftR` 4)
-	toDigit i | i <= 9    = conv (i + 0x30)
-	          | otherwise = conv (i + 0x61-0xa)
-	conv = toEnum . fromIntegral
-
-hexToInt :: (Integral i, Bits i) => String -> i
-hexToInt = go 0 where
-	go b []     = b
-	go b (x:xs) = go ((b `shiftL` 4) .|. toInt x) xs
-	toInt c | c' <= 0x39 = c' - 0x30
-	        | otherwise  = c' - (0x61-0xa)
-	        where c' = conv c
-	conv = fromIntegral . fromEnum

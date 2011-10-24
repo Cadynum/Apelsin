@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP #-}
-module Preferences where
+module Preferences (newPreferences) where
 import Graphics.UI.Gtk
 
 import Control.Monad
@@ -149,9 +149,6 @@ newPreferences Bundle{..} = do
 
 	scrollItV box PolicyNever PolicyAutomatic
 
-conv :: (Enum a, Enum b) => a -> b
-conv = toEnum . fromEnum
-
 configTable :: [String] -> IO (Table, [Entry], CheckButton)
 configTable ys = do
 	tbl <- paddedTableNew
@@ -286,20 +283,9 @@ paddedTableNew = do
 		, tableColumnSpacing	:= spacing ]
 	return tbl
 
-arrowButton :: IO ToggleButton
-arrowButton = do
-	b <- toggleButtonNew
-	set b [buttonRelief := ReliefNone]
-	a <- arrowNew ArrowDown ShadowNone
-	containerAdd b a
-	on b toggled $ do
-		s <- get b toggleButtonActive
-		set a [arrowArrowType := if not s then ArrowDown else ArrowUp]
-	return b
-
 colorToHex :: Color -> String
 colorToHex (Color a b c) = printf "#%02x%02x%02x" (f a) (f b) (f c)
-	where f = (`div` 0x100)
+	where f = (`quot` 0x100)
 
 hexToColor :: String -> Color
 hexToColor ('#':a:b:c:d:e:g:_)	= Color (f a b) (f c d) (f e g)

@@ -27,7 +27,7 @@ pangoPretty arr = pangoColors arr . B.unpack . original
 pangoColors :: ColorArray -> String -> String
 pangoColors arr = f False where
 	--Replace with colors
-	f n ('^':x:xs) | isAlphaNum x = case arr ! (a `mod` 8) of
+	f n ('^':x:xs) | isAlphaNum x = case arr ! (a `rem` 8) of
 		TFColor color	-> close n ++ "<span color=\"" ++ color ++ "\">" ++ f True xs
 		TFNone	_	-> close n ++ f False xs
 		where a = ord x - ord '0'
