@@ -50,20 +50,22 @@ newServerInfo Bundle{..} mupdate = do
 	-- Pretty CVar table
 	tbl <- tableNew 0 0 True
 	set tbl [ tableRowSpacing := spacing
-		, tableColumnSpacing := spacingBig ]
+		, tableColumnSpacing := spacing ]
 	let easyAttach pos lbl  = do
 		a <- labelNew (Just lbl)
 		b <- labelNew Nothing
+		let h = 0x8888
+		labelSetAttributes a [AttrForeground 0 (-1) (Color h h h)]
+
 		set a [ miscXalign := 1 ]
-		set b [ miscXalign := 0 ]
+		set b [ miscXalign := 0, labelSelectable := True]
 		tableAttachDefaults tbl a 0 1 pos (pos+1)
 		tableAttachDefaults tbl b 1 2 pos (pos+1)
 		return b
 
 	let mkTable = zipWithM easyAttach [0..]
-	info <- mkTable ["IP:Port", "Game (mod)", "Map", "Timelimit (SD)"
-			, "Slots (+private)", "Ping (server average)"]
-	set (head info) [ labelSelectable := True ]
+	info <- mkTable ["Address", "Game", "Map", "Timelimit / SD"
+			, "Slots (+private)", "Ping / Average"]
 	versionLabel <- labelNew Nothing
 	bools <- labelNew Nothing
 
@@ -103,7 +105,7 @@ newServerInfo Bundle{..} mupdate = do
 		let pReq = max hReq aReq
 
 		if natural * 2 > h then
-			let half = max 0 (h`div`2) in setS half half
+			let half = max 0 (h`quot`2) in setS half half
 		else if (max sReq natural) + pReq + spacing <= h then
 			setS (-1) (max sReq natural)
 		else do
@@ -196,10 +198,10 @@ newServerInfo Bundle{..} mupdate = do
 					SM.Nothing	-> ""
 					SM.Just z	-> " (" ++ (unpack . original) z ++ ")"))
 			, maybeS mapname
-			, maybeQ timelimit ++ " (" ++ maybeQ suddendeath ++ ")"
+			, maybeQ timelimit ++ " / " ++ maybeQ suddendeath
 			, show slots ++ " (+" ++ maybeQ privslots ++ ")"
 			, show gameping ++
-				" (" ++ (show . intmean . filter validping . map ping) players ++ ")"
+				" / " ++ meanPing players
 			, maybeS version
 			]
 		labelSetText versionLabel (maybeS version)
@@ -281,7 +283,7 @@ newServerInfo Bundle{..} mupdate = do
 	showHostname colors x		= pangoPretty colors x
 	maybeQ			= SM.maybe "?" show
 	maybeS			= SM.maybe "" (unpack . original)
-
+	meanPing		= show . intmean . filter validping . map ping
 
 runTremulous :: Config -> GameServer -> ServerArg-> IO (Maybe ProcessHandle)
 runTremulous Config{..} GameServer{..} ServerArg{..} = do

@@ -95,8 +95,7 @@ main = withSocketsDo $ do
 		let list = map
 			(\x -> joinPath [ddir, "icons", "hicolor", x ++ "x" ++ x, "apps", "apelsin.png"])
 			["16", "32", "48", "64"]
-		icons <- mapM pixbufNewFromFile list
-		set win [ windowIconList := icons]
+		windowSetDefaultIconList =<< mapM pixbufNewFromFile list
 
 	-- Without allowshrink the window may change size back and forth when selecting new servers
 	set win [ containerChild	:= pane

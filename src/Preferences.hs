@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Preferences where
 import Graphics.UI.Gtk
 
@@ -11,40 +12,48 @@ import Network.Tremulous.Protocol
 import System.FilePath
 
 import Types
-import Config
+import qualified Config as C
 import Constants
 import GtkUtils
 import Monad2
 import TremFormatting
 
+#define _CONNECT(WID, SIG, GET, SET) on WID SIG (do {new <- get WID GET; update (\x -> x { SET = new})})
+#define _CONNECT_WITH(WID, SIG, GET, SET, F) on WID SIG (do {new <- get WID GET; update (\x -> x { SET = F new})})
 
 newPreferences :: Bundle -> IO ScrolledWindow
 newPreferences Bundle{..} = do
+	let update f = do
+		new <- atomically $ do
+			old <- takeTMVar mconfig
+			let new = f old
+			putTMVar mconfig new
+			return new
+		C.configToFile parent new
+
 	-- Default filters
-	(tbl,
-	 [(filterBrowser', browserSort', browserOrder')
-	  , (filterPlayers', playersSort', playersOrder')]
-	  , filterEmpty'
+	(  tbl
+	 , [filterBrowser, filterPlayers]
+	 , filterEmpty
 	 ) <- configTable
-		[ ("_Browser:" , ["Game", "Name", "Map", "Ping", "Players"])
-		, ("Find _players:", ["Name", "Server"])
+		[ "_Browser:"
+		, "_Find players:"
 		]
 	filters <- framed "Default filters" tbl
 
 	-- Tremulous path
-	(pathstbl, [tremPath', tremGppPath']) <- pathTable parent ["_Tremulous 1.1:", "Tremulous _GPP:"]
+	(pathstbl, [tremPath, tremGppPath]) <- pathTable parent ["_Tremulous 1.1:", "Tremulous _GPP:"]
 	paths <- framed "Tremulous path or command" pathstbl
 
 	-- Startup
-	startupMaster	<- checkButtonNewWithMnemonic "_Refresh all servers"
-	startupClan	<- checkButtonNewWithMnemonic "_Sync clan list"
-	startupGeometry	<- checkButtonNewWithMnemonic "Restore _window geometry from previous session"
+	autoMaster	<- checkButtonNewWithMnemonic "_Refresh all servers"
+	autoClan	<- checkButtonNewWithMnemonic "_Sync clan list"
+	autoGeometry	<- checkButtonNewWithMnemonic "Restore _window geometry from previous session"
 	startupBox <- vBoxNew False 0
-	boxPackStartDefaults startupBox startupMaster
-	boxPackStartDefaults startupBox startupClan
-	boxPackStartDefaults startupBox startupGeometry
+	boxPackStartDefaults startupBox autoMaster
+	boxPackStartDefaults startupBox autoClan
+	boxPackStartDefaults startupBox autoGeometry
 	startup <- framed "On startup" startupBox
-
 
 	-- Colors
 	(colorTbl, colorList) <- numberedColors
@@ -57,7 +66,7 @@ newPreferences Bundle{..} = do
 
 
 	-- Internals
-	(itbl, [itimeout, iresend, ibuf]) <- mkInternals
+	(itbl, [packetTimeout', packetDuplication', throughputDelay']) <- mkInternals
 	ilbl <- labelNew $ Just "Tip: Hover the cursor over each option for a description"
 	miscSetAlignment ilbl 0 0
 	ibox <- vBoxNew False spacing
@@ -65,48 +74,6 @@ newPreferences Bundle{..} = do
 	boxPackStart ibox ilbl PackNatural 0
 
 	internals <- framed "Polling Internals" ibox
-
-	-- Apply
-	apply	<- buttonNewFromStock stockApply
-	cancel	<- buttonNewFromStock stockCancel
-	bbox	<- hButtonBoxNew
-	buttonBoxSetLayout bbox ButtonboxEnd
-	boxSetSpacing bbox spacing
-	boxPackStartDefaults bbox cancel
-	boxPackStartDefaults bbox apply
-	balign	<- alignmentNew 1 1 0 0
-	set balign [ containerChild := bbox ]
-
-	on apply buttonActivated $ do
-		filterBrowser	<- get filterBrowser' entryText
-		filterPlayers	<- get filterPlayers' entryText
-		filterEmpty	<- get filterEmpty' toggleButtonActive
-		browserSort	<- get browserSort' comboBoxActive
-		playersSort	<- get playersSort' comboBoxActive
-		browserOrder	<- conv <$> get browserOrder' toggleButtonActive
-		playersOrder	<- conv <$> get playersOrder' toggleButtonActive
-		tremPath	<- get tremPath' entryText
-		tremGppPath	<- get tremGppPath' entryText
-		autoMaster	<- get startupMaster toggleButtonActive
-		autoClan	<- get startupClan toggleButtonActive
-		autoGeometry	<- get startupGeometry toggleButtonActive
-		packetTimeout	<- (*1000) <$> spinButtonGetValueAsInt itimeout
-		packetDuplication	<- spinButtonGetValueAsInt iresend
-		throughputDelay	<- (*1000) <$> spinButtonGetValueAsInt ibuf
-
-		rawcolors	<- forM colorList $ \(colb, cb) -> do
-					bool <- get cb toggleButtonActive
-					(if bool then TFColor else TFNone)
-						 . colorToHex <$> colorButtonGetColor colb
-		old		<- atomically $ takeTMVar mconfig
-		let new		= old {filterBrowser, filterPlayers, autoMaster
-				, autoClan, autoGeometry, tremPath, tremGppPath
-				, colors = makeColorsFromList rawcolors
-				, delays = Delay{..}, filterEmpty, browserSort, playersSort
-				, browserOrder, playersOrder}
-		atomically $ putTMVar mconfig new
-		configToFile parent new
-		return ()
 
 	-- Main box
 	box <- vBoxNew False spacingHuge
@@ -116,29 +83,25 @@ newPreferences Bundle{..} = do
 	boxPackStart box startup PackNatural 0
 	boxPackStart box colors' PackNatural 0
 	boxPackStart box internals PackNatural 0
-	boxPackStart box balign PackGrow 0
 
 
 	-- Set values from Config
 	let updateF = do
-		Config {..} 		<- atomically $ readTMVar mconfig
-		set filterBrowser'	[ entryText := filterBrowser ]
-		set filterPlayers'	[ entryText := filterPlayers ]
-		set filterEmpty'	[ toggleButtonActive := filterEmpty]
-		set browserSort'	[ comboBoxActive := browserSort]
-		set playersSort'	[ comboBoxActive := playersSort]
-		set browserOrder'	[ toggleButtonActive := conv browserOrder ]
-		set playersOrder'	[ toggleButtonActive := conv playersOrder ]
-		set tremPath'		[ entryText := tremPath ]
-		set tremGppPath'	[ entryText := tremGppPath ]
-		set startupMaster	[ toggleButtonActive := autoMaster ]
-		set startupClan		[ toggleButtonActive := autoClan ]
-		set startupGeometry	[ toggleButtonActive := autoGeometry ]
-		set itimeout		[ spinButtonValue := fromIntegral (packetTimeout delays `div` 1000) ]
-		set iresend		[ spinButtonValue := fromIntegral (packetDuplication delays) ]
-		set ibuf		[ spinButtonValue := fromIntegral (throughputDelay delays `div` 1000) ]
+		c <- atomically $ readTMVar mconfig
+		let Delay{..} = C.delays c
+		set filterBrowser	[ entryText := C.filterBrowser c ]
+		set filterPlayers	[ entryText := C.filterPlayers c ]
+		set filterEmpty		[ toggleButtonActive := C.filterEmpty c]
+		set tremPath		[ entryText := C.tremPath c ]
+		set tremGppPath		[ entryText := C.tremGppPath c]
+		set autoMaster		[ toggleButtonActive := C.autoMaster c]
+		set autoClan		[ toggleButtonActive := C.autoClan c]
+		set autoGeometry	[ toggleButtonActive := C.autoGeometry c]
+		set packetTimeout'	[ spinButtonValue := fromIntegral (packetTimeout `quot` 1000) ]
+		set packetDuplication'	[ spinButtonValue := fromIntegral packetDuplication ]
+		set throughputDelay'	[ spinButtonValue := fromIntegral (throughputDelay `quot` 1000) ]
 
-		zipWithM_ f colorList (elems colors)
+		zipWithM_ f colorList (elems (C.colors c))
 		where	f (a, b) (TFColor c) = do
 				colorButtonSetColor a (hexToColor c)
 				toggleButtonSetActive b True
@@ -148,19 +111,52 @@ newPreferences Bundle{..} = do
 				-- Apparently this is needed too
 				toggleButtonToggled b
 
-	on cancel buttonActivated updateF
 	updateF
+
+	_CONNECT(filterBrowser, editableChanged, entryText, C.filterBrowser)
+	_CONNECT(filterEmpty, toggled, toggleButtonActive, C.filterEmpty)
+	_CONNECT(filterPlayers, editableChanged, entryText, C.filterPlayers)
+
+	_CONNECT(tremPath, editableChanged, entryText, C.tremPath)
+	_CONNECT(tremGppPath, editableChanged, entryText, C.tremGppPath)
+
+	_CONNECT(autoMaster, toggled, toggleButtonActive, C.autoMaster)
+	_CONNECT(autoClan, toggled, toggleButtonActive, C.autoClan)
+	_CONNECT(autoGeometry, toggled, toggleButtonActive, C.autoGeometry)
+
+	onValueSpinned packetTimeout' $ do
+		packetTimeout <- (*1000) <$> spinButtonGetValueAsInt packetTimeout'
+		update (\x -> let delays = C.delays x in x {C.delays = delays {packetTimeout}})
+
+	onValueSpinned packetDuplication' $ do
+		packetDuplication <- spinButtonGetValueAsInt packetDuplication'
+		update (\x -> let delays = C.delays x in x {C.delays = delays {packetDuplication}})
+
+	onValueSpinned throughputDelay' $ do
+		throughputDelay <- (*1000) <$> spinButtonGetValueAsInt throughputDelay'
+		update (\x -> let delays = C.delays x in x {C.delays = delays {throughputDelay}})
+
+	let updateColors = do
+		rawcolors <- forM colorList $ \(colb, cb) -> do
+			bool <- get cb toggleButtonActive
+			(if bool then TFColor else TFNone)
+				 . colorToHex <$> colorButtonGetColor colb
+		update $ \x -> x {C.colors = C.makeColorsFromList rawcolors}
+
+	forM colorList $ \(colb, cb) -> do
+		on cb toggled updateColors
+		afterColorSet colb updateColors
 
 	scrollItV box PolicyNever PolicyAutomatic
 
 conv :: (Enum a, Enum b) => a -> b
 conv = toEnum . fromEnum
 
-configTable :: [(String, [String])] -> IO (Table, [(Entry, ComboBox, ToggleButton)], CheckButton)
+configTable :: [String] -> IO (Table, [Entry], CheckButton)
 configTable ys = do
 	tbl <- paddedTableNew
 	empty <- checkButtonNewWithMnemonic "_empty"
-	let easyAttach pos (lbl, sorts)  = do
+	let easyAttach pos lbl  = do
 		a <- labelNewWithMnemonic lbl
 
 		ent <- entryNew
@@ -169,22 +165,12 @@ configTable ys = do
 		when (pos == 0) $
 			boxPackStart b empty PackNatural 0
 
-		c <- comboBoxNewText
-		zipWithM (comboBoxInsertText c) [0..] sorts
-		d <- arrowButton
-		cB <- hBoxNew False 0
-		boxPackStart cB c PackGrow 0
-		boxPackStart cB d PackNatural 0
-
-		set c [widgetTooltipText := Just "Sort by"]
-		set d [widgetTooltipText := Just "Sorting order"]
-		set a [ labelMnemonicWidget := b ]
+		set a [ labelMnemonicWidget := ent ]
 		miscSetAlignment a 0 0.5
 		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] 0 0
 		tableAttach tbl b 1 2 pos (pos+1) [Expand, Fill] [] 0 0
-		tableAttach tbl cB 2 3 pos (pos+1) [Fill] [] 0 0
 
-		return (ent, c, d)
+		return ent
 
 	rt <- zipWithM easyAttach [0..] ys
 	return (tbl, rt, empty)
