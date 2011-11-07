@@ -3,6 +3,7 @@ import System.Glib.GError
 
 import Control.Monad.IO.Class
 import Control.Monad
+import Control.Exception
 import Data.Char (ord)
 import Network.Socket
 import Network.Tremulous.Protocol
@@ -97,7 +98,7 @@ main = withSocketsDo $ do
 		mainQuit
 
 	ddir <- getDataDir
-	handleGError (const $ trace $ "Window icon not found in: " ++ ddir) $ do
+	handle (\(_::GError) -> trace $ "Window icon not found in: " ++ ddir) $ do
 		let list = map
 			(\x -> joinPath [ddir, "icons", "hicolor", x ++ "x" ++ x, "apps", "apelsin.png"])
 			["16", "32", "48", "64"]
