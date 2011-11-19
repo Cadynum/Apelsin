@@ -4,7 +4,6 @@ import Graphics.UI.Gtk
 
 import Control.Monad
 import Control.Applicative hiding (empty)
-import Control.Concurrent.STM
 import Data.Char
 import Data.Array
 import Text.Printf
@@ -24,11 +23,9 @@ import TremFormatting
 newPreferences :: Bundle -> IO ScrolledWindow
 newPreferences Bundle{..} = do
 	let update f = do
-		new <- atomically $ do
-			old <- takeTMVar mconfig
+		new <- modifyMVar mconfig $ \old -> do
 			let new = f old
-			putTMVar mconfig new
-			return new
+			return (new, new)
 		C.configToFile parent new
 
 	-- Default filters
@@ -87,7 +84,7 @@ newPreferences Bundle{..} = do
 
 	-- Set values from Config
 	let updateF = do
-		c <- atomically $ readTMVar mconfig
+		c <- readMVar mconfig
 		let Delay{..} = C.delays c
 		set filterBrowser	[ entryText := C.filterBrowser c ]
 		set filterPlayers	[ entryText := C.filterPlayers c ]

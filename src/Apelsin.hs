@@ -34,20 +34,20 @@ main = withSocketsDo $ do
 	settings	<- ISS.fromFile
 
 	bundle	<-	(do
-			mpolled		<- atomically $ newTMVar (PollResult [] 0 0)
-			mconfig		<- atomically $ newTMVar config
-			mclans		<- atomically $ newTMVar []
+			mpolled		<- newMVar (PollResult [] 0 0)
+			mconfig		<- newMVar config
+			mclans		<- newMVar []
 			mrefresh	<- newEmptyMVar
 			browserStore	<- listStoreNew []
 			playerStore	<- listStoreNew []
-			msettings	<- atomically $ newTMVar settings
+			msettings	<- newMVar settings
 			return Bundle {parent = win, ..}
 			)
 	--putMVar (mrefresh bundle) ()
 	--forkIO $ threadDelay (1000*60*1000) >> takeMVar (mrefresh bundle)
 
 
-	mupdate <- atomically newEmptyTMVar
+	mupdate <- newEmptyMVar
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle mupdate
 	(browser, browserUpdate)		<- newServerBrowser bundle currentSet
 	(findPlayers, findUpdate)		<- newFindPlayers bundle currentSet
@@ -55,13 +55,12 @@ main = withSocketsDo $ do
 	(onlineclans, onlineclansUpdate)	<- newOnlineClans bundle currentSet
 
 	preferences				<- newPreferences bundle
-	atomically $ putTMVar mupdate (findUpdate, onlineclansUpdate)
+	putMVar mupdate (findUpdate, onlineclansUpdate)
 
 	forkIO $ do
 		cache <- clanListFromCache
-		atomically $ swapTMVar (mclans bundle) cache
-		postGUISync $
-			clanlistUpdate cache =<< atomically (readTMVar (mpolled bundle))
+		swapMVar (mclans bundle) cache
+		postGUISync $ clanlistUpdate cache =<< readMVar (mpolled bundle)
 
 
 	toolbar <- newToolbar bundle
@@ -89,7 +88,7 @@ main = withSocketsDo $ do
 
 	-- save the current window size and pane positon on exit
 	on win deleteEvent $ tryEvent $ liftIO $ do
-		Config {autoGeometry} <- atomically $ readTMVar (mconfig bundle)
+		Config {autoGeometry} <- readMVar (mconfig bundle)
 		when autoGeometry $ do
 			file		<- inCacheDir "windowsize"
 			(winw, winh)	<- windowGetSize win
@@ -99,16 +98,13 @@ main = withSocketsDo $ do
 
 	ddir <- getDataDir
 	handle (\(_::GError) -> trace $ "Window icon not found in: " ++ ddir) $ do
-		let list = map
-			(\x -> joinPath [ddir, "icons", "hicolor", x ++ "x" ++ x, "apps", "apelsin.png"])
-			["16", "32", "48", "64"]
+		let list = map (iconPath ddir) ["16", "32", "48", "64"]
 		windowSetDefaultIconList =<< mapM pixbufNewFromFile list
 
 	-- Without allowshrink the window may change size back and forth when selecting new servers
 	set win [ containerChild	:= pane
 		, windowTitle		:= fullProgramName
-		, windowAllowShrink	:= True
-		]
+		, windowAllowShrink	:= True ]
 
 	--Showing it to get size requests
 	widgetShowAll leftView
@@ -134,3 +130,6 @@ main = withSocketsDo $ do
 			then liftIO (notebookSetCurrentPage book page) >> return True
 			else return False
 	mainGUI
+
+iconPath :: FilePath -> FilePath -> FilePath
+iconPath ddir x = joinPath [ddir, "icons", "hicolor", x ++ "x" ++ x, "apps", "apelsin.png"]

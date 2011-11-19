@@ -11,10 +11,10 @@ import Network.Tremulous.Protocol
 import Network.Tremulous.Polling
 import Network.Tremulous.MicroTime
 
+import ConcurrentUtil
 import GtkUtils
 import Types
 import Constants
-import STM2
 import Monad2
 import Config
 import About
@@ -66,7 +66,7 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 			[]	| k == "f7" -> liftIO (newAbout parent)	>> return True
 			_ -> return False
 
-	withTMVar mconfig $ \Config{..} -> do
+	readWithMVar mconfig $ \Config{..} -> do
 		when autoMaster doRefresh
 		when autoClan doSync
 
@@ -102,15 +102,14 @@ mLock widget f = do
 
 newClanSync :: Bundle -> [ClanHook] -> [ClanPolledHook] -> IO () -> IO ()
 newClanSync Bundle{..} clanHook bothHook unlock = do
-	Config {clanSyncURL} <- atomically $ readTMVar mconfig
+	Config {clanSyncURL} <- readMVar mconfig
 	forkIO $ do
 		new <- getClanList clanSyncURL
 		case new of
 			Nothing	-> postGUISync $ gtkError parent "Unable to download clanlist"
 			Just a	-> do
-				result <- atomically $ do
-					swapTMVar mclans a
-					readTMVar mpolled
+				swapMVar mclans a
+				result <- readMVar mpolled
 				postGUISync $ do
 					mapM_ ($ a) clanHook
 					mapM_ (\f -> f a result) bothHook
@@ -121,13 +120,11 @@ newRefresh :: Bundle -> [PolledHook] -> [ClanPolledHook] -> ProgressBar -> IO ()
 newRefresh Bundle{..} polledHook bothHook pb unlock = do
 	progressBarSetFraction pb 0
 	widgetShow pb
-	Config {masterServers, delays=delays@Delay{..}} <- atomically $ readTMVar mconfig
-
-	start <- getMicroTime
+	Config {masterServers, delays=delays@Delay{..}} <- readMVar mconfig
 
 	-- This is a stupid guess based on that about 110 servers will respond and the master
 	-- will take about 200ms to respond
-	PollResult { serversResponded } <- atomically $ readTMVar mpolled
+	PollResult { serversResponded } <- readMVar mpolled
 	let serversGuess = if serversResponded == 0 then 110 else serversResponded
 	let tremTime = (packetDuplication + 1) * packetTimeout
 		+ serversGuess * throughputDelay + 200 * 1000
@@ -136,6 +133,7 @@ newRefresh Bundle{..} polledHook bothHook pb unlock = do
 		hosts <- catMaybes <$> mapM
 			(\(host, port, proto) -> fmap (`MasterServer` proto) <$> getDNS host (show port))
 			masterServers
+		start <- getMicroTime
 		pbth <- forkIO $ whileTrue $ do
 				threadDelay 10000 --10 ms, 100 fps
 				now <- getMicroTime
@@ -150,9 +148,9 @@ newRefresh Bundle{..} polledHook bothHook pb unlock = do
 
 		result <- pollMasters delays hosts
 
-		atomically $ replaceTMVar mpolled result
+		swapMVar mpolled result
 		killThread pbth
-		clans <- atomically $ readTMVar mclans
+		clans <- readMVar mclans
 		postGUISync $ do
 			mapM_ ($ result) polledHook
 			mapM_ (\f -> f clans result) bothHook

@@ -5,6 +5,7 @@ import Data.Monoid
 import Data.Ord
 import Data.Tree
 import Data.List (sortBy)
+import Control.Concurrent
 import Network.Tremulous.NameInsensitive
 import qualified Network.Tremulous.Protocol as P
 import Network.Tremulous.Util
@@ -19,7 +20,7 @@ import TremFormatting
 
 newOnlineClans :: Bundle-> SetCurrent -> IO (ScrolledWindow, ClanPolledHook)
 newOnlineClans Bundle{..} setServer = do
-	Config {colors} <- atomically $ readTMVar mconfig
+	Config {colors} <- readMVar mconfig
 
 	gen@(GenSimple raw view) <- newGenSimple =<< treeStoreNew []
 

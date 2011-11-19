@@ -4,6 +4,8 @@ import Graphics.UI.Gtk
 import Prelude hiding (catch)
 import Control.Applicative
 import Control.Monad hiding (join)
+import Control.Exception
+import Control.Concurrent
 import Data.Ord
 import Data.ByteString.Char8 (unpack)
 import Data.List (sortBy)
@@ -15,9 +17,9 @@ import qualified Network.Tremulous.StrictMaybe as SM
 import Network.Tremulous.Polling
 import Network.Tremulous.Util
 
+import ConcurrentUtil
 import Types
 import Exception2
-import STM2
 import List2
 import Monad2
 import TremFormatting
@@ -30,10 +32,10 @@ import SettingsDialog
 import FindPlayers
 import ServerBrowser
 
-newServerInfo :: Bundle -> TMVar (PolledHook, ClanPolledHook) -> IO (VBox, PolledHook, SetCurrent)
+newServerInfo :: Bundle -> MVar (PolledHook, ClanPolledHook) -> IO (VBox, PolledHook, SetCurrent)
 newServerInfo Bundle{..} mupdate = do
-	Config {colors} <- atomically $ readTMVar mconfig
-	current		<- atomically newEmptyTMVar
+	Config {colors} <- readMVar mconfig
+	current		<- newEmptyMVar
 	running		<- newEmptyMVar
 
 	-- Host name
@@ -68,6 +70,9 @@ newServerInfo Bundle{..} mupdate = do
 			, "Slots (+private)", "Ping / Average"]
 	versionLabel <- labelNew Nothing
 	bools <- labelNew Nothing
+
+	labelSetSelectable versionLabel True
+	labelSetSelectable bools True
 
 	-- Players
 	allplayers	<- vBoxNew False spacing
@@ -142,8 +147,8 @@ newServerInfo Bundle{..} mupdate = do
 
 	let launchTremulous gs = whenM (isEmptyMVar running) $ do
 		putMVar running ()
-		config	<- atomically $ readTMVar mconfig
-		ss	<- atomically $ readTMVar msettings
+		config	<- readMVar mconfig
+		ss	<- readMVar msettings
 
 		set join [ widgetSensitive := False ]
 
@@ -166,8 +171,8 @@ newServerInfo Bundle{..} mupdate = do
 
 
 	let updateSettings joining = do
-		gs@GameServer{..}	<- atomically $ readTMVar current
-		ss			<- atomically $ readTMVar msettings
+		gs@GameServer{..}	<- readMVar current
+		ss			<- readMVar msettings
 		let cur = getSettings address ss
 		if not joining || null (serverPass cur) then do
 			new <- newSettingsDialog parent colors protected gs cur
@@ -175,7 +180,7 @@ newServerInfo Bundle{..} mupdate = do
 				Nothing -> return False
 				Just n -> do
 					let ss' = putSettings address n ss
-					atomically $ swapTMVar msettings ss'
+					swapMVar msettings ss'
 					unlessM (toFile ss') $
 						gtkWarn parent "Unable to save server specific settings"
 					return True
@@ -186,7 +191,7 @@ newServerInfo Bundle{..} mupdate = do
 		| otherwise	= launchTremulous gs
 
 
-	on join buttonActivated $ withTMVar current launchWithSettings
+	on join buttonActivated $ readWithMVar current launchWithSettings
 	on st buttonActivated (updateSettings False >> return ())
 
 
@@ -231,7 +236,9 @@ newServerInfo Bundle{..} mupdate = do
 			widgetShow uview
 			widgetHide allplayers
 
-		atomically $ replaceTMVar current gs
+		mask_ $ do
+			tryTakeMVar current
+			putMVar current gs
 
 		whenM (isEmptyMVar running) $
 			set join [ widgetSensitive := True ]
@@ -240,28 +247,28 @@ newServerInfo Bundle{..} mupdate = do
 
 		when boolJoin (launchWithSettings gs)
 
-	let updateF PollResult{..} = withTMVar current $ \GameServer{address} ->
+	let updateF PollResult{..} = readWithMVar current $ \GameServer{address} ->
 			whenJust (serverByAddress address polled) (setF False)
 
 
-	on refresh buttonActivated $ withTMVar current $ \x -> do
+	on refresh buttonActivated $ readWithMVar current $ \x -> do
 		set refresh [ widgetSensitive := False ]
-		Config {delays} <- atomically $ readTMVar mconfig
+		Config {delays} <- readMVar mconfig
 		forkIO $ do
 			result <- pollOne delays (address x)
 
 			SM.whenJust result $ \new -> do
-				pr <- atomically $ do
-					pr@PollResult{polled} <- takeTMVar mpolled
+				pr <- do
+					pr@PollResult{polled} <- takeMVar mpolled
 					let pr' = pr
 						{ polled = replace
 							(\old -> address old == address new)
 							new polled
 						}
-					putTMVar mpolled pr'
+					putMVar mpolled pr'
 					return pr'
-				(_, fb)	<- atomically (readTMVar mupdate)
-				clans		<- atomically (readTMVar mclans)
+				(_, fb)	<- readMVar mupdate
+				clans		<- readMVar mclans
 				postGUISync $ do
 					fb clans pr
 					setF False new

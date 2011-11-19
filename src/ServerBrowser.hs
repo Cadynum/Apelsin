@@ -1,6 +1,6 @@
 module ServerBrowser where
 import Graphics.UI.Gtk
-import Control.Concurrent.STM
+import Control.Concurrent
 import Data.IORef
 import Data.Ord
 import Data.Monoid
@@ -20,7 +20,7 @@ import Config
 
 newServerBrowser :: Bundle -> SetCurrent -> IO (VBox, PolledHook)
 newServerBrowser Bundle{..} setServer = do
-	Config {..}	<- atomically $ readTMVar mconfig
+	Config {..}	<- readMVar mconfig
 	gen@(GenFilterSort raw filtered sorted view) <- newGenFilterSort browserStore
 
 	addColumnFS gen "_Game" False

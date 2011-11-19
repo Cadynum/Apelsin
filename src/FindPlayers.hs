@@ -3,6 +3,7 @@ import Graphics.UI.Gtk
 
 import Data.IORef
 import Data.Ord
+import Control.Concurrent
 import Network.Tremulous.Protocol
 import Network.Tremulous.Util
 import qualified Network.Tremulous.StrictMaybe as SM
@@ -19,7 +20,7 @@ import Config
 
 newFindPlayers :: Bundle -> SetCurrent -> IO (VBox, PolledHook)
 newFindPlayers bundle@Bundle{..} setServer = do
-	Config {..} <- atomically $ readTMVar mconfig
+	Config {..} <- readMVar mconfig
 	(GenFilterSort raw filtered _ view) <- playerLikeList bundle setServer
 
 	(infobox, statNow, statTot)	<- newInfobox "players"
@@ -51,7 +52,7 @@ newFindPlayers bundle@Bundle{..} setServer = do
 
 playerLikeList :: Bundle -> SetCurrent -> IO (GenFilterSort ListStore (TI, GameServer))
 playerLikeList Bundle{..} setCurrent= do
-	Config {..} <- atomically $ readTMVar mconfig
+	Config {..} <- readMVar mconfig
 	gen@(GenFilterSort _ _ sorted view) <- newGenFilterSort playerStore
 
 	addColumnFS gen "_Name" True (Just (comparing fst))

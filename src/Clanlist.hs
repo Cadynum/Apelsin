@@ -1,6 +1,7 @@
 module Clanlist (newClanList) where
 import Graphics.UI.Gtk
 
+import Control.Concurrent
 import Control.Monad
 import qualified Data.ByteString.Char8 as B
 import Data.Ord
@@ -72,7 +73,7 @@ newClanList Bundle{..} setCurrent = do
 			openInBrowser (B.unpack website)
 
 		when active $ whenJust clanserver $ \server -> do
-			P.PollResult{..} <- atomically $ readTMVar mpolled
+			P.PollResult{..} <- readMVar mpolled
 			whenJust (serverByAddress server polled) (setCurrent False)
 
 	on view rowActivated $ \path col -> do
@@ -81,7 +82,7 @@ newClanList Bundle{..} setCurrent = do
 		case title of
 			Just "Website" -> return ()
 			_ -> when active $ whenJust clanserver $ \server -> do
-				P.PollResult{..} <- atomically $ readTMVar mpolled
+				P.PollResult{..} <- readMVar mpolled
 				whenJust (serverByAddress server polled) (setCurrent True)
 
 	box <- vBoxNew False 0
