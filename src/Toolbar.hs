@@ -2,6 +2,7 @@ module Toolbar(newToolbar, getDNS) where
 import Graphics.UI.Gtk
 
 import Control.Applicative
+import Control.Concurrent
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Maybe
@@ -19,6 +20,7 @@ import Monad2
 import Config
 import About
 import ClanFetcher
+import AutoRefresh
 
 newToolbar :: Bundle -> [ClanHook] -> [PolledHook] -> [ClanPolledHook] -> IO HBox
 newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
@@ -28,18 +30,22 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	refresh		<- mkToolButton "Refresh all" stockRefresh "Ctrl+R or F5"
 	clansync	<- mkToolButton "Sync clans" stockSave "Ctrl+S or F6"
 	about		<- mkToolButton "About" stockAbout "F7"
+	auto		<- mkAuto
 
 	doSync		<- mLock clansync (newClanSync bundle clanHook bothHook)
 	doRefresh	<- mLock refresh (newRefresh bundle polledHook bothHook pb)
+	autoRunner mauto doRefresh
 
 	on about buttonActivated (newAbout parent)
 	on clansync buttonActivated doSync
 	on refresh buttonActivated doRefresh
+	on auto toggled $ do
+		act <- toggleButtonGetActive auto
+		autoSignal mauto (if act then AutoStart else AutoStop)
 
-	--autoRefresh mrefresh doRefresh
-
-	toolbar	<- hBoxNew False spacing
+	toolbar	<- hBoxNew False 0 -- should be spacing?
 	boxPackStartDefaults toolbar refresh
+	boxPackStartDefaults toolbar auto
 	boxPackStartDefaults toolbar clansync
 	boxPackStartDefaults toolbar about
 
@@ -51,12 +57,9 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	boxPackStart pbrbox align PackNatural 0
 	boxPackStart pbrbox pb PackGrow 0
 
-
-
-
 	on parent keyPressEvent $  do
-		kmod	<- eventModifier
-		k	<- map toLower <$> eventKeyName
+		kmod <- eventModifier
+		k <- map toLower <$> eventKeyName
 		case kmod of
 			[Control]
 				| k == "r" -> liftIO doRefresh		>> return True
@@ -85,6 +88,15 @@ mkToolButton text icon tip = do
 	set button	[ buttonRelief		:= ReliefNone
 			, buttonFocusOnClick	:= False
 			, widgetTooltipText	:= Just tip ]
+	return button
+
+mkAuto = do
+	button <- toggleButtonNew
+	img <- imageNewFromStock stockMediaPlay IconSizeButton
+	containerAdd button img
+	set button	[ buttonRelief		:= ReliefNone
+			, buttonFocusOnClick	:= False
+			, widgetTooltipText	:= Just "Refresh all servers periodically" ]
 	return button
 
 mLock :: WidgetClass w => w -> (IO () -> IO ()) -> IO (IO ())
@@ -147,20 +159,13 @@ newRefresh Bundle{..} polledHook bothHook pb unlock = do
 					return True
 
 		result <- pollMasters delays hosts
-
 		swapMVar mpolled result
 		killThread pbth
 		clans <- readMVar mclans
+		autoSignal mauto AutoUpdate
 		postGUISync $ do
 			mapM_ ($ result) polledHook
 			mapM_ (\f -> f clans result) bothHook
 			widgetHide pb
 		unlock
 	return ()
-
-
-autoRefresh m action = forkIO $ forever $ do
-	r <- takeMVar m
-	when r action
-	putMVar m False
-	threadDelay $ 10000*1000

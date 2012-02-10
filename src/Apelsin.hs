@@ -25,6 +25,7 @@ import Preferences
 import Config
 import Toolbar
 import IndividualServerSettings as ISS
+import AutoRefresh
 
 main :: IO ()
 main = withSocketsDo $ do
@@ -41,11 +42,9 @@ main = withSocketsDo $ do
 			browserStore	<- listStoreNew []
 			playerStore	<- listStoreNew []
 			msettings	<- newMVar settings
+			mauto		<- newEmptyMVar
 			return Bundle {parent = win, ..}
 			)
-	--putMVar (mrefresh bundle) ()
-	--forkIO $ threadDelay (1000*60*1000) >> takeMVar (mrefresh bundle)
-
 
 	mupdate <- newEmptyMVar
 	(currentInfo, currentUpdate, currentSet)<- newServerInfo bundle mupdate
@@ -132,4 +131,4 @@ main = withSocketsDo $ do
 	mainGUI
 
 iconPath :: FilePath -> FilePath -> FilePath
-iconPath ddir x = joinPath [ddir, "icons", "hicolor", x ++ "x" ++ x, "apps", "apelsin.png"]
+iconPath ddir x = joinPath [ddir, "icons", "hicolor", x ++ "x" ++ x, "apps", configName++".png"]

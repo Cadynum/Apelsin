@@ -7,10 +7,10 @@ import Graphics.UI.Gtk
 import Control.Concurrent
 import ConcurrentUtil
 import Network.Tremulous.Protocol
-
 import Config
 import ClanFetcher
 import IndividualServerSettings
+import AutoRefresh
 
 data Bundle = Bundle {
 	  mpolled	:: !(MVar PollResult)
@@ -21,6 +21,7 @@ data Bundle = Bundle {
 	, browserStore	:: !BrowserStore
 	, playerStore	:: !PlayerStore
 	, msettings	:: !(MVar ServerSettings)
+	, mauto		:: !(MVar AutoSignal)
 	}
 
 type ClanHook		= [Clan] -> IO ()

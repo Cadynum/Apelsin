@@ -31,6 +31,7 @@ import IndividualServerSettings
 import SettingsDialog
 import FindPlayers
 import ServerBrowser
+import AutoRefresh
 
 newServerInfo :: Bundle -> MVar (PolledHook, ClanPolledHook) -> IO (VBox, PolledHook, SetCurrent)
 newServerInfo Bundle{..} mupdate = do
@@ -162,10 +163,12 @@ newServerInfo Bundle{..} mupdate = do
 						70 -> tremGppPath config
 						_  -> tremPath config
 			Just a -> do
+				autoSignal mauto AutoPause
 				forkIO $ do
 					waitForProcess a
 					postGUISync $ set join [ widgetSensitive := True ]
 					takeMVar running
+					autoSignal mauto AutoResume
 				return ()
 
 
@@ -205,8 +208,7 @@ newServerInfo Bundle{..} mupdate = do
 			, maybeS mapname
 			, maybeQ timelimit ++ " / " ++ maybeQ suddendeath
 			, show slots ++ " (+" ++ maybeQ privslots ++ ")"
-			, show gameping ++
-				" / " ++ meanPing players
+			, show gameping ++ " / " ++ meanPing players
 			, maybeS version
 			]
 		labelSetText versionLabel (maybeS version)
@@ -268,14 +270,12 @@ newServerInfo Bundle{..} mupdate = do
 					putMVar mpolled pr'
 					return pr'
 				(_, fb)	<- readMVar mupdate
-				clans		<- readMVar mclans
+				clans	<- readMVar mclans
 				postGUISync $ do
 					fb clans pr
 					setF False new
 					browserUpdateOne browserStore new
 					playerUpdateOne playerStore new
-
-
 
 			postGUISync $
 				set refresh [ widgetSensitive := True ]
