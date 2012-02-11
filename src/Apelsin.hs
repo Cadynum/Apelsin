@@ -25,7 +25,6 @@ import Preferences
 import Config
 import Toolbar
 import IndividualServerSettings as ISS
-import AutoRefresh
 
 main :: IO ()
 main = withSocketsDo $ do

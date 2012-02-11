@@ -12,7 +12,6 @@ import Network.Tremulous.Protocol
 import Network.Tremulous.Polling
 import Network.Tremulous.MicroTime
 
-import ConcurrentUtil
 import GtkUtils
 import Types
 import Constants
@@ -24,21 +23,23 @@ import AutoRefresh
 
 newToolbar :: Bundle -> [ClanHook] -> [PolledHook] -> [ClanPolledHook] -> IO HBox
 newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
+	c		<- readMVar mconfig
 	pb		<- progressBarNew
 	set pb		[ widgetNoShowAll := True ]
 
 	refresh		<- mkToolButton "Refresh all" stockRefresh "Ctrl+R or F5"
 	clansync	<- mkToolButton "Sync clans" stockSave "Ctrl+S or F6"
 	about		<- mkToolButton "About" stockAbout "F7"
-	auto		<- mkAuto
+	auto		<- mkAuto (refreshMode c)
 
 	doSync		<- mLock clansync (newClanSync bundle clanHook bothHook)
 	doRefresh	<- mLock refresh (newRefresh bundle polledHook bothHook pb)
-	autoRunner mauto doRefresh
+	autoRunner mauto mconfig doRefresh
 
 	on about buttonActivated (newAbout parent)
 	on clansync buttonActivated doSync
 	on refresh buttonActivated doRefresh
+
 	on auto toggled $ do
 		act <- toggleButtonGetActive auto
 		autoSignal mauto (if act then AutoStart else AutoStop)
@@ -69,9 +70,11 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 			[]	| k == "f7" -> liftIO (newAbout parent)	>> return True
 			_ -> return False
 
-	readWithMVar mconfig $ \Config{..} -> do
-		when autoMaster doRefresh
-		when autoClan doSync
+	case (refreshMode c) of
+		Startup	-> doRefresh
+		Auto	-> autoSignal mauto AutoStart
+		Manual	-> return ()
+	when (autoClan c) doSync
 
 	return pbrbox
 
@@ -90,8 +93,10 @@ mkToolButton text icon tip = do
 			, widgetTooltipText	:= Just tip ]
 	return button
 
-mkAuto = do
+mkAuto :: RefreshMode -> IO ToggleButton
+mkAuto refreshMode = do
 	button <- toggleButtonNew
+	set button [ toggleButtonActive := refreshMode == Auto ]
 	img <- imageNewFromStock stockMediaPlay IconSizeButton
 	containerAdd button img
 	set button	[ buttonRelief		:= ReliefNone

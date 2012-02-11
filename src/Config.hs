@@ -1,4 +1,6 @@
-module Config (Config(..), ColorTheme, configFromFile, configToFile, makeColorsFromList) where
+module Config (Config(..), ColorTheme, configFromFile, configToFile
+	, makeColorsFromList, RefreshMode(..)
+) where
 import Graphics.UI.Gtk (SortType(..), Window)
 import Data.Array
 import Data.Char
@@ -19,14 +21,18 @@ type ColorTheme = Array Int TremFmt
 data SortingOrderPretty = Ascending | Descending
 	deriving (Show, Read, Enum)
 
+data RefreshMode = Startup | Auto | Manual
+	deriving (Show, Read, Eq)
+
 data Config = Config
 	{ masterServers :: ![(String, Int, Int)]
 	, clanSyncURL	:: !String
 	, tremPath
 	, tremGppPath	:: !String
-	, autoMaster
+	, refreshMode	:: !RefreshMode
 	, autoClan
 	, autoGeometry	:: !Bool
+	, autoDelay	:: !Int
 	, filterBrowser
 	, filterPlayers	:: !String
 	, filterEmpty	:: !Bool
@@ -45,9 +51,10 @@ newSave Config{delays=Delay{..}, ..} = unlines $
 	, f clanSyncURL		clanText
 	, f tremPath		t11Text
 	, f tremGppPath		t12Text
-	, f autoMaster		autoMasterText
+	, f refreshMode		refreshModeText
 	, f autoClan		autoClanText
 	, f autoGeometry	geometryText
+	, f autoDelay		autoDelayText
 	, f filterBrowser	browserfilterText
 	, f filterPlayers	playerfilterText
 	, f filterEmpty		showEmptyText
@@ -72,10 +79,11 @@ newParse = evalState $ do
 	clanSyncURL	<- f clanText			"http://ddos-tremulous.eu/cw/api/clanlist"
 	tremPath	<- f t11Text			defaultTremulousPath
 	tremGppPath	<- f t12Text			defaultTremulousGPPPath
-	autoMaster	<- f autoMasterText		True
+	refreshMode	<- f refreshModeText		Startup
 	autoClan	<- f autoClanText		True
 	autoGeometry	<- f geometryText		True
-	filterBrowser	<- f browserfilterText	""
+	autoDelay	<- f autoDelayText		1200000000 -- 120s
+	filterBrowser	<- f browserfilterText		""
 	filterPlayers	<- f playerfilterText		""
 	filterEmpty	<- f showEmptyText		True
 	browserSort	<- f browserSortText		3
@@ -104,7 +112,7 @@ smread x = case reads x of
 parse :: String -> Config
 parse = newParse . map (breakDrop isSpace) . lines
 
-mastersText, clanText, t11Text, t12Text, autoMasterText, autoClanText, geometryText
+mastersText, clanText, t11Text, t12Text, refreshModeText, autoClanText, geometryText, autoDelayText
 	, browserfilterText, playerfilterText, showEmptyText, browserSortText, playerSortText
 	, browserOrderText, playerOrderText, packetTimeoutText
 	, packetDuplicationText, throughputDelayText, colorText :: String
@@ -112,9 +120,10 @@ mastersText		= "masters"
 clanText		= "clanlistUrl"
 t11Text			= "tremulous1.1"
 t12Text			= "tremulousGPP"
-autoMasterText		= "autoMaster"
+refreshModeText		= "refreshMode"
 autoClanText		= "autoClan"
 geometryText		= "saveGeometry"
+autoDelayText		= "autoDelay"
 browserfilterText	= "browserFilter"
 playerfilterText	= "playersFilter"
 showEmptyText		= "showEmpty"

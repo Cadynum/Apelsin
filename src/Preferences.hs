@@ -43,14 +43,33 @@ newPreferences Bundle{..} = do
 	paths <- framed "Tremulous path or command" pathstbl
 
 	-- Startup
-	autoMaster	<- checkButtonNewWithMnemonic "_Refresh all servers"
 	autoClan	<- checkButtonNewWithMnemonic "_Sync clan list"
 	autoGeometry	<- checkButtonNewWithMnemonic "Restore _window geometry from previous session"
 	startupBox <- vBoxNew False 0
-	boxPackStartDefaults startupBox autoMaster
 	boxPackStartDefaults startupBox autoClan
 	boxPackStartDefaults startupBox autoGeometry
 	startup <- framed "On startup" startupBox
+
+	--Refresh mode
+	rb1 <- radioButtonNewWithMnemonic "_Once at startup"
+	rb2 <- radioButtonNewWithMnemonicFromWidget rb1 "Periodically each"
+	rb3 <- radioButtonNewWithMnemonicFromWidget rb1 "Manual"
+	autoDelay <- spinButtonNewWithRange 0 3600 1
+	seconds <- labelNew (Just "s")
+
+	delaybox <- hBoxNew False spacing
+	boxPackStart delaybox autoDelay PackNatural 0
+	boxPackStart delaybox seconds PackNatural 0
+
+	perbox <- hBoxNew False spacingBig
+	boxPackStart perbox rb2 PackNatural 0
+	boxPackStart perbox delaybox PackNatural 0
+
+	rbBox <- vBoxNew False 0
+	boxPackStartDefaults rbBox rb1
+	boxPackStartDefaults rbBox perbox
+	boxPackStartDefaults rbBox rb3
+	refreshmode <- framed "Refresh all" rbBox
 
 	-- Colors
 	(colorTbl, colorList) <- numberedColors
@@ -77,6 +96,7 @@ newPreferences Bundle{..} = do
 	containerSetBorderWidth box spacing
 	boxPackStart box filters PackNatural 0
 	boxPackStart box paths PackNatural 0
+	boxPackStart box refreshmode PackNatural 0
 	boxPackStart box startup PackNatural 0
 	boxPackStart box colors' PackNatural 0
 	boxPackStart box internals PackNatural 0
@@ -91,12 +111,15 @@ newPreferences Bundle{..} = do
 		set filterEmpty		[ toggleButtonActive := C.filterEmpty c]
 		set tremPath		[ entryText := C.tremPath c ]
 		set tremGppPath		[ entryText := C.tremGppPath c]
-		set autoMaster		[ toggleButtonActive := C.autoMaster c]
 		set autoClan		[ toggleButtonActive := C.autoClan c]
 		set autoGeometry	[ toggleButtonActive := C.autoGeometry c]
+		set autoDelay		[ spinButtonValue := fromIntegral (C.autoDelay c `quot` 1000000) ]
 		set packetTimeout'	[ spinButtonValue := fromIntegral (packetTimeout `quot` 1000) ]
 		set packetDuplication'	[ spinButtonValue := fromIntegral packetDuplication ]
 		set throughputDelay'	[ spinButtonValue := fromIntegral (throughputDelay `quot` 1000) ]
+		set rb1			[ toggleButtonActive := C.refreshMode c == C.Startup ]
+		set rb2			[ toggleButtonActive := C.refreshMode c == C.Auto ]
+		set rb3			[ toggleButtonActive := C.refreshMode c == C.Manual ]
 
 		zipWithM_ f colorList (elems (C.colors c))
 		where	f (a, b) (TFColor c) = do
@@ -117,9 +140,23 @@ newPreferences Bundle{..} = do
 	_CONNECT(tremPath, editableChanged, entryText, C.tremPath)
 	_CONNECT(tremGppPath, editableChanged, entryText, C.tremGppPath)
 
-	_CONNECT(autoMaster, toggled, toggleButtonActive, C.autoMaster)
+	--_CONNECT(autoMaster, toggled, toggleButtonActive, C.autoMaster)
 	_CONNECT(autoClan, toggled, toggleButtonActive, C.autoClan)
 	_CONNECT(autoGeometry, toggled, toggleButtonActive, C.autoGeometry)
+
+
+	let radiofunc value = update (\x -> x { C.refreshMode = value})
+
+	on rb1 toggled $ do	b <- toggleButtonGetActive rb1
+				when b (radiofunc C.Startup)
+	on rb2 toggled $ do	b <- toggleButtonGetActive rb2
+				when b (radiofunc C.Auto)
+	on rb3 toggled $ do	b <- toggleButtonGetActive rb3
+				when b (radiofunc C.Manual)
+
+	onValueSpinned autoDelay $ do
+		value <- (*1000000) <$> spinButtonGetValueAsInt autoDelay
+		update (\x -> x { C.autoDelay = value})
 
 	onValueSpinned packetTimeout' $ do
 		packetTimeout <- (*1000) <$> spinButtonGetValueAsInt packetTimeout'
