@@ -11,53 +11,54 @@ import Config
 data AutoSignal = AutoUpdate | AutoStop | AutoStart | AutoPause | AutoResume
 	deriving Show
 
+data State = Running !ThreadId | Paused | Stopped
+
 autoSignal :: MVar AutoSignal -> AutoSignal -> IO ()
 autoSignal m = putMVar m
 
 autoRunner :: MVar AutoSignal -> MVar Config -> IO a -> IO ThreadId
-autoRunner m mconfig refreshAction = forkIO $ go False Nothing Nothing
+autoRunner m mconfig refreshAction = forkIO $ go Stopped Nothing
 	where
-	go :: Bool -> Maybe ThreadId -> Maybe MicroTime -> IO a
-	go active tid timestamp = do
+	go :: State -> Maybe MicroTime -> IO a
+	go state timestamp = do
 		st <- takeMVar m
-		print st
 		case st of
-			AutoStart  -> do
-				tid' <- case tid of
-					Just a -> return (Just a)
-					Nothing -> Just <$> startAuto mconfig timestamp refreshAction
-				go True tid' timestamp
-			AutoStop -> do
-				whenJust tid killThread
-				go False Nothing timestamp
+			AutoStart -> case state of
+				Running _ -> go state timestamp
+				_ -> do	tid <- startAuto mconfig timestamp refreshAction
+					go (Running tid) timestamp
+
+			AutoStop -> case state of
+				Running tid -> killThread tid >> go Stopped timestamp
+				_ -> go Stopped timestamp
+
 			AutoUpdate -> do
 				timestamp' <- Just <$> getMicroTime
-				case timestamp of
-					Nothing -> do
-						tid' <- if active
-							then Just <$> startAuto mconfig timestamp' refreshAction
-							else return tid
-						go active tid' timestamp'
-					Just _ | active -> do
-						whenJust tid killThread
+				case state of
+					Running tid -> do
+						killThread tid
 						tid' <- startAuto mconfig timestamp' refreshAction
-						go active (Just tid') timestamp'
-					_ -> go active tid timestamp'
-			AutoPause | Just a <- tid -> do
-				killThread a
-				go active Nothing timestamp
-			AutoResume | active -> do
-				tid' <- startAuto mconfig timestamp refreshAction
-				go active (Just tid') timestamp
-			_ -> go active tid timestamp
+						go (Running tid') timestamp'
+					_ -> go state timestamp'
+
+			AutoPause | Running tid <- state -> do
+				killThread tid
+				go Paused timestamp
+
+			AutoResume | Paused <- state -> do
+				tid <- startAuto mconfig timestamp refreshAction
+				go (Running tid) timestamp
+
+			_ -> go state timestamp
 
 
 startAuto :: MVar Config -> Maybe MicroTime -> IO a -> IO ThreadId
 startAuto mconfig lastRefresh refreshAction = uninterruptibleMask $ \restore -> forkIO $ do
 		delay <- autoDelay <$> readMVar mconfig
+		print delay
 		whenJust lastRefresh $ \past -> do
 			now <- getMicroTime
-			when (past+fromIntegral delay > now) $
-				restore $ threadDelay (fromIntegral (past+fromIntegral delay-now))
+			when (past+delay > now) $
+				restore $ threadDelay (fromIntegral (past+delay-now))
 		refreshAction
 		return ()

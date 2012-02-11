@@ -52,8 +52,8 @@ newPreferences Bundle{..} = do
 
 	--Refresh mode
 	rb1 <- radioButtonNewWithMnemonic "_Once at startup"
-	rb2 <- radioButtonNewWithMnemonicFromWidget rb1 "Periodically each"
-	rb3 <- radioButtonNewWithMnemonicFromWidget rb1 "Manual"
+	rb2 <- radioButtonNewWithMnemonicFromWidget rb1 "_Periodically each"
+	rb3 <- radioButtonNewWithMnemonicFromWidget rb1 "_Manual"
 	autoDelay <- spinButtonNewWithRange 0 3600 1
 	seconds <- labelNew (Just "s")
 
@@ -156,7 +156,7 @@ newPreferences Bundle{..} = do
 
 	onValueSpinned autoDelay $ do
 		value <- (*1000000) <$> spinButtonGetValueAsInt autoDelay
-		update (\x -> x { C.autoDelay = value})
+		update (\x -> x { C.autoDelay = fromIntegral value})
 
 	onValueSpinned packetTimeout' $ do
 		packetTimeout <- (*1000) <$> spinButtonGetValueAsInt packetTimeout'

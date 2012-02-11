@@ -10,6 +10,7 @@ import Network.Tremulous.Protocol
 import Control.Monad.State.Strict
 import Network.Tremulous.TupleReader (lookupDelete)
 import Network.Tremulous.StrictMaybe as SM
+import Network.Tremulous.MicroTime
 
 import Constants
 import List2
@@ -32,7 +33,7 @@ data Config = Config
 	, refreshMode	:: !RefreshMode
 	, autoClan
 	, autoGeometry	:: !Bool
-	, autoDelay	:: !Int
+	, autoDelay	:: !MicroTime
 	, filterBrowser
 	, filterPlayers	:: !String
 	, filterEmpty	:: !Bool
