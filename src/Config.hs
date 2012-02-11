@@ -37,10 +37,12 @@ data Config = Config
 	, filterBrowser
 	, filterPlayers	:: !String
 	, filterEmpty	:: !Bool
-	, browserSort	:: !Int
-	, playersSort	:: !Int
+	, browserSort
+	, playersSort
+	, clanlistSort	:: !Int
 	, browserOrder
-	, playersOrder	:: !SortType
+	, playersOrder
+	, clanlistOrder	:: !SortType
 	, delays	:: !Delay
 	, colors	:: !ColorTheme
 	}
@@ -61,8 +63,10 @@ newSave Config{delays=Delay{..}, ..} = unlines $
 	, f filterEmpty		showEmptyText
 	, f browserSort		browserSortText
 	, f playersSort		playerSortText
+	, f clanlistSort	clanlistSortText
 	, f (conv browserOrder)	browserOrderText
 	, f (conv playersOrder)	playerOrderText
+	, f (conv clanlistOrder) clanlistOrderText
 	, f packetTimeout	packetTimeoutText
 	, f packetDuplication	packetDuplicationText
 	, f throughputDelay	throughputDelayText
@@ -89,8 +93,10 @@ newParse = evalState $ do
 	filterEmpty	<- f showEmptyText		True
 	browserSort	<- f browserSortText		3
 	playersSort	<- f playerSortText		0
+	clanlistSort	<- f clanlistSortText		1
 	browserOrder	<- toEnum . fromEnum <$> f browserOrderText	Ascending
 	playersOrder	<- toEnum . fromEnum <$> f playerOrderText	Ascending
+	clanlistOrder	<- toEnum . fromEnum <$> f clanlistOrderText	Ascending
 	packetTimeout	<- f packetTimeoutText	(packetTimeout defaultDelay)
 	packetDuplication<- f packetDuplicationText	(packetDuplication defaultDelay)
 	throughputDelay	<- f throughputDelayText	(throughputDelay defaultDelay)
@@ -115,7 +121,7 @@ parse = newParse . map (breakDrop isSpace) . lines
 
 mastersText, clanText, t11Text, t12Text, refreshModeText, autoClanText, geometryText, autoDelayText
 	, browserfilterText, playerfilterText, showEmptyText, browserSortText, playerSortText
-	, browserOrderText, playerOrderText, packetTimeoutText
+	, browserOrderText, playerOrderText, packetTimeoutText, clanlistSortText, clanlistOrderText
 	, packetDuplicationText, throughputDelayText, colorText :: String
 mastersText		= "masters"
 clanText		= "clanlistUrl"
@@ -128,10 +134,12 @@ autoDelayText		= "autoDelay"
 browserfilterText	= "browserFilter"
 playerfilterText	= "playersFilter"
 showEmptyText		= "showEmpty"
-browserSortText		= "browserSortBy"
-playerSortText		= "playerSortBy"
+browserSortText		= "browserSortColumn"
+playerSortText		= "playerSortColumn"
+clanlistSortText	= "clanlistSortColumn"
 browserOrderText	= "browserSortingOrder"
 playerOrderText		= "playerSortingOrder"
+clanlistOrderText	= "clanlistSortingOrder"
 packetTimeoutText	= "packetTimeout"
 packetDuplicationText	= "packetDuplication"
 throughputDelayText	= "throughputDelay"

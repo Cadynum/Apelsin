@@ -1,4 +1,4 @@
-module FindPlayers where
+module FindPlayers (newFindPlayers, playerUpdateOne) where
 import Graphics.UI.Gtk
 
 import Data.IORef
@@ -51,16 +51,18 @@ newFindPlayers bundle@Bundle{..} setServer = do
 	return (box, updateFilter)
 
 playerLikeList :: Bundle -> SetCurrent -> IO (GenFilterSort ListStore (TI, GameServer))
-playerLikeList Bundle{..} setCurrent= do
+playerLikeList bundle@Bundle{..} setCurrent= do
 	Config {..} <- readMVar mconfig
 	gen@(GenFilterSort _ _ sorted view) <- newGenFilterSort playerStore
 
 	addColumnFS gen "_Name" True (Just (comparing fst))
+		(rememberColumn bundle 0)
 		cellRendererTextNew
 		[cellTextEllipsize := EllipsizeEnd]
 		(\rend -> cellSetMarkup rend . pangoPrettyBS colors . fst)
 
 	addColumnFS gen "_Server" True (Just (comparing (hostname . snd)))
+		(rememberColumn bundle 1)
 		cellRendererTextNew
 		[cellTextEllipsize := EllipsizeEnd]
 		(\rend -> cellSetMarkup rend . pangoPrettyBS colors . hostname . snd)
@@ -90,3 +92,10 @@ playerUpdateOne raw gs = do
 	foldPlayers []     []     = return ()
 
 
+rememberColumn :: Bundle -> Int -> TreeViewColumn -> IO ()
+rememberColumn Bundle{..} n col = do
+	order <- treeViewColumnGetSortOrder col
+	current <- takeMVar mconfig
+	let new = current {playersSort = n, playersOrder = order}
+	putMVar mconfig new
+	configToFile parent new

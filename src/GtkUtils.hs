@@ -101,14 +101,16 @@ addColumnFS :: CellRendererClass rend
 	-> String
 	-> Bool
 	-> Maybe (e -> e -> Ordering)
+	-> (TreeViewColumn -> IO ())
 	-> IO rend
 	-> [AttrOp rend]
 	-> (rend -> e -> IO ())
 	-> IO ()
-addColumnFS gen@(GenFilterSort store filtered sorted view) title expand sortf mkRend rendOpts f = do
+addColumnFS gen@(GenFilterSort store filtered sorted view) title expand sortf action mkRend rendOpts f = do
 	col <- treeViewColumnNew
 	set col	[ treeViewColumnTitle := title
 		, treeViewColumnExpand := expand ]
+	afterColClicked col (action col)
 	rend <- mkRend
 	set rend rendOpts
 	cellLayoutPackStart col rend True

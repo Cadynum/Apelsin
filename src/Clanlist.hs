@@ -21,10 +21,11 @@ import InfoBox
 import GtkUtils
 import GtkExts
 import Monad2
+import Config
 
 
 newClanList :: Bundle -> SetCurrent -> IO (VBox, ClanPolledHook)
-newClanList Bundle{..} setCurrent = do
+newClanList bundle@Bundle{..} setCurrent = do
 	gen@(GenFilterSort raw filtered sorted view)
 		<- newGenFilterSort =<< listStoreNew []
 	scrollview		<- scrollIt view PolicyAutomatic PolicyAlways
@@ -44,18 +45,24 @@ newClanList Bundle{..} setCurrent = do
 		labelSetText statNow . show =<< treeModelIterNChildren filtered Nothing
 
 	addColumnFS gen "" False (Just $ comparing $ isJust . clanserver . fst)
+		(rememberColumn bundle 0)
 		cellRendererPixbufNew [] haveServer
 	addColumnFS gen "_Name" False (Just $ comparing $ name . fst)
+		(rememberColumn bundle 1)
 		cellRendererTextNew [] (simpleColumn (original . name))
 	addColumnFS gen "_Tag" False (Just $ comparing $ tagexpr . fst)
+		(rememberColumn bundle 2)
 		cellRendererTextNew [] (markupColumn (prettyTagExpr . tagexpr))
 	addColumnFS gen "Website" False Nothing
+		(const (return ()))
 		cellRendererTextNew webMarkup $ \rend (Clan{..},_) -> do
 			cellSetText rend (showURL website)
 	addColumnFS gen "IRC" False Nothing
+		(const (return ()))
 		cellRendererTextNew [] (simpleColumn irc)
 
-	treeSortableSetSortColumnId sorted 1 SortAscending
+	Config{..} <- readMVar mconfig
+	treeSortableSetSortColumnId sorted clanlistSort clanlistOrder
 
 
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
@@ -100,3 +107,12 @@ newClanList Bundle{..} setCurrent = do
 	haveServer rend (Clan{..}, active) = set rend $ case clanserver of
 		Just _	-> [cellPixbufStockId := stockNetwork, cellSensitive := active]
 		Nothing	-> [cellPixbufStockId := ""]
+
+
+rememberColumn :: Bundle -> Int -> TreeViewColumn -> IO ()
+rememberColumn Bundle{..} n col = do
+	order <- treeViewColumnGetSortOrder col
+	current <- takeMVar mconfig
+	let new = current {clanlistSort = n, clanlistOrder = order}
+	putMVar mconfig new
+	configToFile parent new

@@ -1,4 +1,4 @@
-module ServerBrowser where
+module ServerBrowser (newServerBrowser, browserUpdateOne) where
 import Graphics.UI.Gtk
 import Data.IORef
 import Data.Ord
@@ -18,35 +18,40 @@ import Constants
 import Config
 
 newServerBrowser :: Bundle -> SetCurrent -> IO (VBox, PolledHook)
-newServerBrowser Bundle{..} setServer = do
+newServerBrowser bundle@Bundle{..} setServer = do
 	Config {..} <- readMVar mconfig
 	gen@(GenFilterSort raw filtered sorted view) <- newGenFilterSort browserStore
 
 	addColumnFS gen "_Game" False
 		(Just (comparing protocol `mappend` comparing gamemod `mappend` comparing gameping))
+		(rememberColumn bundle 0)
 		cellRendererTextNew
 		[]
 		(\rend -> cellSetText rend . showGame)
 
 	addColumnFS gen "_Name" True
 		(Just (comparing hostname `mappend` comparing gameping))
+		(rememberColumn bundle 1)
 		cellRendererTextNew
 		[cellTextEllipsize := EllipsizeEnd]
 		(\rend -> cellSetMarkup rend . pangoPrettyBS colors . hostname)
 
 	addColumnFS gen "_Map" False
 		(Just (comparing mapname `mappend` comparing gameping))
+		(rememberColumn bundle 2)
 		cellRendererTextNew []
 		(\rend -> cellSetText rend . SM.maybe "" (B.take 16 . original) . mapname)
 
 	addColumnFS gen "P_ing" False
 		(Just (comparing gameping `mappend` comparing hostname))
+		(rememberColumn bundle 3)
 		cellRendererTextNew
 		[cellXAlign := 1]
 		(\rend x -> set rend [cellText := show $ gameping x])
 
 	addColumnFS gen "_Players" False
 		(Just (comparing nplayers `mappend` flip (comparing gameping)))
+		(rememberColumn bundle 4)
 		cellRendererTextNew
 		[cellXAlign := 1]
 		(\rend x -> set rend [cellText := showPlayers x])
@@ -114,3 +119,11 @@ browserUpdateOne raw gs = treeModelForeach raw $ \iter -> do
 	if address e == address gs
 		then listStoreSetValue raw i gs >> return True
 		else return False
+
+rememberColumn :: Bundle -> Int -> TreeViewColumn -> IO ()
+rememberColumn Bundle{..} n col = do
+	order <- treeViewColumnGetSortOrder col
+	current <- takeMVar mconfig
+	let new = current {browserSort = n, browserOrder = order}
+	putMVar mconfig new
+	configToFile parent new
