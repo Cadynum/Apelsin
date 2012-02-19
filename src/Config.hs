@@ -57,7 +57,7 @@ newSave Config{delays=Delay{..}, ..} = unlines $
 	, f refreshMode		refreshModeText
 	, f autoClan		autoClanText
 	, f autoGeometry	geometryText
-	, f autoDelay		autoDelayText
+	, f (autoDelay`quot`1000000) autoDelayText
 	, f filterBrowser	browserfilterText
 	, f filterPlayers	playerfilterText
 	, f filterEmpty		showEmptyText
@@ -81,13 +81,13 @@ newSave Config{delays=Delay{..}, ..} = unlines $
 newParse :: [(String, String)] -> Config
 newParse = evalState $ do
 	masterServers	<- f mastersText		[("master.tremulous.net", 30710, 69), ("master.tremulous.net", 30700, 70)]
-	clanSyncURL	<- f clanText			"http://ddos-tremulous.eu/cw/api/clanlist"
+	clanSyncURL	<- f clanText			"http://ddos-tremulous.eu/cw/api/2/clanlist"
 	tremPath	<- f t11Text			defaultTremulousPath
 	tremGppPath	<- f t12Text			defaultTremulousGPPPath
 	refreshMode	<- f refreshModeText		Startup
 	autoClan	<- f autoClanText		True
 	autoGeometry	<- f geometryText		True
-	autoDelay	<- f autoDelayText		1200000000 -- 120s
+	autoDelay	<- (*1000000) <$> f autoDelayText		120 -- 120s
 	filterBrowser	<- f browserfilterText		""
 	filterPlayers	<- f playerfilterText		""
 	filterEmpty	<- f showEmptyText		True

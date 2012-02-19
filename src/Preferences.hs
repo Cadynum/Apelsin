@@ -53,7 +53,7 @@ newPreferences Bundle{..} = do
 	--Refresh mode
 	rb1 <- radioButtonNewWithMnemonic "_Once at startup"
 	rb2 <- radioButtonNewWithMnemonicFromWidget rb1 "_Periodically each"
-	rb3 <- radioButtonNewWithMnemonicFromWidget rb1 "_Manual"
+	rb3 <- radioButtonNewWithMnemonicFromWidget rb1 "_Manually"
 	autoDelay <- spinButtonNewWithRange 0 3600 1
 	seconds <- labelNew (Just "s")
 

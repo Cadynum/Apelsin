@@ -45,6 +45,7 @@ data Clan = Clan
 	, name		:: !TI
 	, website
 	, irc		:: !B.ByteString
+	, websitealive	:: !Bool
 	, tagexpr	:: !TagExpr
 	, clanserver	:: !(Maybe SockAddr)
 	}
@@ -85,11 +86,12 @@ prettyTagExpr expr = case expr of
 
 rawToClan :: L.ByteString -> IO (Maybe [Clan])
 rawToClan = fmap sequence . mapM (f . B.split '\t' . lazyToStrict) . P.filter (not . L.null) . L.split '\n' where
-	f [rclanID, rname, _, website, irc, rexpr, rserver]
+	f (rclanID:rname:rexpr:website:rwebsitealive:irc:rserver:_)
 		| Just tagexpr <- mkTagExpr rexpr
 		, Just (clanID,_) <- B.readInt rclanID = do
 			let	(ip, port1)	= B.break (==':') rserver
 				port		= B.drop 1 port1
+				websitealive	= rwebsitealive == "1"
 			clanserver <- if B.null ip || B.null port
 				then return Nothing
 				else getDNS (B.unpack ip) (B.unpack port)

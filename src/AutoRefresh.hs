@@ -55,7 +55,6 @@ autoRunner m mconfig refreshAction = forkIO $ go Stopped Nothing
 startAuto :: MVar Config -> Maybe MicroTime -> IO a -> IO ThreadId
 startAuto mconfig lastRefresh refreshAction = uninterruptibleMask $ \restore -> forkIO $ do
 		delay <- autoDelay <$> readMVar mconfig
-		print delay
 		whenJust lastRefresh $ \past -> do
 			now <- getMicroTime
 			when (past+delay > now) $

@@ -43,6 +43,7 @@ Executable apelsin
   Other-Modules:        System.Environment.XDG.BaseDir
                         GtkExts
                         About
+                        AutoRefresh
                         ClanFetcher
                         Clanlist
                         Config
@@ -51,6 +52,7 @@ Executable apelsin
                         FilterBar
                         FindPlayers
                         GtkUtils
+                        IndividualServerSettings
                         InfoBox
                         List2
                         Monad2

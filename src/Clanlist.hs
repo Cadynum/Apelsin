@@ -47,16 +47,23 @@ newClanList bundle@Bundle{..} setCurrent = do
 	addColumnFS gen "" False (Just $ comparing $ isJust . clanserver . fst)
 		(rememberColumn bundle 0)
 		cellRendererPixbufNew [] haveServer
+
 	addColumnFS gen "_Name" False (Just $ comparing $ name . fst)
 		(rememberColumn bundle 1)
 		cellRendererTextNew [] (simpleColumn (original . name))
+
 	addColumnFS gen "_Tag" False (Just $ comparing $ tagexpr . fst)
 		(rememberColumn bundle 2)
 		cellRendererTextNew [] (markupColumn (prettyTagExpr . tagexpr))
+
 	addColumnFS gen "Website" False Nothing
 		(const (return ()))
-		cellRendererTextNew webMarkup $ \rend (Clan{..},_) -> do
-			cellSetText rend (showURL website)
+		cellRendererTextNew [] $ \rend (Clan{..},_) -> do
+			set rend $ if websitealive
+				then [ cellTextStrikethrough := False, cellTextUnderline := UnderlineSingle, cellTextForegroundColor := Color 0 0 maxBound ]
+				else [ cellTextStrikethrough := True, cellTextUnderline := UnderlineNone, cellTextForegroundColor := Color maxBound 0 0 ]
+			cellSetMarkup rend (showURL website)
+
 	addColumnFS gen "IRC" False Nothing
 		(const (return ()))
 		cellRendererTextNew [] (simpleColumn irc)
@@ -76,8 +83,9 @@ newClanList bundle@Bundle{..} setCurrent = do
 		(Clan{..}, active)	<- getElementPath gen path
 		title			<- maybe (return Nothing) treeViewColumnGetTitle col
 
-		when (title == Just "Website" && (not . B.null) website) $
-			openInBrowser (B.unpack website)
+		when (title == Just "Website" && (not . B.null) website) $ openInBrowser $
+			if websitealive then B.unpack website
+					else "http://wayback.archive.org/web/*/" ++ (B.unpack website)
 
 		when active $ whenJust clanserver $ \server -> do
 			P.PollResult{..} <- readMVar mpolled
@@ -100,8 +108,6 @@ newClanList bundle@Bundle{..} setCurrent = do
 	return (box, updateF)
 	where
 	showURL x = SM.fromMaybe x (stripPrefix "http://" x)
-	webMarkup =	[ cellTextUnderline       := UnderlineSingle
-			, cellTextForegroundColor := Color 0 0 maxBound ]
 	markupColumn f rend (item, _) = cellSetMarkup rend (f item)
 	simpleColumn f rend (item, _) = cellSetText rend (f item)
 	haveServer rend (Clan{..}, active) = set rend $ case clanserver of
