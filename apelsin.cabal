@@ -49,6 +49,7 @@ Executable apelsin
                         Config
                         Constants
                         ConcurrentUtil
+                        Exception2
                         FilterBar
                         FindPlayers
                         GtkUtils
@@ -56,9 +57,11 @@ Executable apelsin
                         InfoBox
                         List2
                         Monad2
+                        NumberSerializer
                         Preferences
                         ServerBrowser
                         ServerInfo
+                        SettingsDialog
                         Toolbar
                         TremFormatting
                         Types
