@@ -166,7 +166,7 @@ makeColorsFromList = listArray (0,7)
 configToFile :: Window -> Config -> IO ()
 configToFile win config = do
 	file <- inConfDir "config"
-	handle err (writeFile file (newSave config))
+	handle err $ writeFile file (newSave config)
 	where
 	err (e::IOError) = gtkWarn win $ "Unable to save settings:\n" ++ show e
 

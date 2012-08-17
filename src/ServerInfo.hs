@@ -211,7 +211,7 @@ newServerInfo Bundle{..} mupdate = do
 			, maybeS version
 			]
 		labelSetText versionLabel (maybeS version)
-		labelSetText bools $	unwords	[ if unlagged then "unlagged" else ""
+		labelSetText bools $ unwords [ if unlagged then "unlagged" else ""
 						, if protected then "password" else "" ]
 
 		listStoreClear amodel
