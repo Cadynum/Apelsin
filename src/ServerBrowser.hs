@@ -57,13 +57,13 @@ newServerBrowser bundle@Bundle{..} setServer = do
 		(\rend x -> set rend [cellText := showPlayers x])
 
 
-	treeSortableSetSortColumnId sorted browserSort browserOrder
+	treeSortableSetSortColumnId sorted browserSortColumn browserOrder
 
 	(infobox, statNow, statTot, statRequested) <- newInfoboxBrowser
 
 	(filterbar, current) <- newFilterBar parent filtered statNow filterBrowser
 	empty <- checkButtonNewWithMnemonic "_empty"
-	set empty [ toggleButtonActive := filterEmpty ]
+	set empty [ toggleButtonActive := showEmpty ]
 	boxPackStart filterbar empty PackNatural spacingHalf
 	on empty toggled $ do
 		treeModelFilterRefilter filtered
@@ -73,13 +73,13 @@ newServerBrowser bundle@Bundle{..} setServer = do
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
 		GameServer{..}	<- treeModelGetRow raw iter
 		s		<- readIORef current
-		showEmpty	<- toggleButtonGetActive empty
-		return $ (showEmpty || nplayers > 0) &&
+		showEmpty_	<- toggleButtonGetActive empty
+		return $ (showEmpty_ || nplayers > 0) &&
 			(smartFilter s
 				[ cleanedCase hostname
 				, SM.maybe "" cleanedCase mapname
 				, SM.maybe "" cleanedCase version
-				, proto2string protocol
+				, protoToAbbr protocol
 				, SM.maybe "" cleanedCase gamemod
 				])
 
@@ -109,7 +109,7 @@ newServerBrowser bundle@Bundle{..} setServer = do
 
 	return (box, updateF)
 	where
-	showGame GameServer{..} = B.concat (proto2string protocol : SM.maybe [] ((\x -> ["-",x]) . original) gamemod)
+	showGame GameServer{..} = B.concat (protoToAbbr protocol : SM.maybe [] ((\x -> ["-",x]) . original) gamemod)
 	showPlayers GameServer{..} = printf "%d / %2d" nplayers slots
 
 browserUpdateOne :: BrowserStore -> GameServer -> IO ()
@@ -124,6 +124,6 @@ rememberColumn :: Bundle -> Int -> TreeViewColumn -> IO ()
 rememberColumn Bundle{..} n col = do
 	order <- treeViewColumnGetSortOrder col
 	current <- takeMVar mconfig
-	let new = current {browserSort = n, browserOrder = order}
+	let new = current {browserSortColumn = n, browserOrder = order}
 	putMVar mconfig new
 	configToFile parent new

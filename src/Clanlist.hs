@@ -69,7 +69,7 @@ newClanList bundle@Bundle{..} setCurrent = do
 		cellRendererTextNew [] (simpleColumn irc)
 
 	Config{..} <- readMVar mconfig
-	treeSortableSetSortColumnId sorted clanlistSort clanlistOrder
+	treeSortableSetSortColumnId sorted clanlistSortColumn clanlistOrder
 
 
 	treeModelFilterSetVisibleFunc filtered $ \iter -> do
@@ -119,6 +119,6 @@ rememberColumn :: Bundle -> Int -> TreeViewColumn -> IO ()
 rememberColumn Bundle{..} n col = do
 	order <- treeViewColumnGetSortOrder col
 	current <- takeMVar mconfig
-	let new = current {clanlistSort = n, clanlistOrder = order}
+	let new = current {clanlistSortColumn = n, clanlistOrder = order}
 	putMVar mconfig new
 	configToFile parent new

@@ -37,7 +37,7 @@ Executable apelsin
   Other-Extensions:     CPP StandaloneDeriving
   Build-Depends:        base>=4.3&&<5, array, mtl, containers, transformers,
                         bytestring, directory, filepath, HTTP, network,
-                        tremulous-query>=1.0.6, gtk, glib, process, deepseq
+                        tremulous-query>=1.0.6, gtk, glib, process, deepseq, cpphs
   Hs-Source-Dirs:       src
   Main-is:              Apelsin.hs
   Other-Modules:        System.Environment.XDG.BaseDir
@@ -68,7 +68,7 @@ Executable apelsin
                         OnlineClans
                         Paths_apelsin
 
-  Ghc-Options:          -Wall -threaded -fno-warn-unused-do-bind -funbox-strict-fields
+  Ghc-Options:          -Wall -threaded -fno-warn-unused-do-bind -funbox-strict-fields -optP --cpp -pgmP cpphs
 
   if !flag(relativePath)
     cpp-options:        -DCABAL_PATH

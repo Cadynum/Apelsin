@@ -86,8 +86,8 @@ main = withSocketsDo $ do
 
 	-- save the current window size and pane positon on exit
 	on win deleteEvent $ tryEvent $ liftIO $ do
-		Config {autoGeometry} <- readMVar (mconfig bundle)
-		when autoGeometry $ do
+		Config {restoreGeometry} <- readMVar (mconfig bundle)
+		when restoreGeometry $ do
 			file		<- inCacheDir "windowsize"
 			(winw, winh)	<- windowGetSize win
 			ppos		<- panedGetPosition pane
@@ -108,7 +108,7 @@ main = withSocketsDo $ do
 	widgetShowAll leftView
 
 	-- Restore the window size and pane position
-	when (autoGeometry config) $ ignoreIOException $ do
+	when (restoreGeometry config) $ ignoreIOException $ do
 		file	<- inCacheDir "windowsize"
 		fx	<- readFile file
 		whenJust (mread fx) $ \(winw::Int, winh, ppos::Int) -> do

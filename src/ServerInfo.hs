@@ -201,7 +201,7 @@ newServerInfo Bundle{..} mupdate = do
 		labelSetMarkup hostnamex $ showHostname colors hostname
 		zipWithM_ labelSetMarkup info
 			[ show address
-			, (proto2string protocol ++ (case gamemod of
+			, (protoToFull protocol ++ (case gamemod of
 					SM.Nothing	-> ""
 					SM.Just z	-> " (" ++ (unpack . original) z ++ ")"))
 			, maybeS mapname
@@ -294,9 +294,9 @@ newServerInfo Bundle{..} mupdate = do
 
 protocolToPath :: Config -> Int -> Maybe FilePath
 protocolToPath c proto = case proto of
-	69 -> Just (tremPath c)
-	70 -> Just (tremGppPath c)
-	86 -> Just (unvPath c)
+	69 -> Just (tremulousPath c)
+	70 -> Just (tremulousGppPath c)
+	86 -> Just (unvanquishedPath c)
 	_  -> Nothing
 
 

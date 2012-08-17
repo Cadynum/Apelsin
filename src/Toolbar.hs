@@ -119,9 +119,9 @@ mLock widget f = do
 
 newClanSync :: Bundle -> [ClanHook] -> [ClanPolledHook] -> IO () -> IO ()
 newClanSync Bundle{..} clanHook bothHook unlock = do
-	Config {clanSyncURL} <- readMVar mconfig
+	Config {clanlistURL} <- readMVar mconfig
 	forkIO $ do
-		new <- getClanList clanSyncURL
+		new <- getClanList clanlistURL
 		case new of
 			Nothing	-> postGUISync $ gtkError parent "Unable to download clanlist"
 			Just a	-> do

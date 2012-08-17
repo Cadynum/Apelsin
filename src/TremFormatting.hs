@@ -46,19 +46,15 @@ pangoColors arr = go False where
 	close n = if n then "</span>" else ""
 
 	-- Protocol version
-proto2string :: IsString s => Int ->  s
-proto2string x = case x of
+protoToAbbr, protoToFull :: IsString s => Int ->  s
+protoToAbbr x = case x of
 	69 -> "1.1"
 	70 -> "gpp"
 	86 -> "unv"
 	_  -> "?"
 
-string2proto :: (IsString s, Eq s) => s -> Maybe Int
-string2proto x = case x of
-	"vanilla"	-> Just 69
-	"1.1"		-> Just 69
-	"gpp"		-> Just 70
-	"1.2"		-> Just 70
-	"unv"		-> Just 86
-	"unvanquished"	-> Just 86
-	_		-> Nothing
+protoToFull x = case x of
+	69 -> "Tremulous 1.1"
+	70 -> "Tremulous GPP"
+	86 -> "Unvanquished"
+	_  -> "<Unknown>"

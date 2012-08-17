@@ -32,7 +32,7 @@ newPreferences Bundle{..} = do
 	-- Default filters
 	(  tbl
 	 , [filterBrowser, filterPlayers]
-	 , filterEmpty
+	 , showEmpty
 	 ) <- configTable
 		[ "_Browser:"
 		, "_Find players:"
@@ -41,28 +41,28 @@ newPreferences Bundle{..} = do
 
 	-- Tremulous path
         path_table      <- paddedTableNew
-        tremPath        <- pathInsertTable parent path_table 0 "_Tremulous 1.1:"
-        tremGppPath     <- pathInsertTable parent path_table 1 "Tremulous _GPP:"
-        unvPath         <- pathInsertTable parent path_table 2 "_Unvanquished:"
+        tremulousPath        <- pathInsertTable parent path_table 0 "_Tremulous 1.1:"
+        tremulousGppPath     <- pathInsertTable parent path_table 1 "Tremulous _GPP:"
+        unvanquishedPath         <- pathInsertTable parent path_table 2 "_Unvanquished:"
         paths           <- framed "Path or command" path_table
 
 	-- Startup
 	autoClan	<- checkButtonNewWithMnemonic "_Sync clan list"
-	autoGeometry	<- checkButtonNewWithMnemonic "Restore _window geometry from previous session"
+	restoreGeometry	<- checkButtonNewWithMnemonic "Restore _window geometry from previous session"
 	startupBox <- vBoxNew False 0
 	boxPackStartDefaults startupBox autoClan
-	boxPackStartDefaults startupBox autoGeometry
+	boxPackStartDefaults startupBox restoreGeometry
 	startup <- framed "On startup" startupBox
 
 	--Refresh mode
 	rb1 <- radioButtonNewWithMnemonic "_Once at startup"
 	rb2 <- radioButtonNewWithMnemonicFromWidget rb1 "_Periodically each"
 	rb3 <- radioButtonNewWithMnemonicFromWidget rb1 "_Manually"
-	autoDelay <- spinButtonNewWithRange 0 3600 1
+	autoRefreshDelay <- spinButtonNewWithRange 0 3600 1
 	seconds <- labelNew (Just "s")
 
 	delaybox <- hBoxNew False spacing
-	boxPackStart delaybox autoDelay PackNatural 0
+	boxPackStart delaybox autoRefreshDelay PackNatural 0
 	boxPackStart delaybox seconds PackNatural 0
 
 	perbox <- hBoxNew False spacingBig
@@ -112,13 +112,13 @@ newPreferences Bundle{..} = do
 		let Delay{..} = C.delays c
 		set filterBrowser	[ entryText := C.filterBrowser c ]
 		set filterPlayers	[ entryText := C.filterPlayers c ]
-		set filterEmpty		[ toggleButtonActive := C.filterEmpty c]
-		set tremPath		[ entryText := C.tremPath c ]
-		set tremGppPath		[ entryText := C.tremGppPath c]
-		set unvPath			[ entryText := C.unvPath c]
+		set showEmpty		[ toggleButtonActive := C.showEmpty c]
+		set tremulousPath	[ entryText := C.tremulousPath c ]
+		set tremulousGppPath	[ entryText := C.tremulousGppPath c]
+		set unvanquishedPath	[ entryText := C.unvanquishedPath c]
 		set autoClan		[ toggleButtonActive := C.autoClan c]
-		set autoGeometry	[ toggleButtonActive := C.autoGeometry c]
-		set autoDelay		[ spinButtonValue := fromIntegral (C.autoDelay c `quot` 1000000) ]
+		set restoreGeometry	[ toggleButtonActive := C.restoreGeometry c]
+		set autoRefreshDelay	[ spinButtonValue := fromIntegral (C.autoRefreshDelay c `quot` 1000000) ]
 		set packetTimeout'	[ spinButtonValue := fromIntegral (packetTimeout `quot` 1000) ]
 		set packetDuplication'	[ spinButtonValue := fromIntegral packetDuplication ]
 		set throughputDelay'	[ spinButtonValue := fromIntegral (throughputDelay `quot` 1000) ]
@@ -135,15 +135,15 @@ newPreferences Bundle{..} = do
 	updateF
 
 	_CONNECT(filterBrowser, editableChanged, entryText, C.filterBrowser)
-	_CONNECT(filterEmpty, toggled, toggleButtonActive, C.filterEmpty)
+	_CONNECT(showEmpty, toggled, toggleButtonActive, C.showEmpty)
 	_CONNECT(filterPlayers, editableChanged, entryText, C.filterPlayers)
 
-	_CONNECT(tremPath, editableChanged, entryText, C.tremPath)
-	_CONNECT(tremGppPath, editableChanged, entryText, C.tremGppPath)
-	_CONNECT(unvPath, editableChanged, entryText, C.unvPath)
+	_CONNECT(tremulousPath, editableChanged, entryText, C.tremulousPath)
+	_CONNECT(tremulousGppPath, editableChanged, entryText, C.tremulousGppPath)
+	_CONNECT(unvanquishedPath, editableChanged, entryText, C.unvanquishedPath)
 
 	_CONNECT(autoClan, toggled, toggleButtonActive, C.autoClan)
-	_CONNECT(autoGeometry, toggled, toggleButtonActive, C.autoGeometry)
+	_CONNECT(restoreGeometry, toggled, toggleButtonActive, C.restoreGeometry)
 
 
 	let radiofunc value = update (\x -> x { C.refreshMode = value})
@@ -155,9 +155,9 @@ newPreferences Bundle{..} = do
 	on rb3 toggled $ do	b <- toggleButtonGetActive rb3
 				when b (radiofunc C.Manual)
 
-	onValueSpinned autoDelay $ do
-		value <- (*1000000) <$> spinButtonGetValueAsInt autoDelay
-		update (\x -> x { C.autoDelay = fromIntegral value})
+	onValueSpinned autoRefreshDelay $ do
+		value <- (*1000000) <$> spinButtonGetValueAsInt autoRefreshDelay
+		update (\x -> x { C.autoRefreshDelay = fromIntegral value})
 
 	onValueSpinned packetTimeout' $ do
 		packetTimeout <- (*1000) <$> spinButtonGetValueAsInt packetTimeout'

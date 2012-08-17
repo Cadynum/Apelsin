@@ -31,7 +31,7 @@ newFindPlayers bundle@Bundle{..} setServer = do
 		s <- readIORef current
 		return $ smartFilter s
 				[ cleanedCase item
-				, proto2string protocol
+				, protoToAbbr protocol
 				, SM.maybe "" cleanedCase gamemod
 				]
 
@@ -67,7 +67,7 @@ playerLikeList bundle@Bundle{..} setCurrent= do
 		[cellTextEllipsize := EllipsizeEnd]
 		(\rend -> cellSetMarkup rend . pangoPrettyBS colors . hostname . snd)
 
-	treeSortableSetSortColumnId sorted playersSort playersOrder
+	treeSortableSetSortColumnId sorted playersSortColumn playersOrder
 
 	on view cursorChanged $ do
 		(path, _) <- treeViewGetCursor view
@@ -96,6 +96,6 @@ rememberColumn :: Bundle -> Int -> TreeViewColumn -> IO ()
 rememberColumn Bundle{..} n col = do
 	order <- treeViewColumnGetSortOrder col
 	current <- takeMVar mconfig
-	let new = current {playersSort = n, playersOrder = order}
+	let new = current {playersSortColumn = n, playersOrder = order}
 	putMVar mconfig new
 	configToFile parent new
