@@ -2,6 +2,7 @@ module NumberSerializer where
 import Data.Bits
 import Network.Tremulous.SocketExtensions
 import Network.Socket
+import Data.Foldable
 
 intToHex :: (Integral i, Bits i) => Int -> i -> String
 intToHex = go [] where
@@ -12,9 +13,8 @@ intToHex = go [] where
 	conv = toEnum . fromIntegral
 
 hexToInt :: (Integral i, Bits i) => String -> i
-hexToInt = go 0 where
-	go b []     = b
-	go b (x:xs) = go ((b `shiftL` 4) .|. toInt x) xs
+hexToInt = foldl' (\acc x -> (acc `shiftL` 4) .|. toInt x) 0
+	where
 	toInt c | c' <= 0x39 = c' - 0x30
 	        | otherwise  = c' - (0x61-0xa)
 	        where c' = conv c
@@ -22,4 +22,6 @@ hexToInt = go 0 where
 
 
 stringToSockAddr :: String -> String -> SockAddr
-stringToSockAddr ip port = SockAddrInet (PortNum (htons (hexToInt port))) (htonl (hexToInt ip))
+stringToSockAddr ip port = SockAddrInet
+	(PortNum (htons (hexToInt port)))
+	(htonl (hexToInt ip))

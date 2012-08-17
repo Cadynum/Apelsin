@@ -43,7 +43,7 @@ newSettingsDialog win colors requirepw GameServer{..} ServerArg{..} = do
 		set b	[ entryActivatesDefault := True
 			, entryText		:= def
 			, entryWidthChars	:= 30 ]
-		when (pos == 1 && requirepw) $ do
+		when (pos == 1 && requirepw) $
 			labelSetAttributes a [AttrWeight 0 (-1) WeightBold]
 
 		set a	[ labelMnemonicWidget	:= b

@@ -14,10 +14,10 @@ whenJust x f = case x of
 	Just a	-> f a
 
 whenM :: Monad m => m Bool -> m () -> m ()
-whenM c m = c >>= \t -> if t then m else return ()
+whenM c m = c >>= \t -> when t m
 
 unlessM :: Monad m => m Bool -> m () -> m ()
-unlessM c m = c >>= \t -> if not t then m else return ()
+unlessM c m = c >>= \t -> when (not t) m
 
 getDNS :: String -> String -> IO (Maybe SockAddr)
 getDNS host port = handle (\(_ :: IOException) -> return Nothing) $

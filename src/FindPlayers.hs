@@ -73,7 +73,7 @@ playerLikeList bundle@Bundle{..} setCurrent= do
 		(path, _) <- treeViewGetCursor view
 		setCurrent False . snd =<< getElementPath gen path
 
-	on view rowActivated $ \path _ -> do
+	on view rowActivated $ \path _ ->
 		setCurrent True . snd =<< getElementPath gen path
 
 	return gen

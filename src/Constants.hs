@@ -8,6 +8,7 @@ import System.IO
 import System.Process
 import Control.Concurrent
 import Control.Exception
+import Control.Monad
 
 #ifdef CABAL_PATH
 import Paths_apelsin hiding (getDataDir)
@@ -71,7 +72,7 @@ openInBrowser x = handle (\(_ :: IOError) -> return ()) $ do
 	(_,_,_,hdl) <- createProcess p {close_fds = True}
 	-- The following hack is needed to avoid ghost processes because of:
 	-- http://hackage.haskell.org/trac/ghc/ticket/2123
-	forkIO $ waitForProcess hdl >> return ()
+	forkIO $ void $ waitForProcess hdl
 	return ()
 
 spacing, spacingHalf, spacingBig, spacingHuge :: Integral i => i

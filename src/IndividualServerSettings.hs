@@ -48,7 +48,7 @@ toFile :: ServerSettings -> IO Bool
 toFile settings = tryIO $ do
 	fx <- configFile
 	writeFile fx $ unlines $ map f $ M.toList settings
-	where f ((SockAddrInet (PortNum port) ip), ServerArg a b c d) = intercalate "\t"
+	where f (SockAddrInet (PortNum port) ip, ServerArg a b c d) = intercalate "\t"
 		[ intToHex 8 (ntohl ip)
 		, intToHex 4 (ntohs port)
 		, a, b, c

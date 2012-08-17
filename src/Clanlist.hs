@@ -85,7 +85,7 @@ newClanList bundle@Bundle{..} setCurrent = do
 
 		when (title == Just "Website" && (not . B.null) website) $ openInBrowser $
 			if websitealive then B.unpack website
-					else "http://wayback.archive.org/web/*/" ++ (B.unpack website)
+					else "http://wayback.archive.org/web/*/" ++ B.unpack website
 
 		when active $ whenJust clanserver $ \server -> do
 			P.PollResult{..} <- readMVar mpolled

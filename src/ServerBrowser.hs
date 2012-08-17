@@ -75,13 +75,12 @@ newServerBrowser bundle@Bundle{..} setServer = do
 		s		<- readIORef current
 		showEmpty_	<- toggleButtonGetActive empty
 		return $ (showEmpty_ || nplayers > 0) &&
-			(smartFilter s
-				[ cleanedCase hostname
-				, SM.maybe "" cleanedCase mapname
-				, SM.maybe "" cleanedCase version
-				, protoToAbbr protocol
-				, SM.maybe "" cleanedCase gamemod
-				])
+			smartFilter s	[ cleanedCase hostname
+							, SM.maybe "" cleanedCase mapname
+							, SM.maybe "" cleanedCase version
+							, protoToAbbr protocol
+							, SM.maybe "" cleanedCase gamemod
+							]
 
 	on view cursorChanged $ do
 		(path, _) <- treeViewGetCursor view

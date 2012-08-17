@@ -67,7 +67,7 @@ type PlayerList = [(TI, P.GameServer)]
 type OnlineView = Forest (Either Clan (TI, P.GameServer))
 
 associatePlayerToClans :: PlayerList -> [Clan] -> [(Clan, PlayerList)]
-associatePlayerToClans players clans = map f clans
+associatePlayerToClans players = map f
 	where
 	f c@Clan{tagexpr} = (c, filter (cmp tagexpr) players)
 	cmp e = matchTagExpr e . fst

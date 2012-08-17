@@ -112,7 +112,7 @@ newServerInfo Bundle{..} mupdate = do
 
 		if natural * 2 > h then
 			let half = max 0 (h`quot`2) in setS half half
-		else if (max sReq natural) + pReq + spacing <= h then
+		else if max sReq natural + pReq + spacing <= h then
 			setS (-1) (max sReq natural)
 		else do
 			let ratio	= fromIntegral pReq / (fromIntegral sReq + fromIntegral pReq) :: Double
@@ -194,16 +194,16 @@ newServerInfo Bundle{..} mupdate = do
 
 
 	on join buttonActivated $ readWithMVar current launchWithSettings
-	on st buttonActivated (updateSettings False >> return ())
+	on st buttonActivated $ void $ updateSettings False
 
 
 	let setF boolJoin gs@GameServer{..} = do
 		labelSetMarkup hostnamex $ showHostname colors hostname
 		zipWithM_ labelSetMarkup info
 			[ show address
-			, (protoToFull protocol ++ (case gamemod of
+			, protoToFull protocol ++ (case gamemod of
 					SM.Nothing	-> ""
-					SM.Just z	-> " (" ++ (unpack . original) z ++ ")"))
+					SM.Just z	-> " (" ++ (unpack . original) z ++ ")")
 			, maybeS mapname
 			, maybeQ timelimit ++ " / " ++ maybeQ suddendeath
 			, show slots ++ " (+" ++ maybeQ privslots ++ ")"
@@ -335,7 +335,7 @@ playerView colors teamName showScore = do
 	addColumn gen teamName True [cellTextEllipsize := EllipsizeEnd] $ \rend ->
 		cellSetMarkup rend . pangoPrettyBS colors . name
 	when showScore $ do
-		addColumn gen "Score" False [cellXAlign := 1] $ \rend item -> do
+		addColumn gen "Score" False [cellXAlign := 1] $ \rend item ->
 			set rend  [cellText := show $ kills item]
 		return ()
 	addColumn gen "Ping" False [cellXAlign := 1] $ \rend item ->

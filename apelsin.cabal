@@ -37,11 +37,10 @@ Executable apelsin
   Other-Extensions:     CPP StandaloneDeriving
   Build-Depends:        base>=4.3&&<5, array, mtl, containers, transformers,
                         bytestring, directory, filepath, HTTP, network,
-                        tremulous-query>=1.0.6, gtk, glib, process, deepseq, cpphs
+                        tremulous-query>=1.0.6, gtk, glib, process, deepseq, cpphs, xdg-basedir
   Hs-Source-Dirs:       src
   Main-is:              Apelsin.hs
-  Other-Modules:        System.Environment.XDG.BaseDir
-                        GtkExts
+  Other-Modules:        GtkExts
                         About
                         AutoRefresh
                         ClanFetcher

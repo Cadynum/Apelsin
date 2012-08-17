@@ -177,7 +177,7 @@ newPreferences Bundle{..} = do
 				<*> (colorToHex <$> colorButtonGetColor colb)
 		update $ \x -> x {C.colors = C.makeColorsFromList rawcolors}
 
-	forM colorList $ \(colb, cb) -> do
+	forM_ colorList $ \(colb, cb) -> do
 		on cb toggled updateColors
 		afterColorSet colb updateColors
 

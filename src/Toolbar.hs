@@ -70,7 +70,7 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 			[]	| k == "f7" -> liftIO (newAbout parent)	>> return True
 			_ -> return False
 
-	case (refreshMode c) of
+	case refreshMode c of
 		Startup	-> doRefresh
 		Auto	-> autoSignal mauto AutoStart
 		Manual	-> return ()

@@ -14,7 +14,7 @@ data AutoSignal = AutoUpdate | AutoStop | AutoStart | AutoPause | AutoResume
 data State = Running !ThreadId | Paused | Stopped
 
 autoSignal :: MVar AutoSignal -> AutoSignal -> IO ()
-autoSignal m = putMVar m
+autoSignal = putMVar
 
 autoRunner :: MVar AutoSignal -> MVar Config -> IO a -> IO ThreadId
 autoRunner m mconfig refreshAction = forkIO $ go Stopped Nothing

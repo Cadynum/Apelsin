@@ -55,6 +55,7 @@ data GenSimple store a where
 			=> !(store a)
 			-> !TreeView
 			-> GenSimple store a
+
 data GenFilterSort store a where
 	GenFilterSort	:: ( TreeModelClass (store a), TypedTreeModelClass store
 			   , TreeModelClass filter, TreeModelFilterClass filter
