@@ -156,12 +156,13 @@ newServerInfo Bundle{..} mupdate = do
 		pid <- maybeIO $ runTremulous config gs (getSettings (address gs) ss)
 		case pid of
 			Nothing -> do
-				gtkError parent $ "Unable to run \"" ++ path ++ "\".\nHave you set your path correctly in Preferences?"
+				let msg = case protocolToPath config (protocol gs) of
+					Just path -> "Unable to run \"" ++ path ++ "\".\nHave you set your path correctly in Preferences?"
+					Nothing   -> "Unknown game (protocol: " ++ show (protocol gs) ++ ")"
+				gtkError parent msg
 				set join [ widgetSensitive := True ]
 				takeMVar running
-				where path = case protocol gs of
-						70 -> tremGppPath config
-						_  -> tremPath config
+
 			Just a -> do
 				autoSignal mauto AutoPause
 				forkIO $ do
@@ -170,8 +171,6 @@ newServerInfo Bundle{..} mupdate = do
 					takeMVar running
 					autoSignal mauto AutoResume
 				return ()
-
-
 
 	let updateSettings joining = do
 		gs@GameServer{..}	<- readMVar current
@@ -292,15 +291,29 @@ newServerInfo Bundle{..} mupdate = do
 	maybeS			= SM.maybe "" (unpack . original)
 	meanPing		= show . intmean . filter validping . map ping
 
-runTremulous :: Config -> GameServer -> ServerArg-> IO (Maybe ProcessHandle)
-runTremulous Config{..} GameServer{..} ServerArg{..} = do
-	(_,_,_,p) <- createProcess (proc com args) {cwd = ldir, close_fds = True}
-	maybe (Just p) (const Nothing) <$> getProcessExitCode p
-	where
-	com = case protocol of
-		70 -> tremGppPath
-		_  -> tremPath
 
+protocolToPath :: Config -> Int -> Maybe FilePath
+protocolToPath c proto = case proto of
+	69 -> Just (tremPath c)
+	70 -> Just (tremGppPath c)
+	86 -> Just (unvPath c)
+	_  -> Nothing
+
+
+runTremulous :: Config -> GameServer -> ServerArg-> IO (Maybe ProcessHandle)
+runTremulous config GameServer{..} ServerArg{..} =
+	case protocolToPath config protocol of
+		Just com -> do
+			(_,_,_,p) <- createProcess (proc com args) {cwd = ldir, close_fds = True}
+			maybe (Just p) (const Nothing) <$> getProcessExitCode p
+			where
+			ldir = case takeDirectory com of
+				"" -> Nothing
+				x  -> Just x
+
+		Nothing ->
+			return Nothing
+	where
 	args = concatMap (uncurry arg)
 			[ ("connect", show address)
 			, ("password", serverPass)
@@ -308,9 +321,7 @@ runTremulous Config{..} GameServer{..} ServerArg{..} = do
 			, ("name", serverName)
 			]
 
-	ldir = case takeDirectory com of
-		"" -> Nothing
-		x  -> Just x
+
 
 arg :: String -> String -> [String]
 arg _ "" = []

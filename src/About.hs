@@ -14,7 +14,7 @@ newAbout win = do
 		, windowTransientFor	:= win
 		, aboutDialogProgramName:= programName
 		, aboutDialogVersion	:= showVersion version
-		, aboutDialogCopyright	:= "Copyright © 2011\nChristoffer Öjeling <christoffer@ojeling.net>"
+		, aboutDialogCopyright	:= "Copyright © 2011-2012\nChristoffer Öjeling <christoffer@ojeling.net>"
 		, aboutDialogComments	:= "A tremulous server and community browser\nLicense: GPLv3"
 		, aboutDialogWebsite	:= "http://ojeling.net"
 		]

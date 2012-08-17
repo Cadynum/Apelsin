@@ -74,7 +74,7 @@ newServerBrowser bundle@Bundle{..} setServer = do
 		GameServer{..}	<- treeModelGetRow raw iter
 		s		<- readIORef current
 		showEmpty	<- toggleButtonGetActive empty
-		return $ (showEmpty || not (null players)) &&
+		return $ (showEmpty || nplayers > 0) &&
 			(smartFilter s
 				[ cleanedCase hostname
 				, SM.maybe "" cleanedCase mapname

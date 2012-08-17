@@ -29,7 +29,8 @@ data Config = Config
 	{ masterServers :: ![(String, Int, Int)]
 	, clanSyncURL	:: !String
 	, tremPath
-	, tremGppPath	:: !String
+	, tremGppPath
+	, unvPath	:: !String
 	, refreshMode	:: !RefreshMode
 	, autoClan
 	, autoGeometry	:: !Bool
@@ -54,6 +55,7 @@ newSave Config{delays=Delay{..}, ..} = unlines $
 	, f clanSyncURL		clanText
 	, f tremPath		t11Text
 	, f tremGppPath		t12Text
+	, f unvPath		unvText
 	, f refreshMode		refreshModeText
 	, f autoClan		autoClanText
 	, f autoGeometry	geometryText
@@ -78,16 +80,18 @@ newSave Config{delays=Delay{..}, ..} = unlines $
 	f :: Show v => v -> String -> String
 	f v k = k ++ " " ++ show v
 
+
 newParse :: [(String, String)] -> Config
 newParse = evalState $ do
-	masterServers	<- f mastersText		[("master.tremulous.net", 30710, 69), ("master.tremulous.net", 30700, 70)]
+	masterServers	<- f mastersText		defaultMasters
 	clanSyncURL	<- f clanText			"http://ddos-tremulous.eu/cw/api/2/clanlist"
 	tremPath	<- f t11Text			defaultTremulousPath
 	tremGppPath	<- f t12Text			defaultTremulousGPPPath
+	unvPath		<- f unvText			defaultUnvanquishedPath
 	refreshMode	<- f refreshModeText		Startup
 	autoClan	<- f autoClanText		True
 	autoGeometry	<- f geometryText		True
-	autoDelay	<- (*1000000) <$> f autoDelayText		120 -- 120s
+	autoDelay	<- (*1000000) <$> f autoDelayText		120 --seconds
 	filterBrowser	<- f browserfilterText		""
 	filterPlayers	<- f playerfilterText		""
 	filterEmpty	<- f showEmptyText		True
@@ -109,7 +113,17 @@ newParse = evalState $ do
 		let (e, s') = lookupDelete key s
 		put s'
 		return $ SM.fromMaybe d $ smread =<< e
-	defaultColors = TFNone "#000000" : map TFColor ["#d60503", "#25c200", "#eab93d", "#0021fe", "#04c9c9", "#e700d7"] ++ [TFNone "#000000"]
+	defaultColors = [ TremFmt False "#000000"
+			, TremFmt True "#d60503"
+			, TremFmt True "#25c200"
+			, TremFmt True "#eab93d"
+			, TremFmt True "#0021fe"
+			, TremFmt True "#04c9c9"
+			, TremFmt True "#e700d7"
+			, TremFmt False "#000000" ]
+	defaultMasters =[ ("master.tremulous.net", 30710, 69)
+			, ("master.tremulous.net", 30700, 70)
+			, ("unvanquished.net",27950,86) ]
 
 smread :: (Read a) => String -> SM.Maybe a
 smread x = case reads x of
@@ -119,7 +133,7 @@ smread x = case reads x of
 parse :: String -> Config
 parse = newParse . map (breakDrop isSpace) . lines
 
-mastersText, clanText, t11Text, t12Text, refreshModeText, autoClanText, geometryText, autoDelayText
+mastersText, clanText, t11Text, t12Text, unvText, refreshModeText, autoClanText, geometryText, autoDelayText
 	, browserfilterText, playerfilterText, showEmptyText, browserSortText, playerSortText
 	, browserOrderText, playerOrderText, packetTimeoutText, clanlistSortText, clanlistOrderText
 	, packetDuplicationText, throughputDelayText, colorText :: String
@@ -127,6 +141,7 @@ mastersText		= "masters"
 clanText		= "clanlistUrl"
 t11Text			= "tremulous1.1"
 t12Text			= "tremulousGPP"
+unvText			= "unvanquished"
 refreshModeText		= "refreshMode"
 autoClanText		= "autoClan"
 geometryText		= "saveGeometry"
@@ -151,8 +166,7 @@ makeColorsFromList = listArray (0,7)
 configToFile :: Window -> Config -> IO ()
 configToFile win config = do
 	file <- inConfDir "config"
-	handle err $ do
-	writeFile file (newSave config)
+	handle err (writeFile file (newSave config))
 	where
 	err (e::IOError) = gtkWarn win $ "Unable to save settings:\n" ++ show e
 

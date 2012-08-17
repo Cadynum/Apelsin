@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+-- This file is horribly coded :( A good example why the gtk code should be separate
 module Preferences (newPreferences) where
 import Graphics.UI.Gtk
 
@@ -39,8 +40,11 @@ newPreferences Bundle{..} = do
 	filters <- framed "Default filters" tbl
 
 	-- Tremulous path
-	(pathstbl, [tremPath, tremGppPath]) <- pathTable parent ["_Tremulous 1.1:", "Tremulous _GPP:"]
-	paths <- framed "Tremulous path or command" pathstbl
+        path_table      <- paddedTableNew
+        tremPath        <- pathInsertTable parent path_table 0 "_Tremulous 1.1:"
+        tremGppPath     <- pathInsertTable parent path_table 1 "Tremulous _GPP:"
+        unvPath         <- pathInsertTable parent path_table 2 "_Unvanquished:"
+        paths           <- framed "Path or command" path_table
 
 	-- Startup
 	autoClan	<- checkButtonNewWithMnemonic "_Sync clan list"
@@ -111,6 +115,7 @@ newPreferences Bundle{..} = do
 		set filterEmpty		[ toggleButtonActive := C.filterEmpty c]
 		set tremPath		[ entryText := C.tremPath c ]
 		set tremGppPath		[ entryText := C.tremGppPath c]
+		set unvPath			[ entryText := C.unvPath c]
 		set autoClan		[ toggleButtonActive := C.autoClan c]
 		set autoGeometry	[ toggleButtonActive := C.autoGeometry c]
 		set autoDelay		[ spinButtonValue := fromIntegral (C.autoDelay c `quot` 1000000) ]
@@ -122,13 +127,9 @@ newPreferences Bundle{..} = do
 		set rb3			[ toggleButtonActive := C.refreshMode c == C.Manual ]
 
 		zipWithM_ f colorList (elems (C.colors c))
-		where	f (a, b) (TFColor c) = do
-				colorButtonSetColor a (hexToColor c)
-				toggleButtonSetActive b True
-			f (a ,b) (TFNone c) = do
-				colorButtonSetColor a (hexToColor c)
-				toggleButtonSetActive b False
-				-- Apparently this is needed too
+		where	f (a, b) (TremFmt active color) = do
+				colorButtonSetColor a (hexToColor color)
+				toggleButtonSetActive b active
 				toggleButtonToggled b
 
 	updateF
@@ -139,8 +140,8 @@ newPreferences Bundle{..} = do
 
 	_CONNECT(tremPath, editableChanged, entryText, C.tremPath)
 	_CONNECT(tremGppPath, editableChanged, entryText, C.tremGppPath)
+	_CONNECT(unvPath, editableChanged, entryText, C.unvPath)
 
-	--_CONNECT(autoMaster, toggled, toggleButtonActive, C.autoMaster)
 	_CONNECT(autoClan, toggled, toggleButtonActive, C.autoClan)
 	_CONNECT(autoGeometry, toggled, toggleButtonActive, C.autoGeometry)
 
@@ -171,10 +172,9 @@ newPreferences Bundle{..} = do
 		update (\x -> let delays = C.delays x in x {C.delays = delays {throughputDelay}})
 
 	let updateColors = do
-		rawcolors <- forM colorList $ \(colb, cb) -> do
-			bool <- get cb toggleButtonActive
-			(if bool then TFColor else TFNone)
-				 . colorToHex <$> colorButtonGetColor colb
+		rawcolors <- forM colorList $ \(colb, cb) ->
+			TremFmt <$> get cb toggleButtonActive
+				<*> (colorToHex <$> colorButtonGetColor colb)
 		update $ \x -> x {C.colors = C.makeColorsFromList rawcolors}
 
 	forM colorList $ \(colb, cb) -> do
@@ -206,20 +206,15 @@ configTable ys = do
 	rt <- zipWithM easyAttach [0..] ys
 	return (tbl, rt, empty)
 
-pathTable :: Window -> [String] -> IO (Table, [Entry])
-pathTable parent ys = do
-	tbl <- paddedTableNew
-	let easyAttach pos lbl  = do
-		a <- labelNewWithMnemonic lbl
-		(box, ent) <- pathSelectionEntryNew parent
-		set a [ labelMnemonicWidget := ent ]
-		miscSetAlignment a 0 0.5
-		tableAttach tbl a 0 1 pos (pos+1) [Fill] [] 0 0
-		tableAttach tbl box 1 2 pos (pos+1) [Expand, Fill] [] 0 0
-		return ent
-
-	rt	<- zipWithM easyAttach [0..] ys
-	return (tbl, rt)
+pathInsertTable :: Window -> Table -> Int -> String -> IO Entry
+pathInsertTable parent tbl pos lbl = do
+	a <- labelNewWithMnemonic lbl
+	(box, ent) <- pathSelectionEntryNew parent
+	set a [ labelMnemonicWidget := ent ]
+	miscSetAlignment a 0 0.5
+	tableAttach tbl a 0 1 pos (pos+1) [Fill] [] 0 0
+	tableAttach tbl box 1 2 pos (pos+1) [Expand, Fill] [] 0 0
+	return ent
 
 mkInternals :: IO (Table, [SpinButton])
 mkInternals = do

@@ -39,12 +39,14 @@ getDataDir = getCurrentDirectory
 #endif
 
 
-defaultTremulousPath, defaultTremulousGPPPath:: FilePath
+defaultTremulousPath, defaultTremulousGPPPath, defaultUnvanquishedPath :: FilePath
 trace :: String -> IO ()
 defaultBrowser :: String -> IO CreateProcess
+
 #if defined(mingw32_HOST_OS) || defined(__MINGW32__)
 defaultTremulousPath	= "C:\\Program Files\\Tremulous\\tremulous.exe"
 defaultTremulousGPPPath	= "C:\\Program Files\\Tremulous\\tremulous-gpp.exe"
+defaultUnvanquishedPath = "C:\\Program Files\\Unvanquished\\daemon.exe"
 trace _			= return ()
 defaultBrowser x	= do
 	ddir <- getDataDir
@@ -52,6 +54,7 @@ defaultBrowser x	= do
 #else
 defaultTremulousPath	= "tremulous"
 defaultTremulousGPPPath	= "tremulous-gpp"
+defaultUnvanquishedPath = "unvanquished"
 trace x			= hPutStrLn stderr x >> hFlush stderr
 
 #if defined(__APPLE__) || defined(__MACH__)
