@@ -50,15 +50,15 @@ newClanList bundle@Bundle{..} setCurrent = do
 
 	addColumnFS gen "_Name" False (Just $ comparing $ name . fst)
 		(rememberColumn bundle 1)
-		cellRendererTextNew [] (simpleColumn (original . name))
+		fastCellTextRenderer [] (simpleColumn (original . name))
 
 	addColumnFS gen "_Tag" False (Just $ comparing $ tagexpr . fst)
 		(rememberColumn bundle 2)
-		cellRendererTextNew [] (markupColumn (prettyTagExpr . tagexpr))
+		fastCellTextRenderer [] (markupColumn (prettyTagExpr . tagexpr))
 
 	addColumnFS gen "Website" False Nothing
 		(const (return ()))
-		cellRendererTextNew [] $ \rend (Clan{..},_) -> do
+		fastCellTextRenderer [] $ \rend (Clan{..},_) -> do
 			set rend $ if websitealive
 				then [ cellTextStrikethrough := False, cellTextUnderline := UnderlineSingle, cellTextForegroundColor := Color 0 0 maxBound ]
 				else [ cellTextStrikethrough := True, cellTextUnderline := UnderlineNone, cellTextForegroundColor := Color maxBound 0 0 ]
@@ -66,7 +66,7 @@ newClanList bundle@Bundle{..} setCurrent = do
 
 	addColumnFS gen "IRC" False Nothing
 		(const (return ()))
-		cellRendererTextNew [] (simpleColumn irc)
+		fastCellTextRenderer [] (simpleColumn irc)
 
 	Config{..} <- readMVar mconfig
 	treeSortableSetSortColumnId sorted clanlistSortColumn clanlistOrder

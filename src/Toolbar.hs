@@ -20,6 +20,7 @@ import Config
 import About
 import ClanFetcher
 import AutoRefresh
+import Control.Exception (getMaskingState)
 
 newToolbar :: Bundle -> [ClanHook] -> [PolledHook] -> [ClanPolledHook] -> IO HBox
 newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
@@ -68,6 +69,7 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 			[]	| k == "f5" -> liftIO doRefresh		>> return True
 			[]	| k == "f6" -> liftIO doSync		>> return True
 			[]	| k == "f7" -> liftIO (newAbout parent)	>> return True
+			[]	| k == "f8" -> liftIO (toggleButton auto)	>> return True
 			_ -> return False
 
 	case refreshMode c of
@@ -77,6 +79,9 @@ newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do
 	when (autoClan c) doSync
 
 	return pbrbox
+
+toggleButton :: ToggleButton -> IO ()
+toggleButton b = toggleButtonSetActive b . not =<< toggleButtonGetActive b
 
 -- The reason a hbox is used is so the icons always gets displayed regardless of the gtk setting
 mkToolButton :: String -> StockId -> String -> IO Button
@@ -101,7 +106,7 @@ mkAuto refreshMode = do
 	containerAdd button img
 	set button	[ buttonRelief		:= ReliefNone
 			, buttonFocusOnClick	:= False
-			, widgetTooltipText	:= Just "Refresh all servers periodically" ]
+			, widgetTooltipText	:= Just "Refresh all servers periodically (F8)" ]
 	return button
 
 mLock :: WidgetClass w => w -> (IO () -> IO ()) -> IO (IO ())
@@ -145,8 +150,8 @@ newRefresh Bundle{..} polledHook bothHook pb unlock = do
 	let serversGuess = if serversResponded == 0 then 110 else serversResponded
 	let tremTime = (packetDuplication + 1) * packetTimeout
 		+ serversGuess * throughputDelay + 200 * 1000
-
-	forkIO $ do
+	-- Unmask in case this is called from a masked state
+	forkIOWithUnmask $ \un -> un $ do
 		hosts <- catMaybes <$> mapM
 			(\(host, port, proto) -> fmap (`MasterServer` proto) <$> getDNS host (show port))
 			masterServers

@@ -57,13 +57,13 @@ playerLikeList bundle@Bundle{..} setCurrent= do
 
 	addColumnFS gen "_Name" True (Just (comparing fst))
 		(rememberColumn bundle 0)
-		cellRendererTextNew
+		fastCellTextRenderer
 		[cellTextEllipsize := EllipsizeEnd]
 		(\rend -> cellSetMarkup rend . pangoPrettyBS colors . fst)
 
 	addColumnFS gen "_Server" True (Just (comparing (hostname . snd)))
 		(rememberColumn bundle 1)
-		cellRendererTextNew
+		fastCellTextRenderer
 		[cellTextEllipsize := EllipsizeEnd]
 		(\rend -> cellSetMarkup rend . pangoPrettyBS colors . hostname . snd)
 

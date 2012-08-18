@@ -25,34 +25,35 @@ newServerBrowser bundle@Bundle{..} setServer = do
 	addColumnFS gen "_Game" False
 		(Just (comparing protocol `mappend` comparing gamemod `mappend` comparing gameping))
 		(rememberColumn bundle 0)
-		cellRendererTextNew
+		fastCellTextRenderer
 		[]
 		(\rend -> cellSetText rend . showGame)
 
 	addColumnFS gen "_Name" True
 		(Just (comparing hostname `mappend` comparing gameping))
 		(rememberColumn bundle 1)
-		cellRendererTextNew
+		fastCellTextRenderer
 		[cellTextEllipsize := EllipsizeEnd]
 		(\rend -> cellSetMarkup rend . pangoPrettyBS colors . hostname)
 
 	addColumnFS gen "_Map" False
 		(Just (comparing mapname `mappend` comparing gameping))
 		(rememberColumn bundle 2)
-		cellRendererTextNew []
+		fastCellTextRenderer
+		[]
 		(\rend -> cellSetText rend . SM.maybe "" (B.take 16 . original) . mapname)
 
 	addColumnFS gen "P_ing" False
 		(Just (comparing gameping `mappend` comparing hostname))
 		(rememberColumn bundle 3)
-		cellRendererTextNew
+		fastCellTextRenderer
 		[cellXAlign := 1]
 		(\rend x -> set rend [cellText := show $ gameping x])
 
 	addColumnFS gen "_Players" False
 		(Just (comparing nplayers `mappend` flip (comparing gameping)))
 		(rememberColumn bundle 4)
-		cellRendererTextNew
+		fastCellTextRenderer
 		[cellXAlign := 1]
 		(\rend x -> set rend [cellText := showPlayers x])
 

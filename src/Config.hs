@@ -63,9 +63,17 @@ defaultConfig = Config
                               , ("unvanquished.net", 27950, 86)
                               ]
     , clanlistURL           = "http://ddos-tremulous.eu/cw/api/2/clanlist"
-    , tremulousPath         = defaultTremulousPath
-    , tremulousGppPath      = defaultTremulousGPPPath
-    , unvanquishedPath      = defaultUnvanquishedPath
+
+#if defined(mingw32_HOST_OS) || defined(__MINGW32__)
+    , tremulousPath         = "C:\\Program Files\\Tremulous\\tremulous.exe"
+    , tremulousGppPath      = "C:\\Program Files\\Tremulous\\tremulous-gpp.exe"
+    , unvanquishedPath      = "C:\\Program Files\\Unvanquished\\daemon.exe"
+#else
+    , tremulousPath         = "tremulous"
+    , tremulousGppPath      = "tremulous-gpp"
+    , unvanquishedPath      = "unvanquished"
+#endif
+
     , refreshMode           = Startup
     , autoClan              = True
     , restoreGeometry       = True

@@ -83,12 +83,13 @@ newGenFilterSort  store = do
 	treeSortableSetDefaultSortFunc sorted Nothing
 	return (GenFilterSort store filtered sorted view)
 
+
 addColumn :: GenSimple a e -> String -> Bool -> [AttrOp CellRendererText] -> (CellRendererText -> e -> IO ()) -> IO Int
 addColumn gen@(GenSimple store view) title expand rendOpts f = do
 	col <- treeViewColumnNew
 	set col	[ treeViewColumnTitle := title
 		, treeViewColumnExpand := expand ]
-	rend <- cellRendererTextNew
+	rend <- fastCellTextRenderer
 	set rend rendOpts
 	set rend [cellTextEllipsize := EllipsizeEnd]
 	cellLayoutPackStart col rend True
@@ -128,6 +129,11 @@ addColumnFS gen@(GenFilterSort store filtered sorted view) title expand sortf ac
 			g <$> treeModelGetRow store rit1 <*> treeModelGetRow store rit2
 
 
+fastCellTextRenderer :: IO CellRendererText
+fastCellTextRenderer = do
+	rend <- cellRendererTextNew
+	cellRendererTextSetFixedHeightFromFont rend 1
+	return rend
 
 getIterUnsafe :: TreeModelClass self => self -> TreePath -> IO TreeIter
 getIterUnsafe model path =
