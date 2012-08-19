@@ -20,7 +20,7 @@ import Config
 import About
 import ClanFetcher
 import AutoRefresh
-import Control.Exception (getMaskingState)
+
 
 newToolbar :: Bundle -> [ClanHook] -> [PolledHook] -> [ClanPolledHook] -> IO HBox
 newToolbar bundle@Bundle{..} clanHook polledHook bothHook = do

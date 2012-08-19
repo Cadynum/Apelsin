@@ -206,7 +206,7 @@ newServerInfo Bundle{..} mupdate = do
 					SM.Just z	-> " (" ++ (unpack . original) z ++ ")")
 			, maybeS mapname
 			, maybeQ timelimit ++ " / " ++ maybeQ suddendeath
-			, show slots ++ " (+" ++ maybeQ privslots ++ ")"
+			, show slots ++ " (+" ++ show privslots ++ ")"
 			, show gameping ++ " / " ++ meanPing players
 			, maybeS version
 			]
