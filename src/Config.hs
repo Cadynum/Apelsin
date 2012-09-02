@@ -42,7 +42,7 @@ data Config = Config
     , refreshMode           :: !RefreshMode
     , autoClan
     , restoreGeometry       :: !Bool
-    , autoRefreshDelay          :: !MicroTime
+    , autoRefreshDelay      :: !MicroTime
     , filterBrowser
     , filterPlayers         :: !String
     , showEmpty             :: !Bool

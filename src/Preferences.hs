@@ -40,11 +40,11 @@ newPreferences Bundle{..} = do
 	filters <- framed "Default filters" tbl
 
 	-- Tremulous path
-        path_table      <- paddedTableNew
-        tremulousPath        <- pathInsertTable parent path_table 0 "_Tremulous 1.1:"
-        tremulousGppPath     <- pathInsertTable parent path_table 1 "Tremulous _GPP:"
-        unvanquishedPath         <- pathInsertTable parent path_table 2 "_Unvanquished:"
-        paths           <- framed "Path or command" path_table
+	path_table       <- paddedTableNew
+	tremulousPath    <- pathInsertTable parent path_table 0 "_Tremulous 1.1:"
+	tremulousGppPath <- pathInsertTable parent path_table 1 "Tremulous _GPP:"
+	unvanquishedPath <- pathInsertTable parent path_table 2 "_Unvanquished:"
+	paths            <- framed "Path or command" path_table
 
 	-- Startup
 	autoClan	<- checkButtonNewWithMnemonic "_Sync clan list"
@@ -56,24 +56,25 @@ newPreferences Bundle{..} = do
 
 	--Refresh mode
 	rb1 <- radioButtonNewWithMnemonic "_Once at startup"
-	rb2 <- radioButtonNewWithMnemonicFromWidget rb1 "_Periodically each"
+	rb2 <- radioButtonNewWithMnemonicFromWidget rb1 "_Periodically"
 	rb3 <- radioButtonNewWithMnemonicFromWidget rb1 "_Manually"
-	autoRefreshDelay <- spinButtonNewWithRange 0 3600 1
-	seconds <- labelNew (Just "s")
 
+	ar <- labelNewWithMnemonic "_Auto Refresh period:"
+	autoRefreshDelay <- spinButtonNewWithRange 0 3600 1
+	set ar [labelMnemonicWidget := autoRefreshDelay]
+	seconds <- labelNew (Just "s")
 	delaybox <- hBoxNew False spacing
+	boxPackStart delaybox ar PackNatural 0
 	boxPackStart delaybox autoRefreshDelay PackNatural 0
 	boxPackStart delaybox seconds PackNatural 0
 
-	perbox <- hBoxNew False spacingBig
-	boxPackStart perbox rb2 PackNatural 0
-	boxPackStart perbox delaybox PackNatural 0
-
 	rbBox <- vBoxNew False 0
 	boxPackStartDefaults rbBox rb1
-	boxPackStartDefaults rbBox perbox
+	boxPackStartDefaults rbBox rb2
 	boxPackStartDefaults rbBox rb3
+	boxPackStartDefaults rbBox delaybox
 	refreshmode <- framed "Refresh all" rbBox
+
 
 	-- Colors
 	(colorTbl, colorList) <- numberedColors
@@ -234,7 +235,7 @@ mkInternals = do
 
 	let mkTable = zipWithM easyAttach [0..]
 	rt <- mkTable	[ ("Respo_nse Timeout:", "ms", "How long Apelsin should wait before sending a new request to a server possibly not responding")
-			, ("Maximum packet _duplication:", "times", "Maximum number of extra requests to send beoynd the initial one if a server does not respond" )
+			, ("Maximum extra _requests:", "times", "Maximum number of extra requests to send beoynd the initial one if a server does not respond" )
 			, ("Throughput _limit:", "ms", "Should be set as low as possible as long as pings from \"Refresh all servers\" remains the same as \"Refresh current\"") ]
 	return (tbl, rt)
 
