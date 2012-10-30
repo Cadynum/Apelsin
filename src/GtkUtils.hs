@@ -91,7 +91,6 @@ addColumn gen@(GenSimple store view) title expand rendOpts f = do
 		, treeViewColumnExpand := expand ]
 	rend <- fastCellTextRenderer
 	set rend rendOpts
-	set rend [cellTextEllipsize := EllipsizeEnd]
 	cellLayoutPackStart col rend True
 	cellLayoutSetAttributeFunc col rend store $ \iter -> do
 		item <- getElementIter gen iter
