@@ -339,5 +339,5 @@ playerView colors teamName showScore = do
 			set rend  [cellText := show $ kills item]
 		return ()
 	addColumn gen "Ping" False [cellXAlign := 1] $ \rend item ->
-			set rend [ cellText := show $ ping item]
+			set rend [cellText := show $ ping item]
 	return gen

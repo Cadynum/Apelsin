@@ -4,8 +4,8 @@ It shows servers and players from **Tremulous 1.1**, **Tremulous GPP**
 and **Unvanquished** at the same time.
 Refreshing all servers should take about 1-2 seconds depending on your connection.
 The only dependency is gtk2, and gmp if you're on linux.
-Apelsin typically uses about 14MiB RAM.  
-License: GPL3  
+Apelsin typically uses about 14MiB RAM.
+License: GPL3
 Written in: Haskell
 
 ## Features
@@ -19,7 +19,7 @@ Written in: Haskell
 You can change the ratio between the panes by dragging the handle in the middle.
 
 ### Clan list
-The clan list is by default synced against the DDOS server on startup.  
+The clan list is by default synced against the DDOS server on startup.
 As the list has a historical value, no clans will be removed.
 
 **Add or update clan entries:**
@@ -38,3 +38,4 @@ As the list has a historical value, no clans will be removed.
 ## Build and install
     cd Apelsin
     cabal install
+
