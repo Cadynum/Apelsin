@@ -8,7 +8,6 @@ module Config(
     , configToFile
     , makeColorsFromList
 ) where
-import Prelude hiding (catch)
 import Graphics.UI.Gtk (SortType(..), Window)
 import Data.Array
 import Data.Char

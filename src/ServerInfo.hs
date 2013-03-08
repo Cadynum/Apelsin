@@ -1,7 +1,6 @@
 module ServerInfo (newServerInfo) where
 import Graphics.UI.Gtk
 
-import Prelude hiding (catch)
 import Control.Applicative
 import Control.Monad hiding (join)
 import Control.Exception
