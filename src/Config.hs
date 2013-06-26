@@ -1,4 +1,6 @@
 {-# LANGUAGE CPP #-}
+{-# OPTIONS_GHC -pgmP cpp #-}
+
 module Config(
       Config(..)
     , ColorTheme
@@ -66,7 +68,7 @@ defaultConfig = Config
 #if defined(mingw32_HOST_OS) || defined(__MINGW32__)
     , tremulousPath         = "C:\\Program Files\\Tremulous\\tremulous.exe"
     , tremulousGppPath      = "C:\\Program Files\\Tremulous\\tremulous-gpp.exe"
-    , unvanquishedPath      = "C:\\Program Files\\Unvanquished\\daemon.exe"
+    , unvanquishedPath      = "C:\\Program Files (x86)\\Unvanquished\\daemon.exe"
 #else
     , tremulousPath         = "tremulous"
     , tremulousGppPath      = "tremulous-gpp"
@@ -172,8 +174,8 @@ newParse = evalState $ do
     getKV :: Read b  => String -> (b -> c) -> c -> State [(String, String)] c
     getKV key f def = do
         s <- get
-        let (e, s') = lookupDelete key s
-        put s'
+        let (e, sNew) = lookupDelete key s
+        put sNew
         return $ SM.maybe def f $ smread =<< e
 
 
