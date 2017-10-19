@@ -61,6 +61,7 @@ defaultConfig :: Config
 defaultConfig = Config
     { masterServers         = [ ("master.tremulous.net", 30710, 69)
                               , ("master.tremulous.net", 30700, 70)
+                              , ("master.tremulous.net", 30700, 71)
                               , ("unvanquished.net", 27950, 86)
                               ]
     , clanlistURL           = "http://ddos-tremulous.eu/cw/api/2/clanlist"
