@@ -295,6 +295,7 @@ protocolToPath :: Config -> Int -> Maybe FilePath
 protocolToPath c proto = case proto of
 	69 -> Just (tremulousPath c)
 	70 -> Just (tremulousGppPath c)
+	71 -> Just (tremulous13path c)
 	86 -> Just (unvanquishedPath c)
 	_  -> Nothing
 
