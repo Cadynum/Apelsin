@@ -43,7 +43,8 @@ newPreferences Bundle{..} = do
 	path_table       <- paddedTableNew
 	tremulousPath    <- pathInsertTable parent path_table 0 "_Tremulous 1.1:"
 	tremulousGppPath <- pathInsertTable parent path_table 1 "Tremulous _GPP:"
-	unvanquishedPath <- pathInsertTable parent path_table 2 "_Unvanquished:"
+	tremulous13Path  <- pathInsertTable parent path_table 2 "Tremulous _1.3:"
+	unvanquishedPath <- pathInsertTable parent path_table 3 "_Unvanquished:"
 	paths            <- framed "Path or command" path_table
 
 	-- Startup
@@ -116,6 +117,7 @@ newPreferences Bundle{..} = do
 		set showEmpty		[ toggleButtonActive := C.showEmpty c]
 		set tremulousPath	[ entryText := C.tremulousPath c ]
 		set tremulousGppPath	[ entryText := C.tremulousGppPath c]
+		set tremulous13Path	[ entryText := C.tremulous13Path c]
 		set unvanquishedPath	[ entryText := C.unvanquishedPath c]
 		set autoClan		[ toggleButtonActive := C.autoClan c]
 		set restoreGeometry	[ toggleButtonActive := C.restoreGeometry c]
