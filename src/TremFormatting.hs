@@ -50,11 +50,13 @@ protoToAbbr, protoToFull :: IsString s => Int ->  s
 protoToAbbr x = case x of
 	69 -> "1.1"
 	70 -> "gpp"
+	71 -> "1.3"
 	86 -> "unv"
 	_  -> "?"
 
 protoToFull x = case x of
 	69 -> "Tremulous 1.1"
 	70 -> "Tremulous GPP"
+	71 -> "Tremulous 1.3"
 	86 -> "Unvanquished"
 	_  -> "<Unknown>"
