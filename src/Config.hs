@@ -39,6 +39,7 @@ data Config = Config
     , clanlistURL           :: !String
     , tremulousPath
     , tremulousGppPath
+    , tremulous13Path
     , unvanquishedPath      :: !String
     , refreshMode           :: !RefreshMode
     , autoClan
@@ -69,10 +70,12 @@ defaultConfig = Config
 #if defined(mingw32_HOST_OS) || defined(__MINGW32__)
     , tremulousPath         = "C:\\Program Files\\Tremulous\\tremulous.exe"
     , tremulousGppPath      = "C:\\Program Files\\Tremulous\\tremulous-gpp.exe"
+    , tremulous13Path      = "C:\\Program Files\\Tremulous\\tremulous.exe"
     , unvanquishedPath      = "C:\\Program Files (x86)\\Unvanquished\\daemon.exe"
 #else
     , tremulousPath         = "tremulous"
     , tremulousGppPath      = "tremulous-gpp"
+    , tremulous13Path      = "tremulous"
     , unvanquishedPath      = "unvanquished"
 #endif
 
